@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 {% block body %}
+{% set cond = cond or p.gap_max is not none %}
+{% set gtxt %}{% if p.gap_max is not none %}من {{ p.gap }}٪ لـ{{ p.gap_max }}٪{% else %}بـ{{ p.gap }}٪ أو أكتر{% endif %}{% endset %}
 
 {# ---------- الحالة دلوقتي في كل طريقة ---------- #}
 {% if latest %}
@@ -26,13 +28,13 @@
   <h2>قايمة الشراء مع فتح الجلسة الجاية ({{ latest.sig|length }} سهم)
     <span class="mute" style="font-size:14px;font-weight:400">· {% if state['dip']=='buy' %}الطريقة الأولى{% endif %}{% if state['dip']=='buy' and state['double']=='buy' %} و{% endif %}{% if state['double']=='buy' %}الطريقة التانية{% endif %}</span></h2>
   <div class="tablewrap"><table>
-    <tr><th>السهم</th><th>الرمز</th><th>المستوى</th>{% if p.gap > 0 %}<th>يتشرى لو فتح عند أو فوق</th>{% endif %}<th>عدد المرات</th><th>اللي اتلم عنده</th><th>إقفال جلسة الإشارة</th><th>قيمة التداول (مليون)</th></tr>
+    <tr><th>السهم</th><th>الرمز</th><th>المستوى</th>{% if cond %}<th>يتشرى لو فتح من</th>{% if p.gap_max is not none %}<th>لحد</th>{% endif %}{% endif %}<th>عدد المرات</th><th>اللي اتلم عنده</th><th>إقفال جلسة الإشارة</th><th>قيمة التداول (مليون)</th></tr>
     {% for r in latest.sig.itertuples() %}
-    <tr><td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td><td class="num">{{ r.price }}</td>{% if p.gap > 0 %}<td class="num"><b>{{ '%.3f'|format(r.price * (1 + p.gap/100)) }}</b></td>{% endif %}<td class="num">{{ r.win }}</td>
+    <tr><td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td><td class="num">{{ r.price }}</td>{% if cond %}<td class="num"><b>{{ '%.3f'|format(r.price * (1 + p.gap/100)) }}</b></td>{% if p.gap_max is not none %}<td class="num"><b>{{ '%.3f'|format(r.price * (1 + p.gap_max/100)) }}</b></td>{% endif %}{% endif %}<td class="num">{{ r.win }}</td>
         <td class="num">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.last }}</td><td class="num">{{ '%.1f'|format(r.val_m) }}</td></tr>
     {% endfor %}
   </table></div>
-  <p class="note">المستوى هو السعر اللي المشتري كان واقف عنده. {% if p.gap > 0 %}شرط الفتح: السهم يتشرى بس لو أول سعر في الجلسة كان فوق المستوى بـ{{ p.gap }}٪ أو أكتر. ولو فتح أقل من كده، يتساب.{% endif %}</p>
+  <p class="note">المستوى هو السعر اللي المشتري كان واقف عنده. {% if cond %}شرط الفتح: السهم يتشرى بس لو أول سعر في الجلسة كان فوق المستوى {{ gtxt }}. ولو فتح برا المدى ده، يتساب.{% endif %}</p>
 </div>
 {% endif %}
 
@@ -68,19 +70,34 @@
     {% if t.avg is not none %}
       <p>متوسط القايمة <b class="{{ 'pos' if t.avg>0 else 'neg' }}">{{ '%+.2f'|format(t.avg) }}٪</b>،
          رابحة {{ t.wins }} من {{ t.n }}، والسهم العادي في السوق في نفس الفترة <b>{{ '%+.2f'|format(t.market) }}٪</b>.</p>
-      {% if p.gap > 0 %}<p>بشرط الفتح فوق المستوى بـ{{ p.gap }}٪ أو أكتر:
+      {% if cond %}<p>بشرط الفتح فوق المستوى {{ gtxt }}:
         {% if t.ok_n %}{{ t.ok_n }} سهم بس اتشروا، ومتوسطهم <b class="{{ 'pos' if t.ok_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.ok_avg) }}٪</b>، ورابحة {{ t.ok_wins }} من {{ t.ok_n }}.{% else %}ولا سهم عدّى الشرط.{% endif %}</p>{% endif %}
       <div class="tablewrap"><table>
         <tr><th>السهم</th><th>المستوى</th><th>الشراء (فتح)</th><th>الفتح فوق المستوى</th><th>البيع (آخر سعر)</th><th>النتيجة</th></tr>
         {% for r in t.rows %}
         <tr><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ r.entry if r.entry is not none else '—' }}</td>
-            <td class="num">{% if r.gap is not none %}<span class="{{ 'pos' if p.gap > 0 and r.ok else 'mute' }}">{{ '%+.1f'|format(r.gap) }}٪{% if p.gap > 0 and r.ok %} ✓{% endif %}</span>{% else %}—{% endif %}</td>
+            <td class="num">{% if r.gap is not none %}<span class="{{ 'pos' if cond and r.ok else 'mute' }}">{{ '%+.1f'|format(r.gap) }}٪{% if cond and r.ok %} ✓{% endif %}</span>{% else %}—{% endif %}</td>
             <td class="num">{{ r.exit if r.exit is not none else '—' }}</td>
             <td class="num {{ 'pos' if r.ret and r.ret>0 else 'neg' if r.ret and r.ret<0 else '' }}">{{ '%+.2f'|format(r.ret) ~ '٪' if r.ret is not none else '—' }}</td></tr>
         {% endfor %}
       </table></div>
+    {% elif t.open_n %}
+      <p><span class="pill armed">لسه مفتوحة</span> النتيجة لحد آخر سعر يوم {{ t.mark_date }}:
+         كل القايمة ({{ t.open_n }} سهم) <b class="{{ 'pos' if t.open_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.open_avg) }}٪</b>، رابحة {{ t.open_wins }} من {{ t.open_n }}،
+         والسهم العادي في السوق من نفس الفتح <b>{{ '%+.2f'|format(t.open_market) }}٪</b>.</p>
+      {% if cond %}<p>بشرط الفتح فوق المستوى {{ gtxt }}:
+        {% if t.open_ok_n %}{{ t.open_ok_n }} سهم اتفعلوا، ومتوسطهم <b class="{{ 'pos' if t.open_ok_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.open_ok_avg) }}٪</b>، ورابحة {{ t.open_ok_wins }} من {{ t.open_ok_n }}.{% else %}ولا سهم اتفعل.{% endif %}</p>{% endif %}
+      <div class="tablewrap"><table>
+        <tr><th>السهم</th><th>المستوى</th><th>الشراء (فتح)</th><th>الفتح فوق المستوى</th><th>آخر سعر</th><th>النتيجة لحد دلوقتي</th></tr>
+        {% for r in t.rows|sort(attribute='gap', reverse=true) if r.mret is defined and r.mret is not none %}
+        <tr><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ r.entry }}</td>
+            <td class="num"><span class="{{ 'pos' if cond and r.ok else 'mute' }}">{{ '%+.1f'|format(r.gap) }}٪{% if cond and r.ok %} ✓{% endif %}</span></td>
+            <td class="num">{{ r.mark }}</td>
+            <td class="num {{ 'pos' if r.mret>0 else 'neg' if r.mret<0 else '' }}">{{ '%+.2f'|format(r.mret) }}٪</td></tr>
+        {% endfor %}
+      </table></div>
     {% else %}
-      <p class="mute">{{ t.rows|length }} سهم. النتيجة هتظهر لما ترفعي جلسة الشراء وجلسة البيع.</p>
+      <p class="mute">{{ t.rows|length }} سهم. النتيجة هتظهر لما ترفعي جلسة الشراء.</p>
     {% endif %}
   {% endfor %}
   {% set done = tl|selectattr('avg')|list %}
@@ -88,10 +105,10 @@
     {% set tot = done|map(attribute='avg')|sum %}
     {% set mk = done|map(attribute='market')|sum %}
     <p class="big" style="margin-top:14px">الإجمالي: {{ done|length }} إشارة اتحسبت. متوسط القوايم {{ '%+.2f'|format(tot/done|length) }}٪، ومتوسط السوق {{ '%+.2f'|format(mk/done|length) }}٪.</p>
-    {% if p.gap > 0 %}
+    {% if cond %}
       {% set ns = namespace(n=0, s=0, w=0) %}
       {% for x in done %}{% if x.ok_n %}{% set ns.n = ns.n + x.ok_n %}{% set ns.s = ns.s + x.ok_avg * x.ok_n %}{% set ns.w = ns.w + x.ok_wins %}{% endif %}{% endfor %}
-      <p class="big">بشرط الفتح فوق المستوى بـ{{ p.gap }}٪: {% if ns.n %}{{ ns.n }} صفقة في كل الإشارات، ومتوسطها {{ '%+.2f'|format(ns.s / ns.n) }}٪، ورابحة {{ ns.w }} من {{ ns.n }}.{% else %}ولا صفقة عدّت الشرط لحد دلوقتي.{% endif %}</p>
+      <p class="big">بشرط الفتح فوق المستوى {{ gtxt }}: {% if ns.n %}{{ ns.n }} صفقة في كل الإشارات، ومتوسطها {{ '%+.2f'|format(ns.s / ns.n) }}٪، ورابحة {{ ns.w }} من {{ ns.n }}.{% else %}ولا صفقة عدّت الشرط لحد دلوقتي.{% endif %}</p>
     {% endif %}
   {% endif %}
 </div>
@@ -112,14 +129,16 @@
 <div class="card">
   <h2>الإعدادات</h2>
   <form class="inline" method="get">
-    <label>أقل عدد مرات للمستوى<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="54"></label>
+    <label>عدد مرات المستوى من<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="54"></label>
+    <label>لـ (فاضي = من غير حد)<input type="number" name="max_win" value="{{ p.max_win if p.max_win is not none else '' }}" min="10" max="54"></label>
     <label>أقل عدد أسعار في اليوم<input type="number" name="min_prices" value="{{ p.min_prices }}" min="1"></label>
     <label>حد الطريقة الأولى<input type="number" name="threshold" value="{{ p.threshold }}" min="1"></label>
     <label>مضاعف الطريقة التانية<input type="number" name="mult" value="{{ p.mult }}" min="1.1" step="0.1"></label>
     <label>مدة الشيل بالجلسات<input type="number" name="hold" value="{{ p.hold }}" min="1" max="10"></label>
-    <label>شرط الفتح فوق المستوى ٪ (٠ = من غير شرط)<input type="number" name="gap" value="{{ p.gap }}" min="0" step="0.5"></label>
+    <label>الفتح فوق المستوى من ٪<input type="number" name="gap" value="{{ p.gap }}" min="0" step="0.5"></label>
+    <label>لـ ٪ (فاضي = من غير حد)<input type="number" name="gap_max" value="{{ p.gap_max if p.gap_max is not none else '' }}" min="0" step="0.5"></label>
     <button>طبّق</button>
   </form>
-  <p class="note">مدة الشيل بتعد يوم الشراء نفسه. مدة ٢ (الافتراضي) = لو الإشارة يوم التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس. مدة ٣ = البيع يوم الأحد. مدة ١ = البيع في نفس يوم الشراء.</p>
+  <p class="note">مدة الشيل بتعد يوم الشراء نفسه. مدة ٢ (الافتراضي) = لو الإشارة يوم التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس. مدة ٣ = البيع يوم الأحد. مدة ١ = البيع في نفس يوم الشراء.<br>شرط الفتح: لو "من" ٠ و"لـ" فاضي، يبقى من غير شرط. وعدد مرات المستوى أقصى حاجة ٥٤، لأن الجلسة فيها ٥٤ فترة خمس دقايق.</p>
 </div>
 {% endblock %}

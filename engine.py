@@ -205,8 +205,11 @@ def process_upload(store: Store, jid: str, path: Path, date: str):
 
 # ---------- الإشارات والقاعدة ----------
 
-def signals_for(st, lv, min_win, min_prices):
-    x = lv[lv['win'] >= min_win].merge(st[['nprices']], left_on='sym', right_index=True)
+def signals_for(st, lv, min_win, min_prices, max_win=None):
+    w = lv[lv['win'] >= min_win]
+    if max_win:
+        w = w[w['win'] <= max_win]
+    x = w.merge(st[['nprices']], left_on='sym', right_index=True)
     x = x[x['nprices'] >= min_prices]
     # أقوى مستوى لكل سهم
     x = x.sort_values(['sym', 'win', 'sell_vol'], ascending=[True, False, False]).drop_duplicates('sym')
@@ -220,14 +223,17 @@ METHODS = {
 }
 
 
-def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2.0, gap=3.0):
+def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2.0, gap=3.0,
+            max_win=None, gap_max=None):
     """
     hold = عدد الجلسات اللي السهم بيتشال فيها، والجلسة اللي اتشرى فيها محسوبة.
     hold=2 (الافتراضي): إشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس.
 
     الطريقة الأولى (dip): العدد ينزل تحت threshold، وأول يوم يرجع فيه threshold أو أكتر = إشارة.
     الطريقة التانية (double): عدد اليوم >= mult × عدد اليوم اللي قبله = إشارة.
-    gap = شرط الفتح: السهم يتشرى بس لو فتح فوق المستوى بالنسبة دي أو أكتر (٠ = من غير شرط).
+    min_win / max_win = عدد مرات المستوى من / لـ (max_win فاضي = من غير حد أعلى).
+    gap / gap_max = شرط الفتح: السهم يتشرى بس لو فتح فوق المستوى بنسبة من gap لـ gap_max
+    (gap = ٠ وgap_max فاضي = من غير شرط).
     """
     dates = store.dates()
     data = {d: store.load(d) for d in dates}
@@ -236,7 +242,7 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
     prev_n = None
     for i, d in enumerate(dates):
         st, lv, meta = data[d]
-        sig = signals_for(st, lv, min_win, min_prices)
+        sig = signals_for(st, lv, min_win, min_prices, max_win)
         n = len(sig)
         t_dip = armed and n >= threshold
         if n < threshold:
@@ -262,7 +268,11 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
             if res['buy_date'] and r.sym in data[res['buy_date']][0].index:
                 row['entry'] = float(data[res['buy_date']][0].loc[r.sym, 'open'])
                 row['gap'] = round((row['entry'] / r.price - 1) * 100, 2)
-                row['ok'] = row['gap'] >= gap
+                row['ok'] = row['gap'] >= gap and (gap_max is None or row['gap'] <= gap_max)
+            if res['buy_date'] and not res['sell_date'] and row['entry'] and r.sym in data[dates[-1]][0].index:
+                # صفقة لسه مفتوحة: نقيّمها على آخر سعر في آخر جلسة مرفوعة
+                row['mark'] = float(data[dates[-1]][0].loc[r.sym, 'last'])
+                row['mret'] = round((row['mark'] / row['entry'] - 1) * 100, 2)
             if res['sell_date'] and row['entry'] and r.sym in data[res['sell_date']][0].index:
                 row['exit'] = float(data[res['sell_date']][0].loc[r.sym, 'last'])
                 row['ret'] = round((row['exit'] / row['entry'] - 1) * 100, 2)
@@ -281,6 +291,20 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
             res['ok_n'] = len(okr)
             res['ok_avg'] = round(sum(okr) / len(okr), 2) if okr else None
             res['ok_wins'] = sum(1 for x in okr if x > 0)
+        mr = [r for r in rows if r.get('mret') is not None]
+        if mr:
+            res['mark_date'] = dates[-1]
+            res['open_n'] = len(mr)
+            res['open_avg'] = round(sum(r['mret'] for r in mr) / len(mr), 2)
+            res['open_wins'] = sum(1 for r in mr if r['mret'] > 0)
+            okm = [r['mret'] for r in mr if r['ok']]
+            res['open_ok_n'] = len(okm)
+            res['open_ok_avg'] = round(sum(okm) / len(okm), 2) if okm else None
+            res['open_ok_wins'] = sum(1 for x in okm if x > 0)
+            b = data[res['buy_date']][0]
+            s = data[dates[-1]][0]
+            c = b.index[b['n'] >= 60].intersection(s.index)
+            res['open_market'] = round(float(((s.loc[c, 'last'] / b.loc[c, 'open'] - 1) * 100).median()), 2)
         return res
 
     trades = {m: [build(i, day) for i, day in enumerate(days) if day['trig'][m]] for m in METHODS}
