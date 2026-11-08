@@ -23,18 +23,18 @@ fieldset .inline{gap:14px}
 
 {# ======== الأقسام ======== #}
 <nav class="tabs">
-  <a href="{{ url_for('index', tab='today') }}" class="{{ 'on' if tab=='today' }}">النهارده</a>
-  <a href="{{ url_for('index', tab='open') }}" class="{{ 'on' if tab=='open' }}">الإشارات المفتوحة<span class="cnt">{{ open_sigs|length }}</span></a>
-  <a href="{{ url_for('index', tab='results') }}" class="{{ 'on' if tab=='results' }}">النتايج<span class="cnt">{{ closed|length }}</span></a>
-  <a href="{{ url_for('index', tab='warn') }}" class="{{ 'on' if tab=='warn' }}">التحذيرات</a>
-  <a href="{{ url_for('index', tab='sessions') }}" class="{{ 'on' if tab=='sessions' }}">الجلسات والرفع<span class="cnt">{{ days|length }}</span></a>
-  <a href="{{ url_for('index', tab='settings') }}" class="{{ 'on' if tab=='settings' }}">الإعدادات</a>
+  <a href="{{ murl('index', tab='today') }}" class="{{ 'on' if tab=='today' }}">النهارده</a>
+  <a href="{{ murl('index', tab='open') }}" class="{{ 'on' if tab=='open' }}">الإشارات المفتوحة<span class="cnt">{{ open_sigs|length }}</span></a>
+  <a href="{{ murl('index', tab='results') }}" class="{{ 'on' if tab=='results' }}">النتايج<span class="cnt">{{ closed|length }}</span></a>
+  <a href="{{ murl('index', tab='warn') }}" class="{{ 'on' if tab=='warn' }}">التحذيرات</a>
+  <a href="{{ murl('index', tab='sessions') }}" class="{{ 'on' if tab=='sessions' }}">الجلسات والرفع<span class="cnt">{{ days|length }}</span></a>
+  <a href="{{ murl('index', tab='settings') }}" class="{{ 'on' if tab=='settings' }}">الإعدادات</a>
 </nav>
 
 {# ================= النهارده ================= #}
 {% if tab == 'today' %}
   {% if not latest %}
-    <div class="card"><p>لسه مفيش جلسات. روحي لقسم <a href="{{ url_for('index', tab='sessions') }}">الجلسات والرفع</a> وارفعي أول ملف.</p></div>
+    <div class="card"><p>لسه مفيش جلسات في {{ mtitle }}. روحي لقسم <a href="{{ murl('index', tab='sessions') }}">الجلسات والرفع</a>{% if mkt == 'us' %} وجيبي أول جلسة{% else %} وارفعي أول ملف{% endif %}.</p></div>
   {% else %}
   <p class="mute">آخر جلسة مرفوعة: <b>{{ latest.date }}</b>، وفيها <b>{{ latest.count }}</b> إشارة{% if latest.prev is not none %} (اللي قبلها {{ latest.prev }}){% endif %}.</p>
   <div class="status">
@@ -75,7 +75,7 @@ fieldset .inline{gap:14px}
     <h2>إشارات مفتوحة دلوقتي</h2>
     {% for t in open_sigs %}
       <p>إشارة {{ t.signal_date }}: {{ t.open_n }} سهم، ومتوسطهم لحد آخر سعر <b class="{{ 'pos' if t.open_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.open_avg) }}٪</b>.
-         البيع مع آخر سعر في الجلسة الجاية. <a href="{{ url_for('index', tab='open') }}">التفاصيل</a></p>
+         البيع مع آخر سعر في الجلسة الجاية. <a href="{{ murl('index', tab='open') }}">التفاصيل</a></p>
     {% endfor %}
   </div>
   {% endif %}
@@ -83,7 +83,7 @@ fieldset .inline{gap:14px}
   {% if latest.warn|length %}
   <div class="card">
     <h2>تحذير في آخر جلسة ({{ latest.warn|length }} سهم)</h2>
-    <p class="mute">مستواهم اتلمس كتير بكمية صغيرة. <a href="{{ url_for('index', tab='warn') }}">التفاصيل</a></p>
+    <p class="mute">مستواهم اتلمس كتير بكمية صغيرة. <a href="{{ murl('index', tab='warn') }}">التفاصيل</a></p>
     <p>{% for r in latest.warn.itertuples() %}{{ r.name }} عند {{ r.price }}{% if not loop.last %}، {% endif %}{% endfor %}</p>
   </div>
   {% endif %}
@@ -193,6 +193,18 @@ fieldset .inline{gap:14px}
 
 {# ================= الجلسات والرفع ================= #}
 {% elif tab == 'sessions' %}
+  {% if mkt == 'us' %}
+  <div class="card">
+    <h2>جلب جلسة من داتابينتو</h2>
+    {% if not us_key %}<p class="neg">مفتاح داتابينتو مش متحط. ضيفي متغير اسمه DATABENTO_API_KEY في ريلواي، وحطي فيه المفتاح من صفحة حسابك.</p>{% endif %}
+    <form class="inline" method="post" action="{{ url_for('us_estimate') }}">
+      <label>تاريخ الجلسة (بتوقيت نيويورك)<input type="date" name="date" value="{{ us_date }}" required></label>
+      <button {{ 'disabled' if not us_key }}>احسب التكلفة</button>
+    </form>
+    <p class="note">البرنامج هيحسب تكلفة الجلسة الأول ويعرضهالك، ومش هينزّل حاجة غير لما توافقي. البيانات من {{ us_dataset }}، يعني صفقات بورصة ناسداك بس لـ{{ us_count }} سهم. الجلسة من ٩:٣٠ لـ٤ بتوقيت نيويورك، يعني {{ mwin }} فترة خمس دقايق.</p>
+    <p class="note">الجلسات لازم تتجاب ورا بعض من غير ما تنقص جلسة، لأن الإقفال السابق لكل سهم بيتاخد من الجلسة اللي قبلها.</p>
+  </div>
+  {% else %}
   <div class="card">
     <h2>رفع جلسة جديدة</h2>
     <form class="inline" method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
@@ -202,6 +214,7 @@ fieldset .inline{gap:14px}
     </form>
     <p class="note">لو رفعتي ملف لتاريخ موجود، هيتحسب من جديد بدل القديم. الجلسات لازم تترفع بتواريخها الصح ومن غير ما تنقص جلسة.</p>
   </div>
+  {% endif %}
   <div class="card">
     <h2>الجلسات</h2>
     {% if not days %}<p class="mute">لسه مفيش جلسات.</p>{% else %}
@@ -209,14 +222,14 @@ fieldset .inline{gap:14px}
       <tr><th>التاريخ</th><th>عدد الإشارات</th><th>أسهم في قايمة الشراء</th><th>تحذيرات</th><th>الطريقة الأولى</th><th>الطريقة التانية</th><th>عدد الصفقات</th><th></th></tr>
       {% for d in days|reverse %}
       <tr>
-        <td><a href="{{ url_for('day', date=d.date) }}">{{ d.date }}</a></td>
+        <td><a href="{{ murl('day', date=d.date) }}">{{ d.date }}</a></td>
         <td class="num"><b>{{ d.count }}</b>{% if d.prev is not none %} <span class="mute">(قبلها {{ d.prev }})</span>{% endif %}</td>
         <td class="num">{{ d.sig|length }}</td>
         <td class="num">{{ d.warn|length or '—' }}</td>
         <td>{% if d.trig.dip %}<span class="pill buy">إشارة شراء</span>{% elif d.count < p.threshold %}<span class="pill armed">تحت {{ p.threshold }}</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
         <td>{% if d.trig.double %}<span class="pill buy">إشارة شراء</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
         <td class="num mute">{{ d.meta.get('trades','') }}</td>
-        <td><form method="post" action="{{ url_for('delete', date=d.date) }}" onsubmit="return confirm('امسح جلسة {{ d.date }}؟')"><button class="danger">مسح</button></form></td>
+        <td><form method="post" action="{{ murl('delete', date=d.date) }}" onsubmit="return confirm('امسح جلسة {{ d.date }}؟')"><button class="danger">مسح</button></form></td>
       </tr>
       {% endfor %}
     </table></div>
@@ -228,10 +241,11 @@ fieldset .inline{gap:14px}
   <div class="card">
     <h2>الإعدادات</h2>
     {% if request.args.get('saved') %}<p class="pos">اتحفظت الإعدادات.</p>{% endif %}
-    <form method="post" action="{{ url_for('save_settings') }}">
+    <form method="post" action="{{ murl('save_settings') }}">
+      <input type="hidden" name="m" value="{{ mkt }}">
       <fieldset><legend>١. تحديد يوم الإشارة</legend>
         <div class="inline" style="display:flex;flex-wrap:wrap;gap:14px">
-          <label>عدد مرات المستوى اللي بيتحسب بيه عدد الإشارات<input type="number" name="day_win" value="{{ p.day_win }}" min="10" max="54"></label>
+          <label>عدد مرات المستوى اللي بيتحسب بيه عدد الإشارات<input type="number" name="day_win" value="{{ p.day_win }}" min="10" max="{{ mwin }}"></label>
           <label>أقل عدد أسعار اتداول عليها السهم في اليوم<input type="number" name="min_prices" value="{{ p.min_prices }}" min="1"></label>
           <label>الطريقة الأولى: الحد<input type="number" name="threshold" value="{{ p.threshold }}" min="1"></label>
           <label>الطريقة التانية: المضاعف<input type="number" name="mult" value="{{ p.mult }}" min="1.1" step="0.1"></label>
@@ -240,8 +254,8 @@ fieldset .inline{gap:14px}
       </fieldset>
       <fieldset><legend>٢. اختيار الأسهم من يوم الإشارة</legend>
         <div style="display:flex;flex-wrap:wrap;gap:14px">
-          <label>عدد مرات المستوى من<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="54"></label>
-          <label>لـ (فاضي = من غير حد)<input type="number" name="max_win" value="{{ p.max_win if p.max_win is not none else '' }}" min="10" max="54"></label>
+          <label>عدد مرات المستوى من<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="{{ mwin }}"></label>
+          <label>لـ (فاضي = من غير حد)<input type="number" name="max_win" value="{{ p.max_win if p.max_win is not none else '' }}" min="10" max="{{ mwin }}"></label>
           <label>أقل نسبة اتلمت عند المستوى ٪<input type="number" name="min_share" value="{{ p.min_share }}" min="0" step="0.5"></label>
         </div>
       </fieldset>
@@ -259,7 +273,7 @@ fieldset .inline{gap:14px}
       <button>حفظ</button>
       <button name="reset" value="1" class="danger" style="margin-right:14px" onclick="return confirm('ترجعي للإعدادات الأصلية؟')">رجّعي الإعدادات الأصلية</button>
     </form>
-    <p class="note">الإعدادات بتتحفظ وبتتطبق على كل الأقسام لحد ما تغيريها.</p>
+    <p class="note">الإعدادات بتتحفظ وبتتطبق على كل الأقسام لحد ما تغيريها. ولكل سوق إعداداته لوحده. الجلسة هنا فيها {{ mwin }} فترة خمس دقايق.</p>
   </div>
 {% endif %}
 {% endblock %}

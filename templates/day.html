@@ -16,6 +16,6 @@
     {% endfor %}
   </table></div>
   {% for m in d.meta.get('chain', []) %}<p class="note">{{ m }}</p>{% endfor %}
-  <p><a href="{{ url_for('index', tab='sessions') }}">رجوع</a></p>
+  <p><a href="{{ murl('index', tab='sessions') }}">رجوع</a></p>
 </div>
 {% endblock %}
