@@ -250,11 +250,18 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
         st, lv, meta = data[d]
         allsig = signals_for(st, lv, day_win, min_prices)            # كل إشارات اليوم
         n = len(allsig)
-        sig = signals_for(st, lv, min_win, min_prices, max_win, min_share)    # الأسهم اللي هتتشترى
-        # قايمة التحذير: مستوى اتلمس كتير بس الكمية اللي اتلمت عنده صغيرة
-        warn = signals_for(st, lv, day_win, min_prices, None, 0, warn_share)
-        strong = set(signals_for(st, lv, day_win, min_prices, None, warn_share)['sym'])
-        warn = warn[~warn['sym'].isin(strong)].reset_index(drop=True)
+        # كل سهم من إشارات اليوم ليه حالة واحدة بس، محسوبة على نفس المستوى (أقوى مستوى في السهم):
+        # ١. تحذير: الكمية اللي اتلمت عند المستوى أقل من warn_share
+        # ٢. قايمة الشراء: مش تحذير، وعدد المرات في المدى، والنسبة min_share أو أكتر
+        # ٣. برا الشروط: الباقي
+        is_warn = allsig['share'] < warn_share
+        in_rng = allsig['win'] >= min_win
+        if max_win:
+            in_rng &= allsig['win'] <= max_win
+        is_buy = ~is_warn & in_rng & (allsig['share'] >= min_share)
+        allsig = allsig.assign(status=['warn' if w else 'buy' if b else 'out' for w, b in zip(is_warn, is_buy)])
+        sig = allsig[is_buy.values].reset_index(drop=True)      # الأسهم اللي هتتشترى
+        warn = allsig[is_warn.values].reset_index(drop=True)    # التحذيرات
         t_dip = armed and n >= threshold
         if n < threshold:
             armed = True

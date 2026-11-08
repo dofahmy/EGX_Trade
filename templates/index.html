@@ -254,7 +254,7 @@ fieldset .inline{gap:14px}
       </fieldset>
       <fieldset><legend>٢. اختيار الأسهم من يوم الإشارة</legend>
         <div style="display:flex;flex-wrap:wrap;gap:14px">
-          <label>عدد مرات المستوى من<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="{{ mwin }}"></label>
+          <label>عدد مرات المستوى من (أقل من حد الإشارات مالوش تأثير)<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="{{ mwin }}"></label>
           <label>لـ (فاضي = من غير حد)<input type="number" name="max_win" value="{{ p.max_win if p.max_win is not none else '' }}" min="10" max="{{ mwin }}"></label>
           <label>أقل نسبة اتلمت عند المستوى ٪<input type="number" name="min_share" value="{{ p.min_share }}" min="0" step="0.5"></label>
         </div>
