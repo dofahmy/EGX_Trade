@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="card">
+  <h2>جلسة {{ d.date }}: {{ d.count }} إشارة، منهم {{ d.sig|length }} سهم في مدى الاختيار</h2>
+  <p class="mute">المستوى = سعر اتنفذ عنده بيع في {% if p.max_win %}من {{ p.min_win }} لـ{{ p.max_win }}{% else %}{{ p.min_win }} أو أكتر من{% endif %} فترة خمس دقايق، والسهم اتداول على {{ p.min_prices }} أسعار أو أكتر في اليوم.</p>
+  <div class="tablewrap"><table>
+    <tr><th>السهم</th><th>الرمز</th><th>المستوى</th><th>عدد المرات</th><th>اللي اتلم عنده من تداول اليوم</th><th>الإقفال</th><th>التغير</th><th>أقل / أعلى</th><th>قيمة التداول (مليون)</th></tr>
+    {% for r in d.sig.itertuples() %}
+    <tr>
+      <td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td>
+      <td class="num"><b>{{ r.price }}</b></td><td class="num">{{ r.win }}</td><td class="num">{{ '%.1f'|format(r.share) }}٪</td>
+      <td class="num">{{ r.last }}</td>
+      <td class="num {{ 'pos' if r.chg>0 else 'neg' if r.chg<0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</td>
+      <td class="num">{{ r.lo }} / {{ r.hi }}</td><td class="num">{{ '%.1f'|format(r.val_m) }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% for m in d.meta.get('chain', []) %}<p class="note">{{ m }}</p>{% endfor %}
+  <p><a href="{{ url_for('index', tab='sessions') }}">رجوع</a></p>
+</div>
+{% endblock %}
