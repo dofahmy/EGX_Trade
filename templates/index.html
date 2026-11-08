@@ -2,182 +2,264 @@
 {% block body %}
 {% set cond = p.gap > 0 or p.gap_max is not none %}
 {% set gtxt %}{% if p.gap_max is not none %}من {{ p.gap }}٪ لـ{{ p.gap_max }}٪{% else %}بـ{{ p.gap }}٪ أو أكتر{% endif %}{% endset %}
+{% set mname = {'dip': 'الطريقة الأولى', 'double': 'الطريقة التانية'} %}
 
-{# ---------- الحالة دلوقتي في كل طريقة ---------- #}
-{% if latest %}
-  {% set st = state['dip'] %}
-  <div class="banner {{ st }}" style="background:{{ 'var(--greenbg)' if st=='buy' else 'var(--amberbg)' if st=='armed' else '#fff' }}">
-    <b>الطريقة الأولى (ينزل تحت {{ p.threshold }} ويرجع): </b>
-    {% if st == 'buy' %}فيه إشارة شراء. جلسة {{ latest.date }} فيها {{ latest.count }} إشارة بعد يوم أو أكتر تحت {{ p.threshold }}.
-    {% elif st == 'armed' %}مستنية. آخر جلسة فيها {{ latest.count }} إشارة، أقل من {{ p.threshold }}. أول جلسة يرجع فيها العدد {{ p.threshold }} أو أكتر هتبقى إشارة.
-    {% else %}مفيش إشارة. آخر جلسة فيها {{ latest.count }} إشارة، والقاعدة محتاجة الأول يوم العدد فيه ينزل تحت {{ p.threshold }}.{% endif %}
-  </div>
-  {% set st2 = state['double'] %}
-  <div class="banner {{ st2 }}" style="background:{{ 'var(--greenbg)' if st2=='buy' else '#fff' }}">
-    <b>الطريقة التانية (العدد {{ 'ضعف' if p.mult == 2 else p.mult ~ ' أضعاف' }} اليوم اللي قبله): </b>
-    {% if st2 == 'buy' %}فيه إشارة شراء. جلسة {{ latest.date }} فيها {{ latest.count }} إشارة، واللي قبلها {{ latest.prev }}.
-    {% elif latest.prev is not none %}مفيش إشارة. آخر جلسة فيها {{ latest.count }} إشارة، واللي قبلها {{ latest.prev }}، والمطلوب {{ (p.mult * [latest.prev,1]|max)|round(0, 'ceil')|int }} أو أكتر.
-    {% else %}محتاجة جلستين على الأقل.{% endif %}
-  </div>
-  <p class="note">في الطريقتين: الشراء مع فتح الجلسة اللي بعد الإشارة، والبيع مع آخر سعر {% if p.hold == 1 %}في نفس يوم الشراء{% elif p.hold == 2 %}في الجلسة اللي بعد يوم الشراء{% else %}بعد {{ p.hold - 1 }} جلسات تداول من يوم الشراء{% endif %}.</p>
-{% endif %}
+<style>
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2px solid var(--line)}
+.tabs a{padding:10px 16px;text-decoration:none;color:var(--mute);font-weight:600;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs a.on{color:var(--ink);border-bottom-color:var(--blue)}
+.tabs .cnt{display:inline-block;min-width:20px;padding:0 6px;margin-right:4px;border-radius:10px;background:#e8ebf2;font-size:12px;text-align:center}
+.status{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+@media(max-width:760px){.status{grid-template-columns:1fr}}
+.status .banner{margin:0}
+.sumrow{display:flex;gap:24px;flex-wrap:wrap;margin:8px 0 12px}
+.sumrow div{font-size:14px;color:var(--mute)}
+.sumrow b{display:block;font-size:20px;color:var(--ink)}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:12px 14px 14px;margin:0 0 14px}
+legend{font-weight:700;padding:0 6px}
+fieldset .inline{gap:14px}
+.methods .pill{margin-left:4px}
+</style>
 
-{# ---------- قايمة الشراء الحالية ---------- #}
-{% if latest and (state['dip'] == 'buy' or state['double'] == 'buy') %}
-<div class="card">
-  <h2>قايمة الشراء مع فتح الجلسة الجاية ({{ latest.sig|length }} سهم من {{ latest.count }} إشارة)
-    <span class="mute" style="font-size:14px;font-weight:400">· {% if state['dip']=='buy' %}الطريقة الأولى{% endif %}{% if state['dip']=='buy' and state['double']=='buy' %} و{% endif %}{% if state['double']=='buy' %}الطريقة التانية{% endif %}</span></h2>
-  <div class="tablewrap"><table>
-    <tr><th>السهم</th><th>الرمز</th><th>المستوى</th>{% if cond %}<th>يتشرى لو فتح من</th>{% if p.gap_max is not none %}<th>لحد</th>{% endif %}{% endif %}<th>عدد المرات</th><th>اللي اتلم عنده</th><th>إقفال جلسة الإشارة</th><th>قيمة التداول (مليون)</th></tr>
-    {% for r in latest.sig.itertuples() %}
-    <tr><td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td><td class="num">{{ r.price }}</td>{% if cond %}<td class="num"><b>{{ '%.3f'|format(r.price * (1 + p.gap/100)) }}</b></td>{% if p.gap_max is not none %}<td class="num"><b>{{ '%.3f'|format(r.price * (1 + p.gap_max/100)) }}</b></td>{% endif %}{% endif %}<td class="num">{{ r.win }}</td>
-        <td class="num">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.last }}</td><td class="num">{{ '%.1f'|format(r.val_m) }}</td></tr>
+{# ======== الأقسام ======== #}
+<nav class="tabs">
+  <a href="{{ url_for('index', tab='today') }}" class="{{ 'on' if tab=='today' }}">النهارده</a>
+  <a href="{{ url_for('index', tab='open') }}" class="{{ 'on' if tab=='open' }}">الإشارات المفتوحة<span class="cnt">{{ open_sigs|length }}</span></a>
+  <a href="{{ url_for('index', tab='results') }}" class="{{ 'on' if tab=='results' }}">النتايج<span class="cnt">{{ closed|length }}</span></a>
+  <a href="{{ url_for('index', tab='warn') }}" class="{{ 'on' if tab=='warn' }}">التحذيرات</a>
+  <a href="{{ url_for('index', tab='sessions') }}" class="{{ 'on' if tab=='sessions' }}">الجلسات والرفع<span class="cnt">{{ days|length }}</span></a>
+  <a href="{{ url_for('index', tab='settings') }}" class="{{ 'on' if tab=='settings' }}">الإعدادات</a>
+</nav>
+
+{# ================= النهارده ================= #}
+{% if tab == 'today' %}
+  {% if not latest %}
+    <div class="card"><p>لسه مفيش جلسات. روحي لقسم <a href="{{ url_for('index', tab='sessions') }}">الجلسات والرفع</a> وارفعي أول ملف.</p></div>
+  {% else %}
+  <p class="mute">آخر جلسة مرفوعة: <b>{{ latest.date }}</b>، وفيها <b>{{ latest.count }}</b> إشارة{% if latest.prev is not none %} (اللي قبلها {{ latest.prev }}){% endif %}.</p>
+  <div class="status">
+    {% set st = state['dip'] %}
+    <div class="banner {{ st }}" style="background:{{ 'var(--greenbg)' if st=='buy' else 'var(--amberbg)' if st=='armed' else '#fff' }}">
+      <b>الطريقة الأولى</b><br>
+      {% if st == 'buy' %}✅ إشارة شراء: العدد رجع {{ p.threshold }} أو أكتر بعد ما كان تحته.
+      {% elif st == 'armed' %}⏳ مستنية: العدد تحت {{ p.threshold }}. أول جلسة يرجع فيها {{ p.threshold }} أو أكتر هتبقى إشارة.
+      {% else %}مفيش إشارة. محتاجة الأول يوم العدد فيه ينزل تحت {{ p.threshold }}.{% endif %}
+    </div>
+    {% set st2 = state['double'] %}
+    <div class="banner {{ st2 }}" style="background:{{ 'var(--greenbg)' if st2=='buy' else '#fff' }}">
+      <b>الطريقة التانية</b><br>
+      {% if st2 == 'buy' %}✅ إشارة شراء: العدد {{ latest.count }}، وده {{ p.mult }} أضعاف اللي قبله أو أكتر.
+      {% elif latest.prev is not none %}مفيش إشارة. الجلسة الجاية محتاجة {{ (p.mult * [latest.count,1]|max)|round(0, 'ceil')|int }} إشارة أو أكتر.
+      {% else %}محتاجة جلستين على الأقل.{% endif %}
+    </div>
+  </div>
+
+  {% if state['dip'] == 'buy' or state['double'] == 'buy' %}
+  <div class="card">
+    <h2>قايمة الشراء مع فتح الجلسة الجاية ({{ latest.sig|length }} سهم)</h2>
+    <p class="mute">البيع مع آخر سعر في الجلسة اللي بعد يوم الشراء{% if p.hold != 2 %} (مدة الشيل {{ p.hold }}){% endif %}.
+       {% if cond %}<b>يتشرى بس لو فتح فوق المستوى {{ gtxt }}</b>، يعني ما بين الرقمين اللي في العمودين.{% endif %}</p>
+    <div class="tablewrap"><table>
+      <tr><th>السهم</th><th>الرمز</th><th>المستوى</th>{% if cond %}<th>يتشرى لو فتح من</th>{% if p.gap_max is not none %}<th>لحد</th>{% endif %}{% endif %}<th>عدد المرات</th><th>اللي اتلم عنده</th><th>إقفال جلسة الإشارة</th></tr>
+      {% for r in latest.sig.itertuples() %}
+      <tr><td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td><td class="num">{{ r.price }}</td>
+          {% if cond %}<td class="num"><b>{{ '%.3f'|format(r.price * (1 + p.gap/100)) }}</b></td>{% if p.gap_max is not none %}<td class="num"><b>{{ '%.3f'|format(r.price * (1 + p.gap_max/100)) }}</b></td>{% endif %}{% endif %}
+          <td class="num">{{ r.win }}</td><td class="num">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.last }}</td></tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  {% endif %}
+
+  {% if open_sigs %}
+  <div class="card">
+    <h2>إشارات مفتوحة دلوقتي</h2>
+    {% for t in open_sigs %}
+      <p>إشارة {{ t.signal_date }}: {{ t.open_n }} سهم، ومتوسطهم لحد آخر سعر <b class="{{ 'pos' if t.open_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.open_avg) }}٪</b>.
+         البيع مع آخر سعر في الجلسة الجاية. <a href="{{ url_for('index', tab='open') }}">التفاصيل</a></p>
     {% endfor %}
-  </table></div>
-  <p class="note">الأسهم دي مستواها اتلم عنده {{ p.min_share }}٪ أو أكتر من تداول اليوم. المستوى هو السعر اللي المشتري كان واقف عنده. {% if cond %}شرط الفتح: السهم يتشرى بس لو أول سعر في الجلسة كان فوق المستوى {{ gtxt }}. ولو فتح برا المدى ده، يتساب.{% endif %}</p>
-</div>
-{% endif %}
+  </div>
+  {% endif %}
 
-{# ---------- قايمة التحذير ---------- #}
-{% if latest %}
-<div class="card">
-  <h2>قايمة التحذير: مستويات ضعيفة في جلسة {{ latest.date }} ({{ latest.warn|length }} سهم)</h2>
-  <p class="mute">أسهم السعر رجع فيها للمستوى {{ p.day_win }} مرة أو أكتر، بس الكمية اللي اتلمت عنده أقل من {{ p.warn_share }}٪ من تداول اليوم. يعني المستوى بيتلمس من غير مشتري حقيقي بيدافع عنه، وده ممكن يبقى علامة إنه هيتكسر.</p>
   {% if latest.warn|length %}
-  <div class="tablewrap"><table>
-    <tr><th>السهم</th><th>الرمز</th><th>المستوى</th><th>عدد المرات</th><th>اللي اتلم عنده</th><th>الإقفال</th><th>التغير</th><th>قيمة التداول (مليون)</th></tr>
-    {% for r in latest.warn.itertuples() %}
-    <tr><td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td><td class="num"><b>{{ r.price }}</b></td><td class="num">{{ r.win }}</td>
-        <td class="num neg">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.last }}</td>
-        <td class="num {{ 'pos' if r.chg>0 else 'neg' if r.chg<0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</td><td class="num">{{ '%.1f'|format(r.val_m) }}</td></tr>
-    {% endfor %}
-  </table></div>
-  {% else %}<p class="mute">مفيش أسهم بالشكل ده في الجلسة دي.</p>{% endif %}
-
-  {% set wd = warns|selectattr('n')|list %}
-  {% if wd %}
-  <h3 style="font-size:16px;margin-top:16px">حصل إيه في الجلسة اللي بعدها، في كل الأيام اللي فاتت</h3>
-  {% set ns = namespace(n=0, s=0, b=0, d=0) %}
-  {% for w in wd %}{% set ns.n = ns.n + w.n %}{% set ns.s = ns.s + w.avg * w.n %}{% set ns.b = ns.b + w.broke %}{% set ns.d = ns.d + w.down %}{% endfor %}
-  <p class="big">{{ ns.n }} حالة: المستوى اتكسر في {{ ns.b }}، وجت أضعف من السوق في {{ ns.d }}، ومتوسطها من إقفال يوم الإشارة لإقفال اللي بعده {{ '%+.2f'|format(ns.s / ns.n) }}٪.</p>
-  <div class="tablewrap"><table>
-    <tr><th>جلسة الإشارة</th><th>السهم</th><th>المستوى</th><th>اللي اتلم عنده</th><th>الإقفال</th><th>أقل سعر تاني يوم</th><th>إقفال تاني يوم</th><th>النتيجة</th><th>السوق</th><th>المستوى</th></tr>
-    {% for w in wd|reverse %}{% for r in w.rows if r.ret is not none %}
-    <tr><td>{{ w.date }}</td><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.close }}</td>
-        <td class="num">{{ r.nlo }}</td><td class="num">{{ r.nclose }}</td>
-        <td class="num {{ 'pos' if r.ret>0 else 'neg' if r.ret<0 else '' }}">{{ '%+.2f'|format(r.ret) }}٪</td><td class="num mute">{{ '%+.2f'|format(w.market) }}٪</td>
-        <td>{% if r.broke %}<span class="pill" style="background:var(--redbg);color:var(--red)">اتكسر</span>{% else %}<span class="pill idle">صمد</span>{% endif %}</td></tr>
-    {% endfor %}{% endfor %}
-  </table></div>
+  <div class="card">
+    <h2>تحذير في آخر جلسة ({{ latest.warn|length }} سهم)</h2>
+    <p class="mute">مستواهم اتلمس كتير بكمية صغيرة. <a href="{{ url_for('index', tab='warn') }}">التفاصيل</a></p>
+    <p>{% for r in latest.warn.itertuples() %}{{ r.name }} عند {{ r.price }}{% if not loop.last %}، {% endif %}{% endfor %}</p>
+  </div>
   {% endif %}
-</div>
-{% endif %}
-
-{# ---------- الجلسات ---------- #}
-<div class="card">
-  <h2>الجلسات</h2>
-  {% if not days %}<p class="mute">لسه مفيش جلسات. ارفعي أول ملف من تحت.</p>{% else %}
-  <div class="tablewrap"><table>
-    <tr><th>التاريخ</th><th>عدد الإشارات</th><th>أسهم في المدى</th><th>الطريقة الأولى</th><th>الطريقة التانية</th><th>عدد الصفقات</th><th></th></tr>
-    {% for d in days|reverse %}
-    <tr>
-      <td><a href="{{ url_for('day', date=d.date, **p) }}">{{ d.date }}</a></td>
-      <td class="num"><b>{{ d.count }}</b>{% if d.prev is not none %} <span class="mute">(قبلها {{ d.prev }})</span>{% endif %}</td>
-      <td class="num">{{ d.sig|length }}</td>
-      <td>{% if d.trig.dip %}<span class="pill buy">إشارة شراء</span>{% elif d.count < p.threshold %}<span class="pill armed">تحت {{ p.threshold }}</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
-      <td>{% if d.trig.double %}<span class="pill buy">إشارة شراء</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
-      <td class="num mute">{{ d.meta.get('trades','') }}</td>
-      <td><form method="post" action="{{ url_for('delete', date=d.date) }}" onsubmit="return confirm('امسح جلسة {{ d.date }}؟')"><button class="danger">مسح</button></form></td>
-    </tr>
-    {% endfor %}
-  </table></div>
   {% endif %}
-</div>
 
-{# ---------- نتايج كل طريقة ---------- #}
-{% for m, title in methods.items() %}
-{% set tl = trades[m] %}
-<div class="card">
-  <h2>نتايج {{ title }}</h2>
-  {% if not tl %}<p class="mute">لسه مفيش إشارات بالطريقة دي.</p>{% endif %}
-  {% for t in tl|reverse %}
-    <h3 style="font-size:16px;margin-top:14px">إشارة {{ t.signal_date }}
-      <span class="mute" style="font-weight:400">· شراء {{ t.buy_date or 'الجلسة الجاية' }} · بيع {{ t.sell_date or 'لسه' }}</span></h3>
-    {% if t.avg is not none %}
-      <p>متوسط القايمة <b class="{{ 'pos' if t.avg>0 else 'neg' }}">{{ '%+.2f'|format(t.avg) }}٪</b>،
-         رابحة {{ t.wins }} من {{ t.n }}، والسهم العادي في السوق في نفس الفترة <b>{{ '%+.2f'|format(t.market) }}٪</b>.</p>
-      {% if cond %}<p>بشرط الفتح فوق المستوى {{ gtxt }}:
-        {% if t.ok_n %}{{ t.ok_n }} سهم بس اتشروا، ومتوسطهم <b class="{{ 'pos' if t.ok_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.ok_avg) }}٪</b>، ورابحة {{ t.ok_wins }} من {{ t.ok_n }}.{% else %}ولا سهم عدّى الشرط.{% endif %}</p>{% endif %}
-      <div class="tablewrap"><table>
-        <tr><th>السهم</th><th>المستوى</th><th>الشراء (فتح)</th><th>الفتح فوق المستوى</th><th>البيع (آخر سعر)</th><th>النتيجة</th></tr>
-        {% for r in t.rows %}
-        <tr><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ r.entry if r.entry is not none else '—' }}</td>
-            <td class="num">{% if r.gap is not none %}<span class="{{ 'pos' if cond and r.ok else 'mute' }}">{{ '%+.1f'|format(r.gap) }}٪{% if cond and r.ok %} ✓{% endif %}</span>{% else %}—{% endif %}</td>
-            <td class="num">{{ r.exit if r.exit is not none else '—' }}</td>
-            <td class="num {{ 'pos' if r.ret and r.ret>0 else 'neg' if r.ret and r.ret<0 else '' }}">{{ '%+.2f'|format(r.ret) ~ '٪' if r.ret is not none else '—' }}</td></tr>
-        {% endfor %}
-      </table></div>
-    {% elif t.open_n %}
-      <p><span class="pill armed">لسه مفتوحة</span> النتيجة لحد آخر سعر يوم {{ t.mark_date }}:
-         كل القايمة ({{ t.open_n }} سهم) <b class="{{ 'pos' if t.open_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.open_avg) }}٪</b>، رابحة {{ t.open_wins }} من {{ t.open_n }}،
-         والسهم العادي في السوق من نفس الفتح <b>{{ '%+.2f'|format(t.open_market) }}٪</b>.</p>
-      {% if cond %}<p>بشرط الفتح فوق المستوى {{ gtxt }}:
-        {% if t.open_ok_n %}{{ t.open_ok_n }} سهم اتفعلوا، ومتوسطهم <b class="{{ 'pos' if t.open_ok_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.open_ok_avg) }}٪</b>، ورابحة {{ t.open_ok_wins }} من {{ t.open_ok_n }}.{% else %}ولا سهم اتفعل.{% endif %}</p>{% endif %}
-      <div class="tablewrap"><table>
-        <tr><th>السهم</th><th>المستوى</th><th>الشراء (فتح)</th><th>الفتح فوق المستوى</th><th>آخر سعر</th><th>النتيجة لحد دلوقتي</th></tr>
-        {% for r in t.rows|sort(attribute='gap', reverse=true) if r.mret is defined and r.mret is not none %}
-        <tr><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ r.entry }}</td>
-            <td class="num"><span class="{{ 'pos' if cond and r.ok else 'mute' }}">{{ '%+.1f'|format(r.gap) }}٪{% if cond and r.ok %} ✓{% endif %}</span></td>
-            <td class="num">{{ r.mark }}</td>
-            <td class="num {{ 'pos' if r.mret>0 else 'neg' if r.mret<0 else '' }}">{{ '%+.2f'|format(r.mret) }}٪</td></tr>
-        {% endfor %}
-      </table></div>
-    {% else %}
-      <p class="mute">{{ t.rows|length }} سهم. النتيجة هتظهر لما ترفعي جلسة الشراء.</p>
-    {% endif %}
+{# ================= الإشارات المفتوحة ================= #}
+{% elif tab == 'open' %}
+  {% if not open_sigs %}<div class="card"><p class="mute">مفيش إشارات مفتوحة دلوقتي.</p></div>{% endif %}
+  {% for t in open_sigs %}
+  <div class="card">
+    <h2>إشارة {{ t.signal_date }}
+      <span class="methods">{% for m in t.methods %}<span class="pill buy">{{ mname[m] }}</span>{% endfor %}</span></h2>
+    <p class="mute">الشراء مع فتح {{ t.buy_date }}، والبيع مع آخر سعر في الجلسة اللي بعدها. النتيجة دي لحد آخر سعر يوم {{ t.mark_date }}.</p>
+    <div class="sumrow">
+      <div>كل القايمة<b class="{{ 'pos' if t.open_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.open_avg) }}٪</b>{{ t.open_wins }} رابحة من {{ t.open_n }}</div>
+      {% if cond %}<div>بشرط الفتح {{ gtxt }}<b class="{{ 'pos' if t.open_ok_avg and t.open_ok_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.open_ok_avg) ~ '٪' if t.open_ok_n else '—' }}</b>{{ t.open_ok_wins }} رابحة من {{ t.open_ok_n }}</div>{% endif %}
+      <div>السوق كله من نفس الفتح<b>{{ '%+.2f'|format(t.open_market) }}٪</b></div>
+    </div>
+    <div class="tablewrap"><table>
+      <tr><th>السهم</th><th>المستوى</th><th>الشراء (فتح)</th><th>الفتح فوق المستوى</th><th>آخر سعر</th><th>النتيجة لحد دلوقتي</th></tr>
+      {% for r in t.rows|sort(attribute='gap', reverse=true) if r.mret is defined and r.mret is not none %}
+      <tr><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ r.entry }}</td>
+          <td class="num"><span class="{{ 'pos' if cond and r.ok else 'mute' }}">{{ '%+.1f'|format(r.gap) }}٪{% if cond and r.ok %} ✓{% endif %}</span></td>
+          <td class="num">{{ r.mark }}</td>
+          <td class="num {{ 'pos' if r.mret>0 else 'neg' if r.mret<0 else '' }}">{{ '%+.2f'|format(r.mret) }}٪</td></tr>
+      {% endfor %}
+    </table></div>
+  </div>
   {% endfor %}
-  {% set done = tl|selectattr('avg')|list %}
-  {% if done %}
-    {% set tot = done|map(attribute='avg')|sum %}
-    {% set mk = done|map(attribute='market')|sum %}
-    <p class="big" style="margin-top:14px">الإجمالي: {{ done|length }} إشارة اتحسبت. متوسط القوايم {{ '%+.2f'|format(tot/done|length) }}٪، ومتوسط السوق {{ '%+.2f'|format(mk/done|length) }}٪.</p>
-    {% if cond %}
-      {% set ns = namespace(n=0, s=0, w=0) %}
-      {% for x in done %}{% if x.ok_n %}{% set ns.n = ns.n + x.ok_n %}{% set ns.s = ns.s + x.ok_avg * x.ok_n %}{% set ns.w = ns.w + x.ok_wins %}{% endif %}{% endfor %}
-      <p class="big">بشرط الفتح فوق المستوى {{ gtxt }}: {% if ns.n %}{{ ns.n }} صفقة في كل الإشارات، ومتوسطها {{ '%+.2f'|format(ns.s / ns.n) }}٪، ورابحة {{ ns.w }} من {{ ns.n }}.{% else %}ولا صفقة عدّت الشرط لحد دلوقتي.{% endif %}</p>
+
+{# ================= النتايج ================= #}
+{% elif tab == 'results' %}
+  <div class="card">
+    <h2>الإجمالي</h2>
+    <div class="tablewrap"><table>
+      <tr><th>الطريقة</th><th>إشارات اتقفلت</th><th>صفقات</th><th>متوسط القوايم</th><th>متوسط السوق</th>{% if cond %}<th>بشرط الفتح {{ gtxt }}</th>{% endif %}</tr>
+      {% for m, title in methods.items() %}{% set s = totals[m] %}
+      <tr><td>{{ mname[m] }}</td>
+        {% if s %}<td class="num">{{ s.n }}</td><td class="num">{{ s.wins }} رابحة من {{ s.trades }}</td>
+          <td class="num {{ 'pos' if s.avg>0 else 'neg' }}"><b>{{ '%+.2f'|format(s.avg) }}٪</b></td><td class="num">{{ '%+.2f'|format(s.market) }}٪</td>
+          {% if cond %}<td class="num">{% if s.ok_n %}<b class="{{ 'pos' if s.ok_avg>0 else 'neg' }}">{{ '%+.2f'|format(s.ok_avg) }}٪</b> ({{ s.ok_wins }} من {{ s.ok_n }}){% else %}—{% endif %}</td>{% endif %}
+        {% else %}<td colspan="5" class="mute">لسه مفيش إشارات اتقفلت</td>{% endif %}</tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  {% for t in closed %}
+  <div class="card">
+    <h2>إشارة {{ t.signal_date }}
+      <span class="methods">{% for m in t.methods %}<span class="pill buy">{{ mname[m] }}</span>{% endfor %}</span></h2>
+    <p class="mute">شراء {{ t.buy_date }} · بيع {{ t.sell_date }}</p>
+    <div class="sumrow">
+      <div>كل القايمة<b class="{{ 'pos' if t.avg>0 else 'neg' }}">{{ '%+.2f'|format(t.avg) }}٪</b>{{ t.wins }} رابحة من {{ t.n }}</div>
+      {% if cond %}<div>بشرط الفتح {{ gtxt }}<b class="{{ 'pos' if t.ok_avg and t.ok_avg>0 else 'neg' }}">{{ '%+.2f'|format(t.ok_avg) ~ '٪' if t.ok_n else '—' }}</b>{{ t.ok_wins }} رابحة من {{ t.ok_n }}</div>{% endif %}
+      <div>السوق كله<b>{{ '%+.2f'|format(t.market) }}٪</b></div>
+    </div>
+    <div class="tablewrap"><table>
+      <tr><th>السهم</th><th>المستوى</th><th>الشراء (فتح)</th><th>الفتح فوق المستوى</th><th>البيع (آخر سعر)</th><th>النتيجة</th></tr>
+      {% for r in t.rows %}
+      <tr><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ r.entry if r.entry is not none else '—' }}</td>
+          <td class="num">{% if r.gap is not none %}<span class="{{ 'pos' if cond and r.ok else 'mute' }}">{{ '%+.1f'|format(r.gap) }}٪{% if cond and r.ok %} ✓{% endif %}</span>{% else %}—{% endif %}</td>
+          <td class="num">{{ r.exit if r.exit is not none else '—' }}</td>
+          <td class="num {{ 'pos' if r.ret and r.ret>0 else 'neg' if r.ret and r.ret<0 else '' }}">{{ '%+.2f'|format(r.ret) ~ '٪' if r.ret is not none else '—' }}</td></tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  {% endfor %}
+
+{# ================= التحذيرات ================= #}
+{% elif tab == 'warn' %}
+  <div class="card">
+    <h2>التحذيرات في آخر جلسة{% if latest %} ({{ latest.date }}){% endif %}</h2>
+    <p class="mute">أسهم السعر رجع فيها للمستوى {{ p.day_win }} مرة أو أكتر، بس الكمية اللي اتلمت عنده أقل من {{ p.warn_share }}٪ من تداول اليوم. يعني المستوى بيتلمس من غير مشتري حقيقي بيدافع عنه.</p>
+    {% if latest and latest.warn|length %}
+    <div class="tablewrap"><table>
+      <tr><th>السهم</th><th>الرمز</th><th>المستوى</th><th>عدد المرات</th><th>اللي اتلم عنده</th><th>الإقفال</th><th>التغير</th></tr>
+      {% for r in latest.warn.itertuples() %}
+      <tr><td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td><td class="num"><b>{{ r.price }}</b></td><td class="num">{{ r.win }}</td>
+          <td class="num neg">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.last }}</td>
+          <td class="num {{ 'pos' if r.chg>0 else 'neg' if r.chg<0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</td></tr>
+      {% endfor %}
+    </table></div>
+    {% else %}<p class="mute">مفيش أسهم بالشكل ده في آخر جلسة.</p>{% endif %}
+  </div>
+  {% set wd = warns|selectattr('n')|list %}
+  <div class="card">
+    <h2>حصل إيه بعد التحذيرات اللي فاتت</h2>
+    {% if wd %}
+    {% set ns = namespace(n=0, s=0, b=0, d=0) %}
+    {% for w in wd %}{% set ns.n = ns.n + w.n %}{% set ns.s = ns.s + w.avg * w.n %}{% set ns.b = ns.b + w.broke %}{% set ns.d = ns.d + w.down %}{% endfor %}
+    <div class="sumrow">
+      <div>حالات<b>{{ ns.n }}</b></div>
+      <div>المستوى اتكسر تاني يوم<b>{{ ns.b }} من {{ ns.n }}</b></div>
+      <div>جت أضعف من السوق<b>{{ ns.d }} من {{ ns.n }}</b></div>
+      <div>المتوسط من إقفال يوم التحذير لإقفال اللي بعده<b class="{{ 'pos' if ns.s>0 else 'neg' }}">{{ '%+.2f'|format(ns.s / ns.n) }}٪</b></div>
+    </div>
+    <div class="tablewrap"><table>
+      <tr><th>جلسة التحذير</th><th>السهم</th><th>المستوى</th><th>اللي اتلم عنده</th><th>الإقفال</th><th>أقل سعر تاني يوم</th><th>إقفال تاني يوم</th><th>النتيجة</th><th>السوق</th><th>المستوى</th></tr>
+      {% for w in wd|reverse %}{% for r in w.rows if r.ret is not none %}
+      <tr><td>{{ w.date }}</td><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.close }}</td>
+          <td class="num">{{ r.nlo }}</td><td class="num">{{ r.nclose }}</td>
+          <td class="num {{ 'pos' if r.ret>0 else 'neg' if r.ret<0 else '' }}">{{ '%+.2f'|format(r.ret) }}٪</td><td class="num mute">{{ '%+.2f'|format(w.market) }}٪</td>
+          <td>{% if r.broke %}<span class="pill" style="background:var(--redbg);color:var(--red)">اتكسر</span>{% else %}<span class="pill idle">صمد</span>{% endif %}</td></tr>
+      {% endfor %}{% endfor %}
+    </table></div>
+    {% else %}<p class="mute">لسه مفيش تحذيرات اتحسبت نتيجتها.</p>{% endif %}
+  </div>
+
+{# ================= الجلسات والرفع ================= #}
+{% elif tab == 'sessions' %}
+  <div class="card">
+    <h2>رفع جلسة جديدة</h2>
+    <form class="inline" method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+      <label>ملف التنفيذات (إكسل أو مضغوط)<input type="file" name="file" accept=".xlsx,.xlsm,.rar,.zip" required></label>
+      <label>تاريخ الجلسة<input type="date" name="date" value="{{ today }}" required></label>
+      <button>رفع</button>
+    </form>
+    <p class="note">لو رفعتي ملف لتاريخ موجود، هيتحسب من جديد بدل القديم. الجلسات لازم تترفع بتواريخها الصح ومن غير ما تنقص جلسة.</p>
+  </div>
+  <div class="card">
+    <h2>الجلسات</h2>
+    {% if not days %}<p class="mute">لسه مفيش جلسات.</p>{% else %}
+    <div class="tablewrap"><table>
+      <tr><th>التاريخ</th><th>عدد الإشارات</th><th>أسهم في قايمة الشراء</th><th>تحذيرات</th><th>الطريقة الأولى</th><th>الطريقة التانية</th><th>عدد الصفقات</th><th></th></tr>
+      {% for d in days|reverse %}
+      <tr>
+        <td><a href="{{ url_for('day', date=d.date) }}">{{ d.date }}</a></td>
+        <td class="num"><b>{{ d.count }}</b>{% if d.prev is not none %} <span class="mute">(قبلها {{ d.prev }})</span>{% endif %}</td>
+        <td class="num">{{ d.sig|length }}</td>
+        <td class="num">{{ d.warn|length or '—' }}</td>
+        <td>{% if d.trig.dip %}<span class="pill buy">إشارة شراء</span>{% elif d.count < p.threshold %}<span class="pill armed">تحت {{ p.threshold }}</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
+        <td>{% if d.trig.double %}<span class="pill buy">إشارة شراء</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
+        <td class="num mute">{{ d.meta.get('trades','') }}</td>
+        <td><form method="post" action="{{ url_for('delete', date=d.date) }}" onsubmit="return confirm('امسح جلسة {{ d.date }}؟')"><button class="danger">مسح</button></form></td>
+      </tr>
+      {% endfor %}
+    </table></div>
     {% endif %}
-  {% endif %}
-</div>
-{% endfor %}
+  </div>
 
-{# ---------- رفع ---------- #}
-<div class="card">
-  <h2>رفع جلسة جديدة</h2>
-  <form class="inline" method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
-    <label>ملف التنفيذات (إكسل أو مضغوط)<input type="file" name="file" accept=".xlsx,.xlsm,.rar,.zip" required></label>
-    <label>تاريخ الجلسة<input type="date" name="date" value="{{ today }}" required></label>
-    <button>رفع</button>
-  </form>
-  <p class="note">لو رفعتي ملف لتاريخ موجود، هيتحسب من جديد بدل القديم. الجلسات لازم تترفع بتواريخها الصح ومن غير ما تنقص جلسة، لأن البرنامج بيعتبر الجلسة اللي بعدها في الترتيب هي يوم الشراء.</p>
-</div>
-
-{# ---------- الإعدادات ---------- #}
-<div class="card">
-  <h2>الإعدادات</h2>
-  <form class="inline" method="get">
-    <label>عدد مرات المستوى لحساب عدد إشارات اليوم<input type="number" name="day_win" value="{{ p.day_win }}" min="10" max="54"></label>
-    <label>اختيار الأسهم: عدد المرات من<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="54"></label>
-    <label>اختيار الأسهم: أقل نسبة اتلمت عند المستوى ٪<input type="number" name="min_share" value="{{ p.min_share }}" min="0" step="0.5"></label>
-    <label>قايمة التحذير: النسبة أقل من ٪<input type="number" name="warn_share" value="{{ p.warn_share }}" min="0.5" step="0.5"></label>
-    <label>لـ (فاضي = من غير حد)<input type="number" name="max_win" value="{{ p.max_win if p.max_win is not none else '' }}" min="10" max="54"></label>
-    <label>أقل عدد أسعار في اليوم<input type="number" name="min_prices" value="{{ p.min_prices }}" min="1"></label>
-    <label>حد الطريقة الأولى<input type="number" name="threshold" value="{{ p.threshold }}" min="1"></label>
-    <label>مضاعف الطريقة التانية<input type="number" name="mult" value="{{ p.mult }}" min="1.1" step="0.1"></label>
-    <label>مدة الشيل بالجلسات<input type="number" name="hold" value="{{ p.hold }}" min="1" max="10"></label>
-    <label>الفتح فوق المستوى من ٪<input type="number" name="gap" value="{{ p.gap }}" min="0" step="0.5"></label>
-    <label>لـ ٪ (فاضي = من غير حد)<input type="number" name="gap_max" value="{{ p.gap_max if p.gap_max is not none else '' }}" min="0" step="0.5"></label>
-    <button>طبّق</button>
-  </form>
-  <p class="note">مدة الشيل بتعد يوم الشراء نفسه. مدة ٢ (الافتراضي) = لو الإشارة يوم التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس. مدة ٣ = البيع يوم الأحد. مدة ١ = البيع في نفس يوم الشراء.<br>عدد إشارات اليوم بيتحسب من المستويات اللي اتلمست {{ p.day_win }} مرة أو أكتر، وده بس اللي بيحدد اليوم فيه إشارة ولا لأ. ومدى "اختيار الأسهم" بيحدد مين من الأسهم يدخل قايمة الشراء.<br>شرط الفتح: لو "من" ٠ و"لـ" فاضي، يبقى من غير شرط. وعدد مرات المستوى أقصى حاجة ٥٤، لأن الجلسة فيها ٥٤ فترة خمس دقايق.</p>
-</div>
+{# ================= الإعدادات ================= #}
+{% elif tab == 'settings' %}
+  <div class="card">
+    <h2>الإعدادات</h2>
+    {% if request.args.get('saved') %}<p class="pos">اتحفظت الإعدادات.</p>{% endif %}
+    <form method="post" action="{{ url_for('save_settings') }}">
+      <fieldset><legend>١. تحديد يوم الإشارة</legend>
+        <div class="inline" style="display:flex;flex-wrap:wrap;gap:14px">
+          <label>عدد مرات المستوى اللي بيتحسب بيه عدد الإشارات<input type="number" name="day_win" value="{{ p.day_win }}" min="10" max="54"></label>
+          <label>أقل عدد أسعار اتداول عليها السهم في اليوم<input type="number" name="min_prices" value="{{ p.min_prices }}" min="1"></label>
+          <label>الطريقة الأولى: الحد<input type="number" name="threshold" value="{{ p.threshold }}" min="1"></label>
+          <label>الطريقة التانية: المضاعف<input type="number" name="mult" value="{{ p.mult }}" min="1.1" step="0.1"></label>
+        </div>
+        <p class="note">الطريقة الأولى: العدد ينزل تحت الحد، وأول يوم يرجع فيه الحد أو أكتر يبقى إشارة. الطريقة التانية: عدد اليوم يبقى المضاعف ده أو أكتر من عدد اليوم اللي قبله.</p>
+      </fieldset>
+      <fieldset><legend>٢. اختيار الأسهم من يوم الإشارة</legend>
+        <div style="display:flex;flex-wrap:wrap;gap:14px">
+          <label>عدد مرات المستوى من<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="54"></label>
+          <label>لـ (فاضي = من غير حد)<input type="number" name="max_win" value="{{ p.max_win if p.max_win is not none else '' }}" min="10" max="54"></label>
+          <label>أقل نسبة اتلمت عند المستوى ٪<input type="number" name="min_share" value="{{ p.min_share }}" min="0" step="0.5"></label>
+        </div>
+      </fieldset>
+      <fieldset><legend>٣. الشراء والبيع</legend>
+        <div style="display:flex;flex-wrap:wrap;gap:14px">
+          <label>الفتح فوق المستوى من ٪<input type="number" name="gap" value="{{ p.gap }}" min="0" step="0.5"></label>
+          <label>لـ ٪ (فاضي = من غير حد)<input type="number" name="gap_max" value="{{ p.gap_max if p.gap_max is not none else '' }}" min="0" step="0.5"></label>
+          <label>مدة الشيل بالجلسات<input type="number" name="hold" value="{{ p.hold }}" min="1" max="10"></label>
+        </div>
+        <p class="note">شرط الفتح: لو "من" ٠ و"لـ" فاضي، يبقى من غير شرط. مدة الشيل بتعد يوم الشراء: ٢ = الإشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر الخميس.</p>
+      </fieldset>
+      <fieldset><legend>٤. التحذيرات</legend>
+        <label>المستوى يبقى تحذير لو النسبة اللي اتلمت عنده أقل من ٪<input type="number" name="warn_share" value="{{ p.warn_share }}" min="0.5" step="0.5"></label>
+      </fieldset>
+      <button>حفظ</button>
+      <button name="reset" value="1" class="danger" style="margin-right:14px" onclick="return confirm('ترجعي للإعدادات الأصلية؟')">رجّعي الإعدادات الأصلية</button>
+    </form>
+    <p class="note">الإعدادات بتتحفظ وبتتطبق على كل الأقسام لحد ما تغيريها.</p>
+  </div>
+{% endif %}
 {% endblock %}
