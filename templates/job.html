@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block body %}
+{% if not j.done %}<meta http-equiv="refresh" content="3">{% endif %}
+<div class="card">
+  <h2>رفع جلسة {{ j.date }}</h2>
+  <p class="big">الحالة: <b>{{ j.state }}</b></p>
+  {% if j.error %}<p class="neg">{{ j.error }}</p>{% endif %}
+  {% if j.done and not j.error %}
+    <p>اتقرا {{ j.trades }} صفقة في {{ j.stocks }} سهم.</p>
+    {% for m in j.chain %}<p class="mute">{{ m }}</p>{% endfor %}
+    {% if j.chain %}<p class="note">التطابق الطبيعي حوالي ٨٥–٩٥٪، لأن آخر صفقة مش دايمًا هي سعر الإقفال الرسمي. لو النسبة أقل من ٥٠٪، غالبًا التاريخ اللي اخترتيه غلط، أو فيه جلسة ناقصة في النص. امسحي الجلسة وارفعيها تاني بالتاريخ الصح.</p>{% endif %}
+    <p><a href="{{ url_for('index') }}">ارجعي للصفحة الرئيسية</a></p>
+  {% elif not j.done %}
+    <p class="mute">الصفحة بتتحدث لوحدها كل ٣ ثواني.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block body %}
+
+{# ---------- الحالة دلوقتي في كل طريقة ---------- #}
+{% if latest %}
+  {% set st = state['dip'] %}
+  <div class="banner {{ st }}" style="background:{{ 'var(--greenbg)' if st=='buy' else 'var(--amberbg)' if st=='armed' else '#fff' }}">
+    <b>الطريقة الأولى (ينزل تحت {{ p.threshold }} ويرجع): </b>
+    {% if st == 'buy' %}فيه إشارة شراء. جلسة {{ latest.date }} فيها {{ latest.count }} إشارة بعد يوم أو أكتر تحت {{ p.threshold }}.
+    {% elif st == 'armed' %}مستنية. آخر جلسة فيها {{ latest.count }} إشارة، أقل من {{ p.threshold }}. أول جلسة يرجع فيها العدد {{ p.threshold }} أو أكتر هتبقى إشارة.
+    {% else %}مفيش إشارة. آخر جلسة فيها {{ latest.count }} إشارة، والقاعدة محتاجة الأول يوم العدد فيه ينزل تحت {{ p.threshold }}.{% endif %}
+  </div>
+  {% set st2 = state['double'] %}
+  <div class="banner {{ st2 }}" style="background:{{ 'var(--greenbg)' if st2=='buy' else '#fff' }}">
+    <b>الطريقة التانية (العدد {{ 'ضعف' if p.mult == 2 else p.mult ~ ' أضعاف' }} اليوم اللي قبله): </b>
+    {% if st2 == 'buy' %}فيه إشارة شراء. جلسة {{ latest.date }} فيها {{ latest.count }} إشارة، واللي قبلها {{ latest.prev }}.
+    {% elif latest.prev is not none %}مفيش إشارة. آخر جلسة فيها {{ latest.count }} إشارة، واللي قبلها {{ latest.prev }}، والمطلوب {{ (p.mult * [latest.prev,1]|max)|round(0, 'ceil')|int }} أو أكتر.
+    {% else %}محتاجة جلستين على الأقل.{% endif %}
+  </div>
+  <p class="note">في الطريقتين: الشراء مع فتح الجلسة اللي بعد الإشارة، والبيع مع آخر سعر {% if p.hold == 1 %}في نفس يوم الشراء{% elif p.hold == 2 %}في الجلسة اللي بعد يوم الشراء{% else %}بعد {{ p.hold - 1 }} جلسات تداول من يوم الشراء{% endif %}.</p>
+{% endif %}
+
+{# ---------- قايمة الشراء الحالية ---------- #}
+{% if latest and (state['dip'] == 'buy' or state['double'] == 'buy') %}
+<div class="card">
+  <h2>قايمة الشراء مع فتح الجلسة الجاية ({{ latest.sig|length }} سهم)
+    <span class="mute" style="font-size:14px;font-weight:400">· {% if state['dip']=='buy' %}الطريقة الأولى{% endif %}{% if state['dip']=='buy' and state['double']=='buy' %} و{% endif %}{% if state['double']=='buy' %}الطريقة التانية{% endif %}</span></h2>
+  <div class="tablewrap"><table>
+    <tr><th>السهم</th><th>الرمز</th><th>المستوى</th><th>عدد المرات</th><th>اللي اتلم عنده</th><th>إقفال جلسة الإشارة</th><th>قيمة التداول (مليون)</th></tr>
+    {% for r in latest.sig.itertuples() %}
+    <tr><td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td><td class="num"><b>{{ r.price }}</b></td><td class="num">{{ r.win }}</td>
+        <td class="num">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.last }}</td><td class="num">{{ '%.1f'|format(r.val_m) }}</td></tr>
+    {% endfor %}
+  </table></div>
+  <p class="note">المستوى هو السعر اللي المشتري كان واقف عنده. لو السعر نزل تحته بوضوح، ده معناه إن المشتري ده مش موجود تاني.</p>
+</div>
+{% endif %}
+
+{# ---------- الجلسات ---------- #}
+<div class="card">
+  <h2>الجلسات</h2>
+  {% if not days %}<p class="mute">لسه مفيش جلسات. ارفعي أول ملف من تحت.</p>{% else %}
+  <div class="tablewrap"><table>
+    <tr><th>التاريخ</th><th>عدد الإشارات</th><th>الطريقة الأولى</th><th>الطريقة التانية</th><th>عدد الصفقات</th><th></th></tr>
+    {% for d in days|reverse %}
+    <tr>
+      <td><a href="{{ url_for('day', date=d.date, **p) }}">{{ d.date }}</a></td>
+      <td class="num"><b>{{ d.count }}</b>{% if d.prev is not none %} <span class="mute">(قبلها {{ d.prev }})</span>{% endif %}</td>
+      <td>{% if d.trig.dip %}<span class="pill buy">إشارة شراء</span>{% elif d.count < p.threshold %}<span class="pill armed">تحت {{ p.threshold }}</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
+      <td>{% if d.trig.double %}<span class="pill buy">إشارة شراء</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
+      <td class="num mute">{{ d.meta.get('trades','') }}</td>
+      <td><form method="post" action="{{ url_for('delete', date=d.date) }}" onsubmit="return confirm('امسح جلسة {{ d.date }}؟')"><button class="danger">مسح</button></form></td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% endif %}
+</div>
+
+{# ---------- نتايج كل طريقة ---------- #}
+{% for m, title in methods.items() %}
+{% set tl = trades[m] %}
+<div class="card">
+  <h2>نتايج {{ title }}</h2>
+  {% if not tl %}<p class="mute">لسه مفيش إشارات بالطريقة دي.</p>{% endif %}
+  {% for t in tl|reverse %}
+    <h3 style="font-size:16px;margin-top:14px">إشارة {{ t.signal_date }}
+      <span class="mute" style="font-weight:400">· شراء {{ t.buy_date or 'الجلسة الجاية' }} · بيع {{ t.sell_date or 'لسه' }}</span></h3>
+    {% if t.avg is not none %}
+      <p>متوسط القايمة <b class="{{ 'pos' if t.avg>0 else 'neg' }}">{{ '%+.2f'|format(t.avg) }}٪</b>،
+         رابحة {{ t.wins }} من {{ t.n }}، والسهم العادي في السوق في نفس الفترة <b>{{ '%+.2f'|format(t.market) }}٪</b>.</p>
+      <div class="tablewrap"><table>
+        <tr><th>السهم</th><th>المستوى</th><th>الشراء (فتح)</th><th>البيع (آخر سعر)</th><th>النتيجة</th></tr>
+        {% for r in t.rows %}
+        <tr><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ r.entry if r.entry is not none else '—' }}</td>
+            <td class="num">{{ r.exit if r.exit is not none else '—' }}</td>
+            <td class="num {{ 'pos' if r.ret and r.ret>0 else 'neg' if r.ret and r.ret<0 else '' }}">{{ '%+.2f'|format(r.ret) ~ '٪' if r.ret is not none else '—' }}</td></tr>
+        {% endfor %}
+      </table></div>
+    {% else %}
+      <p class="mute">{{ t.rows|length }} سهم. النتيجة هتظهر لما ترفعي جلسة الشراء وجلسة البيع.</p>
+    {% endif %}
+  {% endfor %}
+  {% set done = tl|selectattr('avg')|list %}
+  {% if done %}
+    {% set tot = done|map(attribute='avg')|sum %}
+    {% set mk = done|map(attribute='market')|sum %}
+    <p class="big" style="margin-top:14px">الإجمالي: {{ done|length }} إشارة اتحسبت. متوسط القوايم {{ '%+.2f'|format(tot/done|length) }}٪، ومتوسط السوق {{ '%+.2f'|format(mk/done|length) }}٪.</p>
+  {% endif %}
+</div>
+{% endfor %}
+
+{# ---------- رفع ---------- #}
+<div class="card">
+  <h2>رفع جلسة جديدة</h2>
+  <form class="inline" method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+    <label>ملف التنفيذات (إكسل أو مضغوط)<input type="file" name="file" accept=".xlsx,.xlsm,.rar,.zip" required></label>
+    <label>تاريخ الجلسة<input type="date" name="date" value="{{ today }}" required></label>
+    <button>رفع</button>
+  </form>
+  <p class="note">لو رفعتي ملف لتاريخ موجود، هيتحسب من جديد بدل القديم. الجلسات لازم تترفع بتواريخها الصح ومن غير ما تنقص جلسة، لأن البرنامج بيعتبر الجلسة اللي بعدها في الترتيب هي يوم الشراء.</p>
+</div>
+
+{# ---------- الإعدادات ---------- #}
+<div class="card">
+  <h2>الإعدادات</h2>
+  <form class="inline" method="get">
+    <label>أقل عدد مرات للمستوى<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="54"></label>
+    <label>أقل عدد أسعار في اليوم<input type="number" name="min_prices" value="{{ p.min_prices }}" min="1"></label>
+    <label>حد الطريقة الأولى<input type="number" name="threshold" value="{{ p.threshold }}" min="1"></label>
+    <label>مضاعف الطريقة التانية<input type="number" name="mult" value="{{ p.mult }}" min="1.1" step="0.1"></label>
+    <label>مدة الشيل بالجلسات<input type="number" name="hold" value="{{ p.hold }}" min="1" max="10"></label>
+    <button>طبّق</button>
+  </form>
+  <p class="note">مدة الشيل بتعد يوم الشراء نفسه. مدة ٣ (الافتراضي) = لو الإشارة يوم التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الأحد، يعني بعد يومين تداول. مدة ٢ = البيع يوم الخميس. مدة ١ = البيع في نفس يوم الشراء.</p>
+</div>
+{% endblock %}
