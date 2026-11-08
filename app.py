@@ -43,7 +43,8 @@ def params():
             return None
     return dict(day_win=g('day_win', 20), min_win=g('min_win', 20), max_win=opt('max_win', int), min_prices=g('min_prices', 7),
                 threshold=g('threshold', 10), hold=g('hold', 2), mult=g('mult', 2.0, float),
-                gap=g('gap', 3.0, float), gap_max=opt('gap_max'))
+                gap=g('gap', 3.0, float), gap_max=opt('gap_max'),
+                min_share=g('min_share', 10.0, float), warn_share=g('warn_share', 2.0, float))
 
 
 def cairo_today():
@@ -54,17 +55,17 @@ def cairo_today():
 @auth
 def index():
     p = params()
-    days, trades, state = analyze(store, **p)
+    days, trades, state, warns = analyze(store, **p)
     latest = days[-1] if days else None
     return render_template('index.html', p=p, days=days, trades=trades, state=state,
-                           latest=latest, today=cairo_today(), methods=METHODS)
+                           latest=latest, today=cairo_today(), methods=METHODS, warns=warns)
 
 
 @app.route('/day/<date>')
 @auth
 def day(date):
     p = params()
-    days, _, _ = analyze(store, **p)
+    days, _, _, _ = analyze(store, **p)
     d = next((x for x in days if x['date'] == date), None)
     if not d:
         abort(404)

@@ -205,11 +205,15 @@ def process_upload(store: Store, jid: str, path: Path, date: str):
 
 # ---------- الإشارات والقاعدة ----------
 
-def signals_for(st, lv, min_win, min_prices, max_win=None):
+def signals_for(st, lv, min_win, min_prices, max_win=None, min_share=0, max_share=None):
     w = lv[lv['win'] >= min_win]
     if max_win:
         w = w[w['win'] <= max_win]
-    x = w.merge(st[['nprices']], left_on='sym', right_index=True)
+    if min_share:
+        w = w[w['share'] >= min_share]
+    if max_share is not None:
+        w = w[w['share'] < max_share]
+    x = w.merge(st[['nprices']], left_on='sym', right_index=True).reset_index(drop=True)
     x = x[x['nprices'] >= min_prices]
     # أقوى مستوى لكل سهم
     x = x.sort_values(['sym', 'win', 'sell_vol'], ascending=[True, False, False]).drop_duplicates('sym')
@@ -224,7 +228,7 @@ METHODS = {
 
 
 def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2.0, gap=3.0,
-            max_win=None, gap_max=None, day_win=20):
+            max_win=None, gap_max=None, day_win=20, min_share=10.0, warn_share=2.0):
     """
     hold = عدد الجلسات اللي السهم بيتشال فيها، والجلسة اللي اتشرى فيها محسوبة.
     hold=2 (الافتراضي): إشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس.
@@ -245,7 +249,11 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
     for i, d in enumerate(dates):
         st, lv, meta = data[d]
         n = len(signals_for(st, lv, day_win, min_prices))          # عدد إشارات اليوم
-        sig = signals_for(st, lv, min_win, min_prices, max_win)    # الأسهم اللي هتتشترى
+        sig = signals_for(st, lv, min_win, min_prices, max_win, min_share)    # الأسهم اللي هتتشترى
+        # قايمة التحذير: مستوى اتلمس كتير بس الكمية اللي اتلمت عنده صغيرة
+        warn = signals_for(st, lv, day_win, min_prices, None, 0, warn_share)
+        strong = set(signals_for(st, lv, day_win, min_prices, None, warn_share)['sym'])
+        warn = warn[~warn['sym'].isin(strong)].reset_index(drop=True)
         t_dip = armed and n >= threshold
         if n < threshold:
             armed = True
@@ -253,7 +261,7 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
             armed = False
         t_double = prev_n is not None and n > 0 and n >= mult * max(prev_n, 1)
         days.append(dict(date=d, count=n, prev=prev_n, trig={'dip': t_dip, 'double': t_double},
-                         armed_after=armed, meta=meta, sig=sig))
+                         armed_after=armed, meta=meta, sig=sig, warn=warn))
         prev_n = n
 
     def build(i, day):
@@ -311,9 +319,35 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
 
     trades = {m: [build(i, day) for i, day in enumerate(days) if day['trig'][m]] for m in METHODS}
 
+    # نتايج قايمة التحذير: حصل إيه في الجلسة اللي بعدها
+    warns = []
+    for i, day in enumerate(days):
+        nxt = data[dates[i + 1]][0] if i + 1 < len(dates) else None
+        st0 = data[day['date']][0]
+        mk = None
+        if nxt is not None:
+            c = nxt.index[nxt['n'] >= 60].intersection(st0.index)
+            mk = round(float(((nxt.loc[c, 'last'] / st0.loc[c, 'last'] - 1) * 100).median()), 2)
+        rows = []
+        for r in day['warn'].itertuples():
+            row = dict(sym=r.sym, name=r.name, level=r.price, win=int(r.win), share=r.share, close=r.last,
+                       val_m=r.val_m, nlo=None, nclose=None, ret=None, broke=None)
+            if nxt is not None and r.sym in nxt.index:
+                row['nlo'] = float(nxt.loc[r.sym, 'lo'])
+                row['nclose'] = float(nxt.loc[r.sym, 'last'])
+                row['ret'] = round((row['nclose'] / r.last - 1) * 100, 2)
+                row['broke'] = row['nlo'] < r.price * 0.995
+            rows.append(row)
+        done = [x for x in rows if x['ret'] is not None]
+        warns.append(dict(date=day['date'], next=dates[i + 1] if i + 1 < len(dates) else None, rows=rows,
+                          market=mk, n=len(done),
+                          avg=round(sum(x['ret'] for x in done) / len(done), 2) if done else None,
+                          broke=sum(1 for x in done if x['broke']),
+                          down=sum(1 for x in done if mk is not None and x['ret'] < mk)))
+
     state = {}
     if days:
         last = days[-1]
         state['dip'] = 'buy' if last['trig']['dip'] else ('armed' if last['armed_after'] else 'idle')
         state['double'] = 'buy' if last['trig']['double'] else 'idle'
-    return days, trades, state
+    return days, trades, state, warns

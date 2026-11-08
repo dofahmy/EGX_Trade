@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block body %}
-{% set cond = cond or p.gap_max is not none %}
+{% set cond = p.gap > 0 or p.gap_max is not none %}
 {% set gtxt %}{% if p.gap_max is not none %}من {{ p.gap }}٪ لـ{{ p.gap_max }}٪{% else %}بـ{{ p.gap }}٪ أو أكتر{% endif %}{% endset %}
 
 {# ---------- الحالة دلوقتي في كل طريقة ---------- #}
@@ -34,7 +34,42 @@
         <td class="num">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.last }}</td><td class="num">{{ '%.1f'|format(r.val_m) }}</td></tr>
     {% endfor %}
   </table></div>
-  <p class="note">المستوى هو السعر اللي المشتري كان واقف عنده. {% if cond %}شرط الفتح: السهم يتشرى بس لو أول سعر في الجلسة كان فوق المستوى {{ gtxt }}. ولو فتح برا المدى ده، يتساب.{% endif %}</p>
+  <p class="note">الأسهم دي مستواها اتلم عنده {{ p.min_share }}٪ أو أكتر من تداول اليوم. المستوى هو السعر اللي المشتري كان واقف عنده. {% if cond %}شرط الفتح: السهم يتشرى بس لو أول سعر في الجلسة كان فوق المستوى {{ gtxt }}. ولو فتح برا المدى ده، يتساب.{% endif %}</p>
+</div>
+{% endif %}
+
+{# ---------- قايمة التحذير ---------- #}
+{% if latest %}
+<div class="card">
+  <h2>قايمة التحذير: مستويات ضعيفة في جلسة {{ latest.date }} ({{ latest.warn|length }} سهم)</h2>
+  <p class="mute">أسهم السعر رجع فيها للمستوى {{ p.day_win }} مرة أو أكتر، بس الكمية اللي اتلمت عنده أقل من {{ p.warn_share }}٪ من تداول اليوم. يعني المستوى بيتلمس من غير مشتري حقيقي بيدافع عنه، وده ممكن يبقى علامة إنه هيتكسر.</p>
+  {% if latest.warn|length %}
+  <div class="tablewrap"><table>
+    <tr><th>السهم</th><th>الرمز</th><th>المستوى</th><th>عدد المرات</th><th>اللي اتلم عنده</th><th>الإقفال</th><th>التغير</th><th>قيمة التداول (مليون)</th></tr>
+    {% for r in latest.warn.itertuples() %}
+    <tr><td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td><td class="num"><b>{{ r.price }}</b></td><td class="num">{{ r.win }}</td>
+        <td class="num neg">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.last }}</td>
+        <td class="num {{ 'pos' if r.chg>0 else 'neg' if r.chg<0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</td><td class="num">{{ '%.1f'|format(r.val_m) }}</td></tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<p class="mute">مفيش أسهم بالشكل ده في الجلسة دي.</p>{% endif %}
+
+  {% set wd = warns|selectattr('n')|list %}
+  {% if wd %}
+  <h3 style="font-size:16px;margin-top:16px">حصل إيه في الجلسة اللي بعدها، في كل الأيام اللي فاتت</h3>
+  {% set ns = namespace(n=0, s=0, b=0, d=0) %}
+  {% for w in wd %}{% set ns.n = ns.n + w.n %}{% set ns.s = ns.s + w.avg * w.n %}{% set ns.b = ns.b + w.broke %}{% set ns.d = ns.d + w.down %}{% endfor %}
+  <p class="big">{{ ns.n }} حالة: المستوى اتكسر في {{ ns.b }}، وجت أضعف من السوق في {{ ns.d }}، ومتوسطها من إقفال يوم الإشارة لإقفال اللي بعده {{ '%+.2f'|format(ns.s / ns.n) }}٪.</p>
+  <div class="tablewrap"><table>
+    <tr><th>جلسة الإشارة</th><th>السهم</th><th>المستوى</th><th>اللي اتلم عنده</th><th>الإقفال</th><th>أقل سعر تاني يوم</th><th>إقفال تاني يوم</th><th>النتيجة</th><th>السوق</th><th>المستوى</th></tr>
+    {% for w in wd|reverse %}{% for r in w.rows if r.ret is not none %}
+    <tr><td>{{ w.date }}</td><td>{{ r.name }}</td><td class="num">{{ r.level }}</td><td class="num">{{ '%.1f'|format(r.share) }}٪</td><td class="num">{{ r.close }}</td>
+        <td class="num">{{ r.nlo }}</td><td class="num">{{ r.nclose }}</td>
+        <td class="num {{ 'pos' if r.ret>0 else 'neg' if r.ret<0 else '' }}">{{ '%+.2f'|format(r.ret) }}٪</td><td class="num mute">{{ '%+.2f'|format(w.market) }}٪</td>
+        <td>{% if r.broke %}<span class="pill" style="background:var(--redbg);color:var(--red)">اتكسر</span>{% else %}<span class="pill idle">صمد</span>{% endif %}</td></tr>
+    {% endfor %}{% endfor %}
+  </table></div>
+  {% endif %}
 </div>
 {% endif %}
 
@@ -132,6 +167,8 @@
   <form class="inline" method="get">
     <label>عدد مرات المستوى لحساب عدد إشارات اليوم<input type="number" name="day_win" value="{{ p.day_win }}" min="10" max="54"></label>
     <label>اختيار الأسهم: عدد المرات من<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="54"></label>
+    <label>اختيار الأسهم: أقل نسبة اتلمت عند المستوى ٪<input type="number" name="min_share" value="{{ p.min_share }}" min="0" step="0.5"></label>
+    <label>قايمة التحذير: النسبة أقل من ٪<input type="number" name="warn_share" value="{{ p.warn_share }}" min="0.5" step="0.5"></label>
     <label>لـ (فاضي = من غير حد)<input type="number" name="max_win" value="{{ p.max_win if p.max_win is not none else '' }}" min="10" max="54"></label>
     <label>أقل عدد أسعار في اليوم<input type="number" name="min_prices" value="{{ p.min_prices }}" min="1"></label>
     <label>حد الطريقة الأولى<input type="number" name="threshold" value="{{ p.threshold }}" min="1"></label>
