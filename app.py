@@ -29,8 +29,9 @@ DEFAULTS = {
     'egx': dict(day_win=20, min_prices=7, threshold=10, mult=2.0, min_win=20, max_win=None,
                 min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0),
     # الجلسة الأمريكية ٧٨ فترة بدل ٥٤، فعدد المرات متكبّر بنفس النسبة. وعدد الأسهم أكبر، فالحد أكبر.
-    'us': dict(day_win=29, min_prices=7, threshold=20, mult=2.0, min_win=29, max_win=None,
-               min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0),
+    # والسهم الأمريكي بيتداول على مئات الأسعار، فالنسبة اللي بتتلم عند سعر واحد صغيرة جدًا مقارنة بمصر
+    'us': dict(day_win=29, min_prices=7, threshold=10, mult=2.0, min_win=29, max_win=None,
+               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2),
 }
 TYPES = dict(day_win=int, min_prices=int, threshold=int, mult=float, min_win=int, max_win=int,
              min_share=float, gap=float, gap_max=float, hold=int, warn_share=float)

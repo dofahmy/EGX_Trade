@@ -248,7 +248,8 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
     prev_n = None
     for i, d in enumerate(dates):
         st, lv, meta = data[d]
-        n = len(signals_for(st, lv, day_win, min_prices))          # عدد إشارات اليوم
+        allsig = signals_for(st, lv, day_win, min_prices)            # كل إشارات اليوم
+        n = len(allsig)
         sig = signals_for(st, lv, min_win, min_prices, max_win, min_share)    # الأسهم اللي هتتشترى
         # قايمة التحذير: مستوى اتلمس كتير بس الكمية اللي اتلمت عنده صغيرة
         warn = signals_for(st, lv, day_win, min_prices, None, 0, warn_share)
@@ -261,7 +262,7 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
             armed = False
         t_double = prev_n is not None and n > 0 and n >= mult * max(prev_n, 1)
         days.append(dict(date=d, count=n, prev=prev_n, trig={'dip': t_dip, 'double': t_double},
-                         armed_after=armed, meta=meta, sig=sig, warn=warn))
+                         armed_after=armed, meta=meta, sig=sig, warn=warn, allsig=allsig))
         prev_n = n
 
     def build(i, day):
