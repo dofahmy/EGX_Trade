@@ -36,7 +36,7 @@ def params():
         except Exception:
             return d
     return dict(min_win=g('min_win', 20), min_prices=g('min_prices', 7),
-                threshold=g('threshold', 10), hold=g('hold', 2), mult=g('mult', 2.0, float))
+                threshold=g('threshold', 10), hold=g('hold', 2), mult=g('mult', 2.0, float), gap=g('gap', 3.0, float))
 
 
 def cairo_today():

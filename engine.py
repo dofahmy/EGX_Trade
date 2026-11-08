@@ -220,13 +220,14 @@ METHODS = {
 }
 
 
-def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2.0):
+def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2.0, gap=3.0):
     """
     hold = عدد الجلسات اللي السهم بيتشال فيها، والجلسة اللي اتشرى فيها محسوبة.
     hold=2 (الافتراضي): إشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس.
 
     الطريقة الأولى (dip): العدد ينزل تحت threshold، وأول يوم يرجع فيه threshold أو أكتر = إشارة.
     الطريقة التانية (double): عدد اليوم >= mult × عدد اليوم اللي قبله = إشارة.
+    gap = شرط الفتح: السهم يتشرى بس لو فتح فوق المستوى بالنسبة دي أو أكتر (٠ = من غير شرط).
     """
     dates = store.dates()
     data = {d: store.load(d) for d in dates}
@@ -256,9 +257,12 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
         rows = []
         for r in day['sig'].itertuples():
             row = dict(sym=r.sym, name=r.name, level=r.price, win=int(r.win), share=r.share,
-                       close=r.last, val_m=r.val_m, entry=None, exit=None, ret=None)
+                       close=r.last, val_m=r.val_m, entry=None, exit=None, ret=None,
+                       min_open=round(r.price * (1 + gap / 100), 4), gap=None, ok=None)
             if res['buy_date'] and r.sym in data[res['buy_date']][0].index:
                 row['entry'] = float(data[res['buy_date']][0].loc[r.sym, 'open'])
+                row['gap'] = round((row['entry'] / r.price - 1) * 100, 2)
+                row['ok'] = row['gap'] >= gap
             if res['sell_date'] and row['entry'] and r.sym in data[res['sell_date']][0].index:
                 row['exit'] = float(data[res['sell_date']][0].loc[r.sym, 'last'])
                 row['ret'] = round((row['exit'] / row['entry'] - 1) * 100, 2)
@@ -273,6 +277,10 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
             s = data[res['sell_date']][0]
             c = b.index[b['n'] >= 60].intersection(s.index)
             res['market'] = round(float(((s.loc[c, 'last'] / b.loc[c, 'open'] - 1) * 100).median()), 2)
+            okr = [r['ret'] for r in rows if r['ret'] is not None and r['ok']]
+            res['ok_n'] = len(okr)
+            res['ok_avg'] = round(sum(okr) / len(okr), 2) if okr else None
+            res['ok_wins'] = sum(1 for x in okr if x > 0)
         return res
 
     trades = {m: [build(i, day) for i, day in enumerate(days) if day['trig'][m]] for m in METHODS}
