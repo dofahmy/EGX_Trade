@@ -9,7 +9,11 @@ from engine import Store, process_upload, analyze, METHODS
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
 
-app = Flask(__name__)
+BASE = Path(__file__).resolve().parent
+app = Flask(__name__, template_folder=str(BASE / 'templates'))
+# يدوّر على ملفات الصفحات جوه فولدر templates، ولو مش موجود يدوّر جنب app.py
+from jinja2 import ChoiceLoader, FileSystemLoader
+app.jinja_loader = ChoiceLoader([FileSystemLoader(str(BASE / 'templates')), FileSystemLoader(str(BASE))])
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 store = Store(DATA_DIR)
 
@@ -32,7 +36,7 @@ def params():
         except Exception:
             return d
     return dict(min_win=g('min_win', 20), min_prices=g('min_prices', 7),
-                threshold=g('threshold', 10), hold=g('hold', 3), mult=g('mult', 2.0, float))
+                threshold=g('threshold', 10), hold=g('hold', 2), mult=g('mult', 2.0, float))
 
 
 def cairo_today():
