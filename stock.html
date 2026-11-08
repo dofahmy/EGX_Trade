@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="card">
+  <h2>{{ rows[0].name }} <span class="mute">{{ sym }}</span></h2>
+  <p class="mute">كل الجلسات المرفوعة للسهم. "فتح اللي بعدها فوق المستوى" = سعر فتح الجلسة اللي بعدها مقارنة بأقوى مستوى في اليوم ده.</p>
+  <div class="tablewrap"><table>
+    <tr><th>الجلسة</th><th>الإقفال السابق</th><th>الفتح</th><th>أقل / أعلى</th><th>الإقفال</th><th>التغير</th><th>عدد الأسعار</th><th>قيمة التداول (مليون)</th>
+        <th>أقوى المستويات (السعر · المرات · النسبة)</th><th>الحالة</th><th>فتح اللي بعدها فوق المستوى</th></tr>
+    {% for r in rows|reverse %}
+    <tr>
+      <td><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a></td>
+      <td class="num">{{ r.prev }}</td><td class="num">{{ r.open }}</td><td class="num">{{ r.lo }} / {{ r.hi }}</td><td class="num">{{ r.last }}</td>
+      <td class="num {{ 'pos' if r.chg>0 else 'neg' if r.chg<0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</td>
+      <td class="num">{{ r.nprices }}</td><td class="num">{{ '%.1f'|format(r.val_m) }}</td>
+      <td class="num" style="white-space:normal">{% for l in r.levels %}<div>{{ l.price }} · {{ l.win }} · {{ '%.2f'|format(l.share) }}٪</div>{% else %}<span class="mute">—</span>{% endfor %}</td>
+      <td>{% if r.status == 'buy' %}<span class="pill buy">قايمة الشراء</span>{% elif r.status == 'warn' %}<span class="pill" style="background:var(--redbg);color:var(--red)">تحذير</span>{% elif r.status == 'out' %}<span class="pill idle">برا الشروط</span>{% else %}<span class="mute">مش إشارة</span>{% endif %}
+          {% if r.trig.dip or r.trig.double %}<div class="note">اليوم ده إشارة شراء</div>{% endif %}</td>
+      <td class="num">{% if r.nopen and r.levels %}{{ '%+.2f'|format((r.nopen / r.levels[0].price - 1) * 100) }}٪{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  <p><a href="{{ murl('index', tab='sessions') }}">رجوع</a></p>
+</div>
+{% endblock %}

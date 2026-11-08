@@ -1,21 +1,28 @@
 {% extends 'base.html' %}
 {% block body %}
 <div class="card">
-  <h2>جلسة {{ d.date }}: {{ d.count }} إشارة، منهم {{ d.sig|length }} سهم في مدى الاختيار</h2>
-  <p class="mute">المستوى = سعر اتنفذ عنده بيع في {% if p.max_win %}من {{ p.min_win }} لـ{{ p.max_win }}{% else %}{{ p.min_win }} أو أكتر من{% endif %} فترة خمس دقايق، والسهم اتداول على {{ p.min_prices }} أسعار أو أكتر في اليوم.</p>
+  <h2>جلسة {{ d.date }}: {{ d.count }} إشارة · {{ d.sig|length }} في قايمة الشراء · {{ d.warn|length }} تحذير · {{ d.count - d.sig|length - d.warn|length }} برا الشروط</h2>
+  <p class="mute">الإشارة = سهم فيه سعر اتنفذ عنده بيع في {{ p.day_win }} فترة خمس دقايق أو أكتر، والسهم اتداول على {{ p.min_prices }} أسعار أو أكتر في اليوم. ده اللي بيتحسب بيه عدد إشارات اليوم.</p>
+  <p class="mute">كل سهم ليه حالة واحدة، محسوبة على نفس المستوى اللي في الجدول:</p>
+  <ul class="mute" style="margin-top:0">
+    <li><b>تحذير:</b> اللي اتلم عند المستوى أقل من {{ p.warn_share }}٪ من تداول اليوم.</li>
+    <li><b>في قايمة الشراء:</b> مش تحذير، وعدد المرات {% if p.max_win %}من {{ p.min_win }} لـ{{ p.max_win }}{% else %}{{ p.min_win }} أو أكتر{% endif %}، واللي اتلم عند المستوى {{ p.min_share }}٪ أو أكتر.</li>
+    <li><b>برا الشروط:</b> مش تحذير، بس ماعداش شروط قايمة الشراء.</li>
+  </ul>
   <div class="tablewrap"><table>
-    <tr><th>السهم</th><th>الرمز</th><th>المستوى</th><th>عدد المرات</th><th>اللي اتلم عنده من تداول اليوم</th><th>الإقفال</th><th>التغير</th><th>أقل / أعلى</th><th>قيمة التداول (مليون)</th></tr>
-    {% for r in d.sig.itertuples() %}
+    <tr><th>السهم</th><th>الرمز</th><th>المستوى</th><th>عدد المرات</th><th>اللي اتلم عنده من تداول اليوم</th><th>الإقفال</th><th>التغير</th><th>قيمة التداول (مليون)</th><th>الحالة</th></tr>
+    {% for r in d.allsig.itertuples() %}
     <tr>
-      <td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td>
-      <td class="num"><b>{{ r.price }}</b></td><td class="num">{{ r.win }}</td><td class="num">{{ '%.1f'|format(r.share) }}٪</td>
+      <td>{{ r.name }}</td><td><a href="{{ murl('stock', sym=r.sym) }}">{{ r.sym }}</a></td>
+      <td class="num"><b>{{ r.price }}</b></td><td class="num">{{ r.win }}</td><td class="num">{{ '%.2f'|format(r.share) }}٪</td>
       <td class="num">{{ r.last }}</td>
       <td class="num {{ 'pos' if r.chg>0 else 'neg' if r.chg<0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</td>
-      <td class="num">{{ r.lo }} / {{ r.hi }}</td><td class="num">{{ '%.1f'|format(r.val_m) }}</td>
+      <td class="num">{{ '%.1f'|format(r.val_m) }}</td>
+      <td>{% if r.status == 'buy' %}<span class="pill buy">في قايمة الشراء</span>{% elif r.status == 'warn' %}<span class="pill" style="background:var(--redbg);color:var(--red)">تحذير</span>{% else %}<span class="pill idle">برا الشروط</span>{% endif %}</td>
     </tr>
     {% endfor %}
   </table></div>
   {% for m in d.meta.get('chain', []) %}<p class="note">{{ m }}</p>{% endfor %}
-  <p><a href="{{ url_for('index', tab='sessions') }}">رجوع</a></p>
+  <p><a href="{{ murl('index', tab='sessions') }}">رجوع</a></p>
 </div>
 {% endblock %}

@@ -239,6 +239,59 @@ def delete(date):
     return redirect(url_for('index', m=m, tab='sessions'))
 
 
+@app.route('/stock/<sym>')
+@auth
+def stock(sym):
+    """كل جلسات سهم واحد: الأسعار، وأقوى ٣ مستويات، وحالته في الإشارات."""
+    m = market()
+    store = STORES[m]
+    p = params(m)
+    days, _, _, _ = analyze(store, **p)
+    rows = []
+    for i, d in enumerate(days):
+        st, lv, _ = store.load(d['date'])
+        if sym not in st.index:
+            continue
+        r = st.loc[sym]
+        top = lv[lv['sym'] == sym].sort_values(['win', 'sell_vol'], ascending=False).head(3)
+        a_ = d['allsig']
+        status = a_.loc[a_['sym'] == sym, 'status'].iloc[0] if (a_['sym'] == sym).any() else None
+        nxt = days[i + 1]['date'] if i + 1 < len(days) else None
+        nopen = None
+        if nxt:
+            s2 = store.load(nxt)[0]
+            if sym in s2.index:
+                nopen = float(s2.loc[sym, 'open'])
+        rows.append(dict(date=d['date'], name=r['name'], prev=r['prev'], open=r['open'], lo=r['lo'], hi=r['hi'],
+                         last=r['last'], chg=r['chg'], n=int(r['n']), val_m=r['val_m'], nprices=int(r['nprices']),
+                         levels=top.to_dict('records'), status=status, day_count=d['count'],
+                         trig=d['trig'], nopen=nopen))
+    if not rows:
+        abort(404)
+    return render_template('stock.html', sym=sym, rows=rows, p=p)
+
+
+@app.route('/export')
+@auth
+def export():
+    """ملف مضغوط فيه ملخص كل الجلسات (مش الصفقات نفسها)، عشان التحليل برا البرنامج."""
+    import io, zipfile
+    m = market()
+    root = MARKETS[m]['root'] / 'sessions'
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
+        for f in sorted(root.rglob('*')):
+            if f.is_file():
+                z.write(f, f.relative_to(root.parent))
+        sf = settings_file(m)
+        if sf.exists():
+            z.write(sf, 'settings.json')
+    buf.seek(0)
+    from flask import send_file
+    return send_file(buf, mimetype='application/zip', as_attachment=True,
+                     download_name=f'sessions_{m}_{dt.date.today().isoformat()}.zip')
+
+
 @app.route('/health')
 def health():
     return 'ok'
