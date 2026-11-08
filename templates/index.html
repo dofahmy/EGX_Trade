@@ -25,7 +25,7 @@
 {# ---------- قايمة الشراء الحالية ---------- #}
 {% if latest and (state['dip'] == 'buy' or state['double'] == 'buy') %}
 <div class="card">
-  <h2>قايمة الشراء مع فتح الجلسة الجاية ({{ latest.sig|length }} سهم)
+  <h2>قايمة الشراء مع فتح الجلسة الجاية ({{ latest.sig|length }} سهم من {{ latest.count }} إشارة)
     <span class="mute" style="font-size:14px;font-weight:400">· {% if state['dip']=='buy' %}الطريقة الأولى{% endif %}{% if state['dip']=='buy' and state['double']=='buy' %} و{% endif %}{% if state['double']=='buy' %}الطريقة التانية{% endif %}</span></h2>
   <div class="tablewrap"><table>
     <tr><th>السهم</th><th>الرمز</th><th>المستوى</th>{% if cond %}<th>يتشرى لو فتح من</th>{% if p.gap_max is not none %}<th>لحد</th>{% endif %}{% endif %}<th>عدد المرات</th><th>اللي اتلم عنده</th><th>إقفال جلسة الإشارة</th><th>قيمة التداول (مليون)</th></tr>
@@ -43,11 +43,12 @@
   <h2>الجلسات</h2>
   {% if not days %}<p class="mute">لسه مفيش جلسات. ارفعي أول ملف من تحت.</p>{% else %}
   <div class="tablewrap"><table>
-    <tr><th>التاريخ</th><th>عدد الإشارات</th><th>الطريقة الأولى</th><th>الطريقة التانية</th><th>عدد الصفقات</th><th></th></tr>
+    <tr><th>التاريخ</th><th>عدد الإشارات</th><th>أسهم في المدى</th><th>الطريقة الأولى</th><th>الطريقة التانية</th><th>عدد الصفقات</th><th></th></tr>
     {% for d in days|reverse %}
     <tr>
       <td><a href="{{ url_for('day', date=d.date, **p) }}">{{ d.date }}</a></td>
       <td class="num"><b>{{ d.count }}</b>{% if d.prev is not none %} <span class="mute">(قبلها {{ d.prev }})</span>{% endif %}</td>
+      <td class="num">{{ d.sig|length }}</td>
       <td>{% if d.trig.dip %}<span class="pill buy">إشارة شراء</span>{% elif d.count < p.threshold %}<span class="pill armed">تحت {{ p.threshold }}</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
       <td>{% if d.trig.double %}<span class="pill buy">إشارة شراء</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
       <td class="num mute">{{ d.meta.get('trades','') }}</td>
@@ -129,7 +130,8 @@
 <div class="card">
   <h2>الإعدادات</h2>
   <form class="inline" method="get">
-    <label>عدد مرات المستوى من<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="54"></label>
+    <label>عدد مرات المستوى لحساب عدد إشارات اليوم<input type="number" name="day_win" value="{{ p.day_win }}" min="10" max="54"></label>
+    <label>اختيار الأسهم: عدد المرات من<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="54"></label>
     <label>لـ (فاضي = من غير حد)<input type="number" name="max_win" value="{{ p.max_win if p.max_win is not none else '' }}" min="10" max="54"></label>
     <label>أقل عدد أسعار في اليوم<input type="number" name="min_prices" value="{{ p.min_prices }}" min="1"></label>
     <label>حد الطريقة الأولى<input type="number" name="threshold" value="{{ p.threshold }}" min="1"></label>
@@ -139,6 +141,6 @@
     <label>لـ ٪ (فاضي = من غير حد)<input type="number" name="gap_max" value="{{ p.gap_max if p.gap_max is not none else '' }}" min="0" step="0.5"></label>
     <button>طبّق</button>
   </form>
-  <p class="note">مدة الشيل بتعد يوم الشراء نفسه. مدة ٢ (الافتراضي) = لو الإشارة يوم التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس. مدة ٣ = البيع يوم الأحد. مدة ١ = البيع في نفس يوم الشراء.<br>شرط الفتح: لو "من" ٠ و"لـ" فاضي، يبقى من غير شرط. وعدد مرات المستوى أقصى حاجة ٥٤، لأن الجلسة فيها ٥٤ فترة خمس دقايق.</p>
+  <p class="note">مدة الشيل بتعد يوم الشراء نفسه. مدة ٢ (الافتراضي) = لو الإشارة يوم التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس. مدة ٣ = البيع يوم الأحد. مدة ١ = البيع في نفس يوم الشراء.<br>عدد إشارات اليوم بيتحسب من المستويات اللي اتلمست {{ p.day_win }} مرة أو أكتر، وده بس اللي بيحدد اليوم فيه إشارة ولا لأ. ومدى "اختيار الأسهم" بيحدد مين من الأسهم يدخل قايمة الشراء.<br>شرط الفتح: لو "من" ٠ و"لـ" فاضي، يبقى من غير شرط. وعدد مرات المستوى أقصى حاجة ٥٤، لأن الجلسة فيها ٥٤ فترة خمس دقايق.</p>
 </div>
 {% endblock %}

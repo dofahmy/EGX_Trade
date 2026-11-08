@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block body %}
 <div class="card">
-  <h2>إشارات جلسة {{ d.date }}: {{ d.count }} سهم</h2>
+  <h2>جلسة {{ d.date }}: {{ d.count }} إشارة، منهم {{ d.sig|length }} سهم في مدى الاختيار</h2>
   <p class="mute">المستوى = سعر اتنفذ عنده بيع في {% if p.max_win %}من {{ p.min_win }} لـ{{ p.max_win }}{% else %}{{ p.min_win }} أو أكتر من{% endif %} فترة خمس دقايق، والسهم اتداول على {{ p.min_prices }} أسعار أو أكتر في اليوم.</p>
   <div class="tablewrap"><table>
     <tr><th>السهم</th><th>الرمز</th><th>المستوى</th><th>عدد المرات</th><th>اللي اتلم عنده من تداول اليوم</th><th>الإقفال</th><th>التغير</th><th>أقل / أعلى</th><th>قيمة التداول (مليون)</th></tr>

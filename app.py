@@ -41,7 +41,7 @@ def params():
             return t(v) if v else None
         except Exception:
             return None
-    return dict(min_win=g('min_win', 20), max_win=opt('max_win', int), min_prices=g('min_prices', 7),
+    return dict(day_win=g('day_win', 20), min_win=g('min_win', 20), max_win=opt('max_win', int), min_prices=g('min_prices', 7),
                 threshold=g('threshold', 10), hold=g('hold', 2), mult=g('mult', 2.0, float),
                 gap=g('gap', 3.0, float), gap_max=opt('gap_max'))
 

@@ -224,14 +224,16 @@ METHODS = {
 
 
 def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2.0, gap=3.0,
-            max_win=None, gap_max=None):
+            max_win=None, gap_max=None, day_win=20):
     """
     hold = عدد الجلسات اللي السهم بيتشال فيها، والجلسة اللي اتشرى فيها محسوبة.
     hold=2 (الافتراضي): إشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس.
 
     الطريقة الأولى (dip): العدد ينزل تحت threshold، وأول يوم يرجع فيه threshold أو أكتر = إشارة.
     الطريقة التانية (double): عدد اليوم >= mult × عدد اليوم اللي قبله = إشارة.
-    min_win / max_win = عدد مرات المستوى من / لـ (max_win فاضي = من غير حد أعلى).
+    day_win = عدد مرات المستوى اللي بيتحسب بيه عدد إشارات اليوم (اللي بيحدد اليوم إشارة ولا لأ).
+    min_win / max_win = مدى عدد مرات المستوى لاختيار الأسهم اللي هتتشترى من يوم الإشارة
+    (max_win فاضي = من غير حد أعلى).
     gap / gap_max = شرط الفتح: السهم يتشرى بس لو فتح فوق المستوى بنسبة من gap لـ gap_max
     (gap = ٠ وgap_max فاضي = من غير شرط).
     """
@@ -242,8 +244,8 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
     prev_n = None
     for i, d in enumerate(dates):
         st, lv, meta = data[d]
-        sig = signals_for(st, lv, min_win, min_prices, max_win)
-        n = len(sig)
+        n = len(signals_for(st, lv, day_win, min_prices))          # عدد إشارات اليوم
+        sig = signals_for(st, lv, min_win, min_prices, max_win)    # الأسهم اللي هتتشترى
         t_dip = armed and n >= threshold
         if n < threshold:
             armed = True
