@@ -217,6 +217,12 @@ fieldset .inline{gap:14px}
   {% endif %}
   <div class="card">
     <h2>الجلسات</h2>
+    <form class="inline" method="get" action="{{ url_for('stock', sym='X')[:-1] }}" onsubmit="this.action=this.action+this.s.value.trim().toUpperCase();return true;" style="margin-bottom:10px">
+      <input type="hidden" name="m" value="{{ mkt }}">
+      <label>صفحة سهم (اكتبي الرمز)<input name="s" required></label>
+      <button>افتح</button>
+      <a href="{{ murl('export') }}" style="margin-right:auto">تحميل ملخص كل الجلسات</a>
+    </form>
     {% if not days %}<p class="mute">لسه مفيش جلسات.</p>{% else %}
     <div class="tablewrap"><table>
       <tr><th>التاريخ</th><th>عدد الإشارات</th><th>أسهم في قايمة الشراء</th><th>تحذيرات</th><th>الطريقة الأولى</th><th>الطريقة التانية</th><th>عدد الصفقات</th><th></th></tr>

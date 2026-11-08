@@ -13,7 +13,7 @@
     <tr><th>السهم</th><th>الرمز</th><th>المستوى</th><th>عدد المرات</th><th>اللي اتلم عنده من تداول اليوم</th><th>الإقفال</th><th>التغير</th><th>قيمة التداول (مليون)</th><th>الحالة</th></tr>
     {% for r in d.allsig.itertuples() %}
     <tr>
-      <td>{{ r.name }}</td><td class="mute">{{ r.sym }}</td>
+      <td>{{ r.name }}</td><td><a href="{{ murl('stock', sym=r.sym) }}">{{ r.sym }}</a></td>
       <td class="num"><b>{{ r.price }}</b></td><td class="num">{{ r.win }}</td><td class="num">{{ '%.2f'|format(r.share) }}٪</td>
       <td class="num">{{ r.last }}</td>
       <td class="num {{ 'pos' if r.chg>0 else 'neg' if r.chg<0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</td>
