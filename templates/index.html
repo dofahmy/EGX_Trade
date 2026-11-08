@@ -254,7 +254,7 @@ fieldset .inline{gap:14px}
           <label>عدد مرات المستوى اللي بيتحسب بيه عدد الإشارات<input type="number" name="day_win" value="{{ p.day_win }}" min="10" max="{{ mwin }}"></label>
           <label>أقل عدد أسعار اتداول عليها السهم في اليوم<input type="number" name="min_prices" value="{{ p.min_prices }}" min="1"></label>
           <label>الطريقة الأولى: الحد<input type="number" name="threshold" value="{{ p.threshold }}" min="1"></label>
-          <label>الطريقة التانية: المضاعف<input type="number" name="mult" value="{{ p.mult }}" min="1.1" step="0.1"></label>
+          <label>الطريقة التانية: المضاعف<input type="number" name="mult" value="{{ p.mult }}" min="1" step="any"></label>
         </div>
         <p class="note">الطريقة الأولى: العدد ينزل تحت الحد، وأول يوم يرجع فيه الحد أو أكتر يبقى إشارة. الطريقة التانية: عدد اليوم يبقى المضاعف ده أو أكتر من عدد اليوم اللي قبله.</p>
       </fieldset>
@@ -262,19 +262,19 @@ fieldset .inline{gap:14px}
         <div style="display:flex;flex-wrap:wrap;gap:14px">
           <label>عدد مرات المستوى من (أقل من حد الإشارات مالوش تأثير)<input type="number" name="min_win" value="{{ p.min_win }}" min="10" max="{{ mwin }}"></label>
           <label>لـ (فاضي = من غير حد)<input type="number" name="max_win" value="{{ p.max_win if p.max_win is not none else '' }}" min="10" max="{{ mwin }}"></label>
-          <label>أقل نسبة اتلمت عند المستوى ٪<input type="number" name="min_share" value="{{ p.min_share }}" min="0" step="0.5"></label>
+          <label>أقل نسبة اتلمت عند المستوى ٪<input type="number" name="min_share" value="{{ p.min_share }}" min="0" step="any"></label>
         </div>
       </fieldset>
       <fieldset><legend>٣. الشراء والبيع</legend>
         <div style="display:flex;flex-wrap:wrap;gap:14px">
-          <label>الفتح فوق المستوى من ٪<input type="number" name="gap" value="{{ p.gap }}" min="0" step="0.5"></label>
-          <label>لـ ٪ (فاضي = من غير حد)<input type="number" name="gap_max" value="{{ p.gap_max if p.gap_max is not none else '' }}" min="0" step="0.5"></label>
+          <label>الفتح فوق المستوى من ٪<input type="number" name="gap" value="{{ p.gap }}" min="0" step="any"></label>
+          <label>لـ ٪ (فاضي = من غير حد)<input type="number" name="gap_max" value="{{ p.gap_max if p.gap_max is not none else '' }}" min="0" step="any"></label>
           <label>مدة الشيل بالجلسات<input type="number" name="hold" value="{{ p.hold }}" min="1" max="10"></label>
         </div>
         <p class="note">شرط الفتح: لو "من" ٠ و"لـ" فاضي، يبقى من غير شرط. مدة الشيل بتعد يوم الشراء: ٢ = الإشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر الخميس.</p>
       </fieldset>
       <fieldset><legend>٤. التحذيرات</legend>
-        <label>المستوى يبقى تحذير لو النسبة اللي اتلمت عنده أقل من ٪<input type="number" name="warn_share" value="{{ p.warn_share }}" min="0.5" step="0.5"></label>
+        <label>المستوى يبقى تحذير لو النسبة اللي اتلمت عنده أقل من ٪<input type="number" name="warn_share" value="{{ p.warn_share }}" min="0" step="any"></label>
       </fieldset>
       <button>حفظ</button>
       <button name="reset" value="1" class="danger" style="margin-right:14px" onclick="return confirm('ترجعي للإعدادات الأصلية؟')">رجّعي الإعدادات الأصلية</button>
