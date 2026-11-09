@@ -4,78 +4,49 @@
 {% set last = rows[-1] if rows else none %}
 <div class="card">
   <h2>التريدة — {{ mtitle }}</h2>
-  <p class="mute">كل جلسة بنختار السهم صاحب <b>أكبر نسبة اتلمت عند مستواه</b> من قايمة إشارات اليوم، بشرط إقفاله يكون موجب. لو مش موجب بنشوف اللي بعده. الجلسة اللي بعدها بنحط أمر شراء <b>عند سعر المستوى</b>، ونقفل لو السعر طلع {{ p.tp }}٪ فوق سعر الشراء، أو مع آخر الجلسة.</p>
+  <p class="mute">كل جلسة بنختار السهم صاحب <b>أكبر نسبة اتلمت عند مستواه</b> من قايمة إشارات اليوم، بشرط إقفاله يكون موجب. الجلسة اللي بعدها بنشتري <b>مع الفتح</b>، ونبيع لو السعر طلع {{ p.tp }}٪ فوق سعر الشراء، أو مع <b>الإقفال</b>، أيهم يحصل الأول.</p>
   {% if last and last.pick and not last.next %}
   <div class="banner buy">
-    <b>أمر الجلسة الجاية</b> (من جلسة {{ last.date }}):
-    شراء <b>{{ last.pick.name }}</b> <span class="mute">{{ last.pick.sym }}</span> عند <b>{{ last.pick.level }}</b>،
-    والهدف <b>{{ last.pick.target }}</b> (+{{ p.tp }}٪)، ولو ماوصلش نقفل مع آخر الجلسة.
-    <div class="note">اتلم عند المستوى {{ '%.2f'|format(last.pick.share) }}٪ من تداول اليوم، في {{ last.pick.win }} فترة، وقفل {{ '%+.2f'|format(last.pick.chg) }}٪ على {{ last.pick.last }}.</div>
+    <b>الجلسة الجاية</b> (اختيار جلسة {{ last.date }}): شراء <b>{{ last.pick.name }}</b> <span class="mute">{{ last.pick.sym }}</span> مع الفتح،
+    والبيع عند +{{ p.tp }}٪ من سعر الفتح، أو مع الإقفال.
   </div>
   {% elif last and not last.pick %}
-  <div class="banner idle">جلسة {{ last.date }}: مفيش سهم في قايمة الإشارات إقفاله موجب، فمفيش أمر للجلسة الجاية.</div>
+  <div class="banner idle">جلسة {{ last.date }}: مفيش سهم في قايمة الإشارات إقفاله موجب، فمفيش تريدة الجلسة الجاية.</div>
+  {% endif %}
+  {% if sm %}
+  <div class="big" style="margin-top:6px">
+    <span class="{{ 'pos' if sm.avg>0 else 'neg' if sm.avg<0 else '' }}">{{ '%+.2f'|format(sm.avg) }}٪</span> متوسط
+    · مجموع <span class="{{ 'pos' if sm.total>0 else 'neg' if sm.total<0 else '' }}">{{ '%+.2f'|format(sm.total) }}٪</span>
+  </div>
+  <div class="note">{{ sm.n }} تريدة · كسبانة {{ sm.wins }} · خسرانة {{ sm.losses }} · وصلت الهدف {{ sm.tp }}</div>
   {% endif %}
 </div>
 
 <div class="card">
-  <h2>النتايج</h2>
-  <div style="display:flex;flex-wrap:wrap;gap:28px">
-    {% for key, title in [('level','الشراء عند المستوى (لما اتنفذ)'), ('miss_open','لما ماتنفذش: لو كنا اشترينا مع الفتح'), ('all_open','لو اشترينا مع الفتح في كل الأيام')] %}
-    {% set s = sm[key] %}
-    <div>
-      <div class="mute">{{ title }}</div>
-      {% if s %}
-      <div class="big"><span class="{{ 'pos' if s.avg>0 else 'neg' if s.avg<0 else '' }}">{{ '%+.2f'|format(s.avg) }}٪</span> متوسط
-        · مجموع <span class="{{ 'pos' if s.total>0 else 'neg' if s.total<0 else '' }}">{{ '%+.2f'|format(s.total) }}٪</span></div>
-      <div class="note">{{ s.n }} من {{ s.of }} يوم · كسبانة {{ s.wins }} · وصلت الهدف {{ s.tp }}</div>
-      {% else %}<div class="mute">—</div>{% endif %}
-    </div>
-    {% endfor %}
-  </div>
-  {% if approx %}<p class="note" style="color:var(--amber)">⚠ الجلسات اللي جنبها "تقريبي" اترفعت قبل التحديث ده، فمش متخزن فيها ترتيب الحركة جوه اليوم. بنفترض إن السعر نزل للمستوى الأول وبعدين طلع للهدف، وده ممكن مايكونش حصل. لو عاوزاها دقيقة، احذفي الجلسة وارفعيها تاني.</p>{% endif %}
-</div>
-
-<div class="card">
-  <h2>يوم بيوم</h2>
   <div class="tablewrap"><table>
-    <tr><th>يوم الاختيار</th><th>السهم</th><th>المستوى (أمر الشراء)</th><th>اللي اتلم ٪</th><th>تغير اليوم</th>
-        <th>يوم التريدة</th><th>الفتح</th><th>أقل / أعلى</th><th>الإقفال</th><th>اتنفذ عند المستوى؟</th><th>الخروج</th><th>النتيجة</th><th>لو اشترينا مع الفتح</th></tr>
+    <tr><th>يوم الاختيار</th><th>السهم</th><th>يوم التريدة</th><th>الشراء (الفتح)</th><th>الهدف</th><th>البيع</th><th>النتيجة</th></tr>
     {% for r in rows|reverse %}
     {% set k = r.pick %}{% set n = r.next %}
     <tr>
-      <td><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a>
-        {% if r.skipped %}<div class="note" style="white-space:normal">اتخطينا: {% for x in r.skipped %}{{ x.sym }} ({{ '%+.2f'|format(x.chg) }}٪){{ '، ' if not loop.last }}{% endfor %}</div>{% endif %}</td>
+      <td><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a></td>
       {% if not k %}
-      <td colspan="12" class="mute">مفيش سهم إقفاله موجب في قايمة إشارات اليوم ({{ r.count }} إشارة)</td>
+      <td colspan="6" class="mute">مفيش سهم إقفاله موجب</td>
       {% else %}
-      <td><a href="{{ murl('stock', sym=k.sym) }}">{{ k.sym }}</a><div class="note">{{ k.name }}</div></td>
-      <td class="num"><b>{{ k.level }}</b><div class="note">هدف {{ k.target }}</div></td>
-      <td class="num">{{ '%.2f'|format(k.share) }}٪<div class="note">{{ k.win }} فترة</div></td>
-      <td class="num pos">{{ '%+.2f'|format(k.chg) }}٪</td>
+      <td><a href="{{ murl('stock', sym=k.sym) }}">{{ k.sym }}</a> <span class="note">{{ k.name }}</span></td>
       {% if not n %}
-      <td colspan="8"><span class="pill armed">الجلسة الجاية</span></td>
+      <td colspan="5"><span class="pill armed">الجلسة الجاية</span></td>
       {% elif n.missing %}
-      <td>{{ n.date }}</td><td colspan="7" class="mute">السهم ماتداولش</td>
+      <td>{{ n.date }}</td><td colspan="4" class="mute">السهم ماتداولش</td>
       {% else %}
-      <td>{{ n.date }}{% if not n.exact %}<div class="note" style="color:var(--amber)">تقريبي</div>{% endif %}</td>
-      <td class="num">{{ n.open }}<div class="note {{ 'pos' if n.gap>0 else 'neg' if n.gap<0 else '' }}">{{ '%+.2f'|format(n.gap) }}٪ من المستوى</div></td>
-      <td class="num">{{ n.lo }} / {{ n.hi }}</td>
-      <td class="num">{{ n.last }}</td>
-      {% if n.filled %}
-      <td><span class="pill buy">اتنفذ</span><div class="note">عند {{ n.buy }}</div></td>
-      <td class="num">{{ n.exit }}<div class="note">{{ 'الهدف' if n.why=='tp' else 'آخر الجلسة' }}</div></td>
-      <td class="num {{ 'pos' if n.res>0 else 'neg' if n.res<0 else '' }}">{{ '%+.2f'|format(n.res) }}٪</td>
-      {% else %}
-      <td><span class="pill idle">ماتنفذش</span><div class="note">أقل سعر {{ n.lo }}</div></td>
-      <td class="mute">—</td><td class="mute">—</td>
-      {% endif %}
-      <td class="num {{ 'pos' if n.o_res>0 else 'neg' if n.o_res<0 else '' }}" style="{{ 'font-size:15px' if not n.filled else 'opacity:.6' }}">{{ '%+.2f'|format(n.o_res) }}٪
-        <div class="note">{{ n.o_buy }} ← {{ n.o_exit }} ({{ 'الهدف' if n.o_why=='tp' else 'آخر الجلسة' }})</div></td>
+      <td>{{ n.date }}</td>
+      <td class="num">{{ n.o_buy }}</td>
+      <td class="num">{{ (n.o_buy * (1 + p.tp / 100))|round(4) }}</td>
+      <td class="num">{{ n.o_exit }} <span class="note">{{ 'الهدف' if n.o_why=='tp' else 'الإقفال' }}</span></td>
+      <td class="num {{ 'pos' if n.o_res>0 else 'neg' if n.o_res<0 else '' }}">{{ '%+.2f'|format(n.o_res) }}٪</td>
       {% endif %}
       {% endif %}
     </tr>
     {% endfor %}
   </table></div>
-  <p class="note">"اتنفذ" = السعر نزل للمستوى أو تحته خلال الجلسة. لو فتح تحت المستوى، بنشتري بسعر الفتح. والهدف بيتحسب من سعر الشراء الفعلي. ونتيجة "لو اشترينا مع الفتح" مكتوبة في كل الأيام للمقارنة، وبتبان أوضح في الأيام اللي ماتنفذش فيها.</p>
 </div>
 {% endblock %}
