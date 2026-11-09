@@ -4,7 +4,7 @@ from functools import wraps
 
 from flask import Flask, request, redirect, url_for, render_template, Response, abort
 
-from engine import Store, process_upload, analyze, METHODS
+from engine import Store, process_upload, analyze, METHODS, same_day_trades
 import us
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
@@ -27,14 +27,14 @@ STORES = {m: Store(v['root']) for m, v in MARKETS.items()}
 
 DEFAULTS = {
     'egx': dict(day_win=20, min_prices=7, threshold=10, mult=2.0, min_win=20, max_win=None,
-                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0),
+                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0),
     # الجلسة الأمريكية ٧٨ فترة بدل ٥٤، فعدد المرات متكبّر بنفس النسبة. وعدد الأسهم أكبر، فالحد أكبر.
     # والسهم الأمريكي بيتداول على مئات الأسعار، فالنسبة اللي بتتلم عند سعر واحد صغيرة جدًا مقارنة بمصر
     'us': dict(day_win=29, min_prices=7, threshold=10, mult=2.0, min_win=29, max_win=None,
-               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2),
+               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0),
 }
 TYPES = dict(day_win=int, min_prices=int, threshold=int, mult=float, min_win=int, max_win=int,
-             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float)
+             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float)
 OPTIONAL = {'max_win', 'gap_max'}
 
 
@@ -269,6 +269,29 @@ def stock(sym):
     if not rows:
         abort(404)
     return render_template('stock.html', sym=sym, rows=rows, p=p)
+
+
+@app.route('/trade')
+@auth
+def trade():
+    """التريدة: شراء وبيع في نفس اليوم على السهم صاحب أكبر نسبة اتلمت."""
+    m = market()
+    p = params(m)
+    rows = same_day_trades(STORES[m], **p)
+
+    def summ(key_f, key_r):
+        done = [r['next'] for r in rows if r.get('next') and not r['next'].get('missing')]
+        lst = [n for n in done if key_f(n)]
+        if not lst:
+            return None
+        res = [n[key_r] for n in lst]
+        return dict(n=len(lst), of=len(done), avg=round(sum(res) / len(res), 2), total=round(sum(res), 2),
+                    wins=sum(1 for x in res if x > 0), tp=sum(1 for n in lst if n['why' if key_r == 'res' else 'o_why'] == 'tp'))
+    sm = dict(level=summ(lambda n: n['filled'], 'res'),
+              miss_open=summ(lambda n: not n['filled'], 'o_res'),
+              all_open=summ(lambda n: True, 'o_res'))
+    approx = any(r.get('next') and not r['next'].get('missing') and not r['next']['exact'] for r in rows)
+    return render_template('trade.html', rows=rows, p=p, sm=sm, approx=approx)
 
 
 @app.route('/export')

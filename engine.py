@@ -115,6 +115,15 @@ def levels(df: pd.DataFrame) -> pd.DataFrame:
     return lv[lv['win'] >= KEEP_MIN_WIN].reset_index(drop=True)
 
 
+def bars(df: pd.DataFrame) -> pd.DataFrame:
+    """شموع الدقيقة لكل سهم، عشان نعرف ترتيب الحركة جوه اليوم (اتنفذ الأول ولا وصل الهدف الأول)."""
+    d = df[['sym', 'secs', 'price', 'seq']].sort_values('seq')
+    d = d.assign(mi=d['secs'] // 60)
+    g = d.groupby(['sym', 'mi'], sort=False)['price']
+    b = pd.DataFrame({'o': g.first(), 'h': g.max(), 'l': g.min(), 'c': g.last()}).reset_index()
+    return b.sort_values(['sym', 'mi']).reset_index(drop=True)
+
+
 # ---------- التخزين ----------
 
 class Store:
@@ -137,12 +146,18 @@ class Store:
         meta = json.loads((d / 'meta.json').read_text(encoding='utf-8')) if (d / 'meta.json').exists() else {}
         return st, lv, meta
 
+    def load_bars(self, date):
+        p = self.sdir(date) / 'bars.csv.gz'
+        return pd.read_csv(p, dtype={'sym': str}) if p.exists() else None
+
     def delete(self, date):
         shutil.rmtree(self.sdir(date), ignore_errors=True)
 
-    def save(self, date, st, lv, meta):
+    def save(self, date, st, lv, meta, bars=None):
         d = self.sdir(date)
         d.mkdir(parents=True, exist_ok=True)
+        if bars is not None:
+            bars.to_csv(d / 'bars.csv.gz', index=False, compression='gzip')
         st.to_csv(d / 'stats.csv', index_label='sym')
         lv.to_csv(d / 'levels.csv', index=False)
         (d / 'meta.json').write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding='utf-8')
@@ -192,7 +207,7 @@ def process_upload(store: Store, jid: str, path: Path, date: str):
         msgs = chain_check(store, date, st)
         meta = {'date': date, 'trades': int(len(df)), 'stocks': int(len(st)),
                 'uploaded_at': dt.datetime.now().isoformat(timespec='seconds'), 'chain': msgs}
-        store.save(date, st, lv, meta)
+        store.save(date, st, lv, meta, bars(df))
         store.job_set(jid, state='تم', done=True, trades=int(len(df)), stocks=int(len(st)), chain=msgs)
     except Exception as e:
         store.job_set(jid, state='حصل خطأ', done=True, error=str(e)[:500])
@@ -228,7 +243,7 @@ METHODS = {
 
 
 def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2.0, gap=3.0,
-            max_win=None, gap_max=None, day_win=20, min_share=10.0, warn_share=2.0):
+            max_win=None, gap_max=None, day_win=20, min_share=10.0, warn_share=2.0, **_):
     """
     hold = عدد الجلسات اللي السهم بيتشال فيها، والجلسة اللي اتشرى فيها محسوبة.
     hold=2 (الافتراضي): إشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس.
@@ -359,3 +374,84 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
         state['dip'] = 'buy' if last['trig']['dip'] else ('armed' if last['armed_after'] else 'idle')
         state['double'] = 'buy' if last['trig']['double'] else 'idle'
     return days, trades, state, warns
+
+
+# ---------- التريدة: شراء وبيع في نفس اليوم ----------
+
+def _sim(entry_limit, tp, b, row):
+    """يمشي على شموع الدقيقة. entry_limit=None يعني شراء مع الفتح.
+    بيرجع (اتنفذ؟، سعر الشراء، سعر الخروج، سبب الخروج، دقيق؟)."""
+    if b is not None and len(b):
+        o, h, l, c = b['o'].values, b['h'].values, b['l'].values, b['c'].values
+        start = None
+        if entry_limit is None:
+            start, buy = 0, float(o[0])
+        else:
+            for k in range(len(b)):
+                if l[k] <= entry_limit:
+                    start, buy = k, float(min(o[k], entry_limit))
+                    break
+        if start is None:
+            return False, None, None, None, True
+        tgt = buy * (1 + tp / 100)
+        # في شمعة الشراء نفسها مانعرفش الترتيب، فنعدّ الهدف بس لو الإقفال فوقه، إلا لو الشراء مع الفتح
+        if (entry_limit is None and h[start] >= tgt) or c[start] >= tgt:
+            return True, buy, round(tgt, 4), 'tp', True
+        for k in range(start + 1, len(b)):
+            if h[k] >= tgt:
+                return True, buy, round(tgt, 4), 'tp', True
+        return True, buy, float(c[-1]), 'close', True
+    # من غير شموع: من أسعار اليوم بس، فترتيب الحركة مش معروف
+    op, lo, hi, last = float(row['open']), float(row['lo']), float(row['hi']), float(row['last'])
+    if entry_limit is None:
+        buy = op
+    elif lo <= entry_limit:
+        buy = min(op, entry_limit)
+    else:
+        return False, None, None, None, False
+    tgt = buy * (1 + tp / 100)
+    if hi >= tgt:
+        return True, buy, round(tgt, 4), 'tp', False
+    return True, buy, last, 'close', False
+
+
+def same_day_trades(store: Store, day_win=20, min_prices=7, tp=3.0, **_):
+    """لكل جلسة: السهم صاحب أكبر نسبة اتلمت عند مستواه، وإقفاله موجب.
+    الجلسة اللي بعدها: أمر شراء عند المستوى، والخروج مع الهدف أو آخر الجلسة."""
+    dates = store.dates()
+    out = []
+    for i, date in enumerate(dates):
+        st, lv, _ = store.load(date)
+        sig = signals_for(st, lv, day_win, min_prices).sort_values('share', ascending=False)
+        pick, skipped = None, []
+        for r in sig.itertuples():
+            if pd.notna(r.chg) and r.chg > 0:
+                pick = r
+                break
+            skipped.append(dict(sym=r.sym, share=r.share, chg=r.chg))
+        row = dict(date=date, skipped=skipped, pick=None, next=None, count=len(sig))
+        if pick is None:
+            out.append(row)
+            continue
+        level = float(pick.price)
+        row['pick'] = dict(sym=pick.sym, name=pick.name, level=level, share=float(pick.share),
+                           win=int(pick.win), chg=float(pick.chg), last=float(pick.last),
+                           target=round(level * (1 + tp / 100), 4))
+        if i + 1 < len(dates):
+            nd = dates[i + 1]
+            s2 = store.load(nd)[0]
+            if pick.sym in s2.index:
+                r2 = s2.loc[pick.sym]
+                bb = store.load_bars(nd)
+                b = bb[bb['sym'] == pick.sym].sort_values('mi') if bb is not None else None
+                f, buy, ex, why, exact = _sim(level, tp, b, r2)
+                f2, buy2, ex2, why2, _ = _sim(None, tp, b, r2)
+                row['next'] = dict(
+                    date=nd, open=float(r2['open']), lo=float(r2['lo']), hi=float(r2['hi']), last=float(r2['last']),
+                    gap=round((float(r2['open']) / level - 1) * 100, 2), exact=exact,
+                    filled=f, buy=buy, exit=ex, why=why, res=round((ex / buy - 1) * 100, 2) if f else None,
+                    o_buy=buy2, o_exit=ex2, o_why=why2, o_res=round((ex2 / buy2 - 1) * 100, 2))
+            else:
+                row['next'] = dict(date=nd, missing=True)
+        out.append(row)
+    return out

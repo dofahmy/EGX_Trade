@@ -273,7 +273,11 @@ fieldset .inline{gap:14px}
         </div>
         <p class="note">شرط الفتح: لو "من" ٠ و"لـ" فاضي، يبقى من غير شرط. مدة الشيل بتعد يوم الشراء: ٢ = الإشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر الخميس.</p>
       </fieldset>
-      <fieldset><legend>٤. التحذيرات</legend>
+      <fieldset><legend>٤. التريدة (شراء وبيع في نفس اليوم)</legend>
+        <label>الهدف: نقفل لو السعر طلع فوق سعر الشراء بـ ٪<input type="number" name="tp" value="{{ p.tp }}" min="0.1" step="any"></label>
+        <p class="note">السهم بيتختار من قايمة إشارات اليوم بعدد المرات وعدد الأسعار اللي في الجزء الأول.</p>
+      </fieldset>
+      <fieldset><legend>٥. التحذيرات</legend>
         <label>المستوى يبقى تحذير لو النسبة اللي اتلمت عنده أقل من ٪<input type="number" name="warn_share" value="{{ p.warn_share }}" min="0" step="any"></label>
       </fieldset>
       <button>حفظ</button>
