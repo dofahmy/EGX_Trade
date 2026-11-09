@@ -462,7 +462,7 @@ def _picks(g, col, top=5, keep=3, common=()):
     return first, first[~first.index.isin(common)].sort_values('chg', ascending=False).head(keep)
 
 
-def bounce_days(store: Store, b_drop=2.5, b_range=7.0, b_val=0.5, exclude=None, **_):
+def bounce_days(store: Store, b_drop=2.5, b_range=7.0, b_val=0.5, exclude=None, b_maxdrop=10.0, **_):
     """الأسهم اللي نزلت يومين ورا بعض، وتاني يوم نزلت b_drop٪ أو أكتر، والفرق بين أعلى وأقل سعر b_range٪ أو أكتر.
     وبنقارن أداءها الجلسة اللي بعدها بالسوق."""
     dates = store.dates()
@@ -477,6 +477,8 @@ def bounce_days(store: Store, b_drop=2.5, b_range=7.0, b_val=0.5, exclude=None, 
         rng = (st['hi'] / st['lo'] - 1) * 100
         c1 = prev['chg'].reindex(st.index)
         m = (c1 < 0) & (st['chg'] <= -b_drop) & (rng >= b_range)
+        if b_maxdrop:
+            m &= st['chg'] >= -b_maxdrop   # نزول أكبر من كده غالبًا خبر، فمش بندخل فيه
         g = st[m].assign(chg1=c1[m], rng=rng[m].round(2))
         lr = late_ret(store.load_bars(date))
         g = g.assign(late=lr.reindex(g.index) if lr is not None else float('nan'))

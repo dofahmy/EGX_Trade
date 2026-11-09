@@ -286,6 +286,7 @@ fieldset .inline{gap:14px}
       <fieldset><legend>٥. الارتداد</legend>
         <div style="display:flex;flex-wrap:wrap;gap:14px">
           <label>نزول اليوم ٪ أو أكتر<input type="number" name="b_drop" value="{{ p.b_drop }}" min="0" step="any"></label>
+          <label>ومايزيدش عن ٪ (فاضي = من غير حد)<input type="number" name="b_maxdrop" value="{{ p.b_maxdrop if p.b_maxdrop is not none else '' }}" min="0" step="any"></label>
           <label>الفرق بين أعلى وأقل سعر ٪ أو أكتر<input type="number" name="b_range" value="{{ p.b_range }}" min="0" step="any"></label>
           <label>أقل قيمة تداول (مليون)<input type="number" name="b_val" value="{{ p.b_val }}" min="0" step="any"></label>
           <label>أقل عدد أسهم في القاعدة عشان نشتري<input type="number" name="b_min" value="{{ p.b_min }}" min="1"></label>
