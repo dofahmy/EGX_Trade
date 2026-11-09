@@ -146,6 +146,9 @@ class Store:
         meta = json.loads((d / 'meta.json').read_text(encoding='utf-8')) if (d / 'meta.json').exists() else {}
         return st, lv, meta
 
+    def save_bars(self, date, b):
+        b.to_csv(self.sdir(date) / 'bars.csv.gz', index=False, compression='gzip')
+
     def load_bars(self, date):
         p = self.sdir(date) / 'bars.csv.gz'
         return pd.read_csv(p, dtype={'sym': str}) if p.exists() else None
@@ -499,7 +502,10 @@ def bounce_days(store: Store, b_drop=2.5, b_range=7.0, b_val=0.5, exclude=None, 
                           oc=round((float(n2['last']) / float(n2['open']) - 1) * 100, 2))
             row['rows'].append(it)
         # الاختيار: أول ٥ في كل ترتيب، من غير المشترك، وأقل نزول، وناخد ٣ من كل قايمة
-        has_late = lr is not None and len(g)
+        # آخر نص ساعة محتاج حركة اليوم لكل أسهم القاعدة. الناقص منها بيتجاب بزرار في الأمريكي
+        missing = [x for x in g.index if pd.isna(g.loc[x, 'late'])]
+        row['missing_bars'] = missing
+        has_late = bool(len(g)) and not missing
         t1 = g.sort_values('late', ascending=False).head(5) if has_late else g.iloc[0:0]
         t2 = g.sort_values('rng', ascending=False).head(5)
         # لو القاعدة طلّعت ٥ أسهم أو أقل، القايمتين هما نفس الأسهم، فمفيش معنى نشيل المشترك

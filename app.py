@@ -216,6 +216,40 @@ def us_fetch():
     return redirect(url_for('job', jid=jid, m='us'))
 
 
+@app.route('/us/bars_estimate', methods=['POST'])
+@auth
+def us_bars_estimate():
+    """تكلفة تكملة حركة اليوم لأسهم القاعدة بس."""
+    date = request.form.get('date')
+    syms = request.form.get('syms', '').split()
+    try:
+        dt.date.fromisoformat(date)
+        cost, size = us.estimate(date, syms)
+        err = None
+    except Exception as e:
+        cost, size, err = None, None, str(e)[:500]
+    return render_template('us_confirm.html', date=date, cost=cost, size=size, err=err,
+                           dataset=us.DATASET, count=len(syms), syms=syms)
+
+
+@app.route('/us/bars', methods=['POST'])
+@auth
+def us_bars():
+    date = request.form.get('date')
+    syms = request.form.get('syms', '').split()
+    try:
+        dt.date.fromisoformat(date)
+    except Exception:
+        return 'التاريخ مش مظبوط', 400
+    if not syms:
+        return 'مفيش أسهم', 400
+    store = STORES['us']
+    jid = uuid.uuid4().hex[:10]
+    store.job_set(jid, state='بدأ', date=date, done=False)
+    threading.Thread(target=us.process_bars, args=(store, jid, date, syms), daemon=True).start()
+    return redirect(url_for('job', jid=jid, m='us'))
+
+
 @app.route('/job/<jid>')
 @auth
 def job(jid):
@@ -316,7 +350,7 @@ def bounce():
         # لو القاعدة طلّعت أسهم أقل من الحد، مفيش شراء اليوم ده
         r['few'] = 0 < len(r['rows']) < p['b_min']
         r['picks'] = [] if r['few'] else picks
-        r['need_bars'] = bool(r['rows']) and any(not l['avail'] for l in r.get('lists', []))
+        r['need_bars'] = bool(r.get('missing_bars'))
         res = [x['next'] for x in r['picks'] if 'next' in x]
         r['p_avg'] = round(sum(res) / len(res), 2) if res else None
         r['p_hit'] = (r['p_avg'] > r['mk_med']) if (res and r.get('mk_med') is not None) else None

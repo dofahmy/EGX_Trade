@@ -133,6 +133,28 @@ def process_fetch(store, jid: str, date: str):
         store.job_set(jid, state='حصل خطأ', done=True, error=str(e)[:600])
 
 
+def process_bars(store, jid: str, date: str, syms):
+    """يجيب صفقات أسهم معينة بس في يوم قديم، ويكمّل بيها حركة اليوم دقيقة بدقيقة من غير ما يلمس الملخص."""
+    try:
+        names = dict(sp500())
+        start, end = session_bounds(date)
+        store.job_set(jid, state=f'بجيب حركة {len(syms)} سهم')
+        df = client().timeseries.get_range(dataset=DATASET, start=start, end=end, symbols=list(syms), schema='trades').to_df()
+        if 'ts_event' not in df.columns:
+            df = df.reset_index()
+        tr = to_trades(df, names)
+        if not len(tr):
+            raise RuntimeError('مفيش صفقات للأسهم دي في اليوم ده.')
+        new = bars(tr)
+        old = store.load_bars(date)
+        if old is not None:
+            new = pd.concat([old[~old['sym'].isin(new['sym'].unique())], new], ignore_index=True)
+        store.save_bars(date, new.sort_values(['sym', 'mi']).reset_index(drop=True))
+        store.job_set(jid, state='تم', done=True, trades=int(len(tr)), stocks=int(tr['sym'].nunique()), chain=[], back='bounce')
+    except Exception as e:
+        store.job_set(jid, state='حصل خطأ', done=True, error=str(e)[:600])
+
+
 def last_us_session():
     """آخر يوم تداول خلص (من غير ما نحسب الأجازات الرسمية)."""
     now = pd.Timestamp.now(tz=TZ)

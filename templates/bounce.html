@@ -7,7 +7,9 @@
 <div class="card">
   <h2>الارتداد — {{ mtitle }}</h2>
   {% if last and not last.next_date %}
-    {% if last.need_bars %}<div class="banner" style="background:var(--redbg);border:1px solid #f3b8b2">⚠ جلسة {{ last.date }} اترفعت قبل ما البرنامج يحفظ حركة اليوم، فقايمة "آخر نص ساعة" ناقصة. احذفيها وارفعيها تاني قبل ما تشتري.</div>{% endif %}
+    {% if last.need_bars %}<div class="banner" style="background:var(--redbg);border:1px solid #f3b8b2">⚠ جلسة {{ last.date }} اترفعت قبل ما البرنامج يحفظ حركة اليوم، فقايمة "آخر نص ساعة" ناقصة.
+      {% if mkt == 'us' %}<form method="post" action="{{ url_for('us_bars_estimate', m='us') }}" style="display:inline"><input type="hidden" name="date" value="{{ last.date }}"><input type="hidden" name="syms" value="{{ last.missing_bars|join(' ') }}"><button style="padding:3px 10px;font-size:12px">كمّل حركة اليوم ({{ last.missing_bars|length }} سهم)</button></form>
+      {% else %}احذفيها وارفعيها تاني قبل ما تشتري.{% endif %}</div>{% endif %}
     {% if last.picks %}
     <div class="banner buy" style="font-size:18px">
       <b>الجلسة الجاية: اشتري مع الفتح</b>
@@ -42,7 +44,9 @@
       <td>{{ r.next_date or 'الجلسة الجاية' }}</td>
       <td style="white-space:normal">{% for x in r.picks %}<span style="display:inline-block;margin-left:12px"><a href="{{ murl('stock', sym=x.sym) }}">{{ x.sym }}</a>
         {% if x.next is defined %}<span class="{{ 'pos' if x.next>0 else 'neg' if x.next<0 else '' }}">{{ '%+.2f'|format(x.next) }}٪</span>{% endif %}</span>{% endfor %}
-        {% if r.need_bars %}<div class="note" style="color:var(--red)">⚠ ناقص قايمة "آخر نص ساعة": الجلسة دي اترفعت قبل ما البرنامج يحفظ حركة اليوم. احذفيها وارفعيها تاني.</div>{% endif %}</td>
+        {% if r.need_bars %}<div class="note" style="color:var(--red)">⚠ ناقص قايمة "آخر نص ساعة": الجلسة دي اترفعت قبل ما البرنامج يحفظ حركة اليوم.
+          {% if mkt == 'us' %}<form method="post" action="{{ url_for('us_bars_estimate', m='us') }}" style="display:inline"><input type="hidden" name="date" value="{{ r.date }}"><input type="hidden" name="syms" value="{{ r.missing_bars|join(' ') }}"><button style="padding:3px 10px;font-size:12px">كمّل حركة اليوم ({{ r.missing_bars|length }} سهم)</button></form>
+          {% else %}احذفيها وارفعيها تاني.{% endif %}</div>{% endif %}</td>
       {% if r.p_hit is none %}
       <td colspan="3"><span class="pill armed">مستنيين</span></td>
       {% else %}

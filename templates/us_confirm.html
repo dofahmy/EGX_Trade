@@ -1,16 +1,18 @@
 {% extends 'base.html' %}
 {% block body %}
 <div class="card">
-  <h2>جلب جلسة {{ date }}</h2>
+  <h2>{% if syms %}تكملة حركة يوم {{ date }}{% else %}جلب جلسة {{ date }}{% endif %}</h2>
   {% if err %}
     <p class="neg">ماقدرتش أحسب التكلفة: {{ err }}</p>
     <p class="note">لو الخطأ عن المفتاح، اتأكدي إن متغير DATABENTO_API_KEY متحط صح في ريلواي. ولو عن التاريخ، اتأكدي إنه يوم تداول خلص.</p>
   {% else %}
     <p class="big">التكلفة المتوقعة: <b>{{ '%.2f'|format(cost) }} دولار</b>{% if size %} (حوالي {{ '%.2f'|format(size / 1e9) }} جيجا){% endif %}</p>
+    {% if syms %}<p>الأسهم: <b dir="ltr">{{ syms|join(' ') }}</b>. ملخص الجلسة مش هيتغير، بس هيتحفظ حركة اليوم دقيقة بدقيقة للأسهم دي.</p>{% endif %}
     <p class="mute">صفقات بورصة ناسداك ({{ dataset }}) لـ{{ count }} سهم، من ٩:٣٠ لـ٤ بتوقيت نيويورك. التكلفة دي بتتخصم من رصيدك في داتابينتو، وأول ١٢٥ دولار مجانية.</p>
-    <form method="post" action="{{ url_for('us_fetch', m='us') }}" style="display:flex;gap:12px;align-items:center">
+    <form method="post" action="{{ url_for('us_bars' if syms else 'us_fetch', m='us') }}" style="display:flex;gap:12px;align-items:center">
       <input type="hidden" name="date" value="{{ date }}">
-      <button>موافقة، هات الجلسة</button>
+      {% if syms %}<input type="hidden" name="syms" value="{{ syms|join(' ') }}">{% endif %}
+      <button>{{ 'موافقة، هات الحركة' if syms else 'موافقة، هات الجلسة' }}</button>
       <a href="{{ url_for('index', m='us', tab='sessions') }}">إلغاء</a>
     </form>
     <p class="note">الجلب ممكن ياخد كذا دقيقة، لأنه بيجيب الأسهم على دفعات.</p>
