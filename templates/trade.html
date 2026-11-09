@@ -24,32 +24,40 @@
 
 <div class="card">
   <div class="tablewrap"><table>
-    <tr><th>يوم الاختيار</th><th>السهم</th><th>يوم التريدة</th><th>الشراء (الفتح)</th><th>الهدف</th><th>البيع</th><th>النتيجة</th></tr>
+    <tr><th>يوم الاختيار</th><th>السهم</th><th>يوم التريدة</th><th>الشراء (الفتح)</th><th>الهدف</th><th>البيع</th><th>النتيجة</th><th>لو قفلنا ت+١</th><th>لو قفلنا ت+٢</th><th>أعلى صعود في ٣ جلسات</th><th>حقق ٥٪؟</th><th>حقق ١٠٪؟</th></tr>
     {% for r in rows|reverse %}
     {% set k = r.pick %}{% set n = r.next %}
     <tr>
       <td><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a></td>
       {% if not k %}
-      <td colspan="6" class="mute">مفيش سهم إقفاله موجب</td>
+      <td colspan="11" class="mute">مفيش سهم إقفاله موجب</td>
       {% else %}
       <td><a href="{{ murl('stock', sym=k.sym) }}">{{ k.sym }}</a> <span class="note">{{ k.name }}</span></td>
       {% if not n %}
       <td><span class="pill armed">الجلسة الجاية</span></td>
       <td class="num">مع الفتح<div class="note">آخر إقفال {{ k.last }}</div></td>
       <td class="num">الفتح +{{ p.tp }}٪<div class="note">لو فتح على {{ k.last }}: {{ (k.last * (1 + p.tp / 100))|round(4) }}</div></td>
-      <td class="mute">—</td><td class="mute">—</td>
+      <td class="mute">—</td><td class="mute">—</td><td colspan="5"></td>
       {% elif n.missing %}
-      <td>{{ n.date }}</td><td colspan="4" class="mute">السهم ماتداولش</td>
+      <td>{{ n.date }}</td><td colspan="9" class="mute">السهم ماتداولش</td>
       {% else %}
       <td>{{ n.date }}</td>
       <td class="num">{{ n.o_buy }}</td>
       <td class="num">{{ (n.o_buy * (1 + p.tp / 100))|round(4) }}</td>
       <td class="num">{{ n.o_exit }} <span class="note">{{ 'الهدف' if n.o_why=='tp' else 'الإقفال' }}</span></td>
       <td class="num {{ 'pos' if n.o_res>0 else 'neg' if n.o_res<0 else '' }}">{{ '%+.2f'|format(n.o_res) }}٪</td>
+      {% for j in range(2) %}{% set h = n.hold[j] if n.hold|length > j else none %}
+      <td class="num">{% if h %}<span class="{{ 'pos' if h.res>0 else 'neg' if h.res<0 else '' }}">{{ '%+.2f'|format(h.res) }}٪</span><div class="note">{{ h.price }} · {{ h.date }}</div>{% else %}<span class="mute">لسه</span>{% endif %}</td>
+      {% endfor %}
+      <td class="num {{ 'pos' if n.max_up>0 else '' }}">{{ '%+.2f'|format(n.max_up) }}٪{% if n.days3 < 3 %}<div class="note">في {{ n.days3 }} جلسة لحد دلوقتي</div>{% endif %}</td>
+      {% for lvl in [5, 10] %}
+      <td>{% if n.hits.get(lvl) %}<span class="pill buy">آه</span><div class="note">{{ n.hits[lvl] }}</div>{% elif n.days3 < 3 %}<span class="mute">لسه</span>{% else %}<span class="pill idle">لأ</span>{% endif %}</td>
+      {% endfor %}
       {% endif %}
       {% endif %}
     </tr>
     {% endfor %}
   </table></div>
+  <p class="note">كل النسب محسوبة من سعر الشراء (فتح يوم التريدة). "لو قفلنا ت+١" = البيع مع إقفال الجلسة اللي بعد يوم التريدة، و"ت+٢" = إقفال الجلسة اللي بعدها، من غير هدف الـ{{ p.tp }}٪. و"٣ جلسات" = يوم التريدة والجلستين اللي بعده، وأعلى صعود محسوب من أعلى سعر فيهم، وتحت "آه" مكتوب اليوم اللي وصل فيه.</p>
 </div>
 {% endblock %}
