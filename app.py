@@ -27,14 +27,14 @@ STORES = {m: Store(v['root']) for m, v in MARKETS.items()}
 
 DEFAULTS = {
     'egx': dict(day_win=20, min_prices=7, threshold=10, mult=2.0, min_win=20, max_win=None,
-                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2, exclude='INEG', b_drop=2.5, b_range=7.0, b_val=0.5),
+                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2, exclude='INEG', b_drop=2.5, b_range=7.0, b_val=0.5, b_min=30),
     # الجلسة الأمريكية ٧٨ فترة بدل ٥٤، فعدد المرات متكبّر بنفس النسبة. وعدد الأسهم أكبر، فالحد أكبر.
     # والسهم الأمريكي بيتداول على مئات الأسعار، فالنسبة اللي بتتلم عند سعر واحد صغيرة جدًا مقارنة بمصر
     'us': dict(day_win=29, min_prices=7, threshold=10, mult=2.0, min_win=29, max_win=None,
-               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2, exclude='', b_drop=2.5, b_range=7.0, b_val=0.5),
+               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2, exclude='', b_drop=2.5, b_range=7.0, b_val=0.5, b_min=30),
 }
 TYPES = dict(day_win=int, min_prices=int, threshold=int, mult=float, min_win=int, max_win=int,
-             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int, exclude=str, b_drop=float, b_range=float, b_val=float)
+             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int, exclude=str, b_drop=float, b_range=float, b_val=float, b_min=int)
 OPTIONAL = {'max_win', 'gap_max', 'exclude'}
 
 
@@ -305,21 +305,27 @@ def bounce():
     m = market()
     p = params(m)
     rows = bounce_days(STORES[m], **p)
-    done = [r for r in rows if r.get('g_med') is not None]
+    # الأسهم المختارة من القايمتين في كل يوم، من غير تكرار
+    for r in rows:
+        seen, picks = set(), []
+        for l in r.get('lists', []):
+            for x in l['items']:
+                if x['sym'] not in seen:
+                    seen.add(x['sym'])
+                    picks.append(dict(x, why=l['key']))
+        # لو القاعدة طلّعت أسهم أقل من الحد، مفيش شراء اليوم ده
+        r['few'] = 0 < len(r['rows']) < p['b_min']
+        r['picks'] = [] if r['few'] else picks
+        res = [x['next'] for x in picks if 'next' in x]
+        r['p_avg'] = round(sum(res) / len(res), 2) if res else None
+        r['p_hit'] = (r['p_avg'] > r['mk_med']) if (res and r.get('mk_med') is not None) else None
+    done = [r for r in rows if r['p_hit'] is not None]
     sm = None
     if done:
-        lists = {}
-        for k in ('late', 'rng'):
-            v = [x['next'] for r in done for l in r['lists'] if l['key'] == k for x in l['items'] if 'next' in x]
-            oc = [x['oc'] for r in done for l in r['lists'] if l['key'] == k for x in l['items'] if 'oc' in x]
-            lists[k] = dict(n=len(v), avg=round(sum(v) / len(v), 2) if v else None,
-                            oc=round(sum(oc) / len(oc), 2) if oc else None,
-                            wins=sum(1 for x in v if x > 0), g10=sum(1 for x in v if x >= 10))
-        allg = [x['next'] for r in done for x in r['rows'] if 'next' in x]
-        sm = dict(days=len(done), hit=sum(r['hit'] for r in done), lists=lists,
-                  all_avg=round(sum(allg) / len(allg), 2) if allg else None,
-                  stocks=sum(len(r['rows']) for r in done), g10=sum(r['g_10'] for r in done),
-                  g_avg=round(sum(r['g_avg'] for r in done) / len(done), 2),
+        allp = [x['next'] for r in done for x in r['picks'] if 'next' in x]
+        sm = dict(days=len(done), hit=sum(1 for r in done if r['p_hit']),
+                  p_avg=round(sum(allp) / len(allp), 2), n=len(allp),
+                  wins=sum(1 for x in allp if x > 0), g10=sum(1 for x in allp if x >= 10),
                   mk=round(sum(r['mk_med'] for r in done) / len(done), 2))
     return render_template('bounce.html', rows=rows, p=p, sm=sm)
 
