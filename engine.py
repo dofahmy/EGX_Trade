@@ -447,7 +447,22 @@ def same_day_trades(store: Store, day_win=20, min_prices=7, tp=3.0, picks=2, exc
 
 # ---------- قاعدة الارتداد ----------
 
-def bounce_days(store: Store, b_drop=2.5, b_range=7.0, b_val=0.5, **_):
+def late_ret(bars, minutes=30):
+    """صعود كل سهم في آخر نص ساعة من الجلسة: من أول سعر في الفترة دي لآخر سعر."""
+    if bars is None or not len(bars):
+        return None
+    late = bars[bars['mi'] >= bars['mi'].max() - minutes + 1].sort_values(['sym', 'mi'])
+    g = late.groupby('sym')
+    return ((g['c'].last() / g['o'].first() - 1) * 100).round(2)
+
+
+def _picks(g, col, top=5, keep=3, common=()):
+    """أول top سهم بالترتيب، من غيرهم المشترك مع القايمة التانية، وبعدين أقل نزول، وناخد keep."""
+    first = g.sort_values(col, ascending=False).head(top)
+    return first, first[~first.index.isin(common)].sort_values('chg', ascending=False).head(keep)
+
+
+def bounce_days(store: Store, b_drop=2.5, b_range=7.0, b_val=0.5, exclude=None, **_):
     """الأسهم اللي نزلت يومين ورا بعض، وتاني يوم نزلت b_drop٪ أو أكتر، والفرق بين أعلى وأقل سعر b_range٪ أو أكتر.
     وبنقارن أداءها الجلسة اللي بعدها بالسوق."""
     dates = store.dates()
@@ -457,11 +472,14 @@ def bounce_days(store: Store, b_drop=2.5, b_range=7.0, b_val=0.5, **_):
         if i == 0:
             continue
         st, prev = stats[date], stats[dates[i - 1]]
-        st = st[(st['val_m'] >= b_val) & ~st['name'].astype(str).str.contains('وثائق')]
+        skip = set((exclude or '').split())
+        st = st[(st['val_m'] >= b_val) & ~st['name'].astype(str).str.contains('وثائق') & ~st.index.isin(skip)]
         rng = (st['hi'] / st['lo'] - 1) * 100
         c1 = prev['chg'].reindex(st.index)
         m = (c1 < 0) & (st['chg'] <= -b_drop) & (rng >= b_range)
         g = st[m].assign(chg1=c1[m], rng=rng[m].round(2))
+        lr = late_ret(store.load_bars(date))
+        g = g.assign(late=lr.reindex(g.index) if lr is not None else float('nan'))
         nd = dates[i + 1] if i + 1 < len(dates) else None
         row = dict(date=date, next_date=nd, n_market=len(st), rows=[])
         if nd:
@@ -471,16 +489,33 @@ def bounce_days(store: Store, b_drop=2.5, b_range=7.0, b_val=0.5, **_):
             row.update(mk_med=round(float(mk.median()), 2), mk_up=round(float((mk > 0).mean() * 100), 0), top=round(float(top), 2))
         for sym, r in g.sort_values('chg').iterrows():
             it = dict(sym=sym, name=r['name'], chg1=float(r['chg1']), chg=float(r['chg']), rng=float(r['rng']),
-                      val_m=float(r['val_m']), last=float(r['last']))
+                      val_m=float(r['val_m']), last=float(r['last']),
+                      late=None if pd.isna(r['late']) else float(r['late']))
             if nd and sym in stats[nd].index:
                 n2 = stats[nd].loc[sym]
                 it.update(next=float(n2['chg']), n_open=float(n2['open']), n_last=float(n2['last']),
                           oc=round((float(n2['last']) / float(n2['open']) - 1) * 100, 2))
             row['rows'].append(it)
+        # الاختيار: أول ٥ في كل ترتيب، من غير المشترك، وأقل نزول، وناخد ٣ من كل قايمة
+        has_late = lr is not None and len(g)
+        t1 = g.sort_values('late', ascending=False).head(5) if has_late else g.iloc[0:0]
+        t2 = g.sort_values('rng', ascending=False).head(5)
+        # لو القاعدة طلّعت ٥ أسهم أو أقل، القايمتين هما نفس الأسهم، فمفيش معنى نشيل المشترك
+        common = set(t1.index) & set(t2.index) if len(g) > 5 else set()
+        by = {x['sym']: x for x in row['rows']}
+        row['lists'] = []
+        for key, title, t in (('late', 'أكبر صعود في آخر نص ساعة', t1), ('rng', 'أكبر فرق بين أعلى وأقل سعر', t2)):
+            pk = t[~t.index.isin(common)].sort_values('chg', ascending=False).head(3)
+            items = [by[x] for x in pk.index]
+            r_ = [x['next'] for x in items if 'next' in x]
+            row['lists'].append(dict(key=key, title=title, top5=list(t.index), items=items,
+                                     avail=(key != 'late' or bool(has_late)),
+                                     avg=round(sum(r_) / len(r_), 2) if r_ else None,
+                                     oc=round(sum(x['oc'] for x in items if 'oc' in x) / len(r_), 2) if r_ else None))
         res = [x['next'] for x in row['rows'] if 'next' in x]
         if nd and res:
             ser = pd.Series(res)
-            row.update(g_med=round(float(ser.median()), 2), g_avg=round(float(ser.mean()), 2),
+            row.update(g_med=round(float(ser.median()), 2), g_mean=round(float(ser.mean()), 2), g_avg=round(float(ser.mean()), 2),
                        g_up=round(float((ser > 0).mean() * 100), 0), g_top=int((ser >= row['top']).sum()),
                        g_10=int((ser >= 10).sum()), hit=bool(ser.median() > row['mk_med']))
         out.append(row)

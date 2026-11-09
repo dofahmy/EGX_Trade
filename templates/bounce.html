@@ -5,6 +5,7 @@
 <div class="card">
   <h2>الارتداد — {{ mtitle }}</h2>
   <p class="mute">الأسهم اللي <b>نزلت يومين ورا بعض</b>، وتاني يوم نزلت <b>{{ p.b_drop }}٪ أو أكتر</b>، والفرق بين أعلى وأقل سعر فيه <b>{{ p.b_range }}٪ أو أكتر</b>، وقيمة تداولها {{ p.b_val }} مليون أو أكتر. وبنشوف عملت إيه الجلسة اللي بعدها مقارنة بالسوق.
+  من أسهم القاعدة بنرتبها بطريقتين، وناخد أول ٥ في كل طريقة، ونشيل السهم اللي في القايمتين، ونختار ٣ من كل قايمة بأقل نزول في اليوم.
   اليوم بيبقى <span class="pill buy">اتحققت</span> لو نص أسهم القاعدة طلع أكتر من نص السوق.</p>
   {% if last and not last.next_date %}
   <div class="banner {{ 'buy' if last.rows else 'idle' }}">
@@ -13,7 +14,23 @@
     {% else %}جلسة {{ last.date }}: مفيش أسهم بتعدّي القاعدة.{% endif %}
   </div>
   {% endif %}
+  {% if last and not last.next_date and last.rows %}
+  <div class="banner buy" style="margin-top:-6px"><b>الاختيار للجلسة الجاية:</b>
+    {% for l in last.lists %}<div>{{ l.title }}:
+      {% if not l.avail %}<span class="mute">محتاج حركة اليوم دقيقة بدقيقة، ارفعي الجلسة تاني</span>
+      {% else %}{% for x in l['items'] %}<b><a href="{{ murl('stock', sym=x.sym) }}">{{ x.sym }}</a></b> {{ x.name }}{{ '، ' if not loop.last }}{% else %}<span class="mute">مفيش</span>{% endfor %}{% endif %}</div>{% endfor %}
+  </div>
+  {% endif %}
   {% if sm %}
+  <div style="display:flex;flex-wrap:wrap;gap:30px;margin:6px 0 12px">
+    {% for k, title in [('late', 'اختيار آخر نص ساعة (٣ أسهم)'), ('rng', 'اختيار الفرق بين أعلى وأقل (٣ أسهم)')] %}{% set l = sm.lists[k] %}
+    <div><div class="mute">{{ title }}</div>
+      {% if l.n %}<div class="big"><span class="{{ 'pos' if l.avg>0 else 'neg' if l.avg<0 else '' }}">{{ '%+.2f'|format(l.avg) }}٪</span> متوسط الجلسة اللي بعدها</div>
+      <div class="note">{{ l.n }} سهم · طلع {{ l.wins }} · ١٠٪ أو أكتر {{ l.g10 }} · من الفتح للإقفال {{ '%+.2f'|format(l.oc) }}٪</div>
+      {% else %}<div class="mute">لسه مفيش</div>{% endif %}</div>
+    {% endfor %}
+    <div><div class="mute">كل أسهم القاعدة</div><div class="big">{{ '%+.2f'|format(sm.all_avg) }}٪</div></div>
+  </div>
   <div class="big">اتحققت {{ sm.hit }} من {{ sm.days }} يوم</div>
   <div class="note">متوسط أسهم القاعدة الجلسة اللي بعدها {{ '%+.2f'|format(sm.g_avg) }}٪، ونص السوق في المتوسط {{ '%+.2f'|format(sm.mk) }}٪ · {{ sm.stocks }} سهم في كل الأيام، منهم {{ sm.g10 }} طلعوا ١٠٪ أو أكتر</div>
   {% endif %}
@@ -47,14 +64,22 @@
 {% for r in rows|reverse %}{% if r.rows %}
 <div class="card" id="d{{ r.date }}">
   <h3>جلسة {{ r.date }} <span class="mute">← {{ r.next_date or 'الجلسة الجاية' }}</span></h3>
+  {% for l in r.lists %}
+  <p style="margin:4px 0"><b>{{ l.title }}:</b>
+    {% if not l.avail %}<span class="mute">الجلسة دي اترفعت قبل ما البرنامج يحفظ حركة اليوم دقيقة بدقيقة</span>
+    {% else %}{% for x in l['items'] %}<b>{{ x.sym }}</b>{% if x.next is defined %} <span class="{{ 'pos' if x.next>0 else 'neg' if x.next<0 else '' }}">{{ '%+.2f'|format(x.next) }}٪</span>{% endif %}{{ '، ' if not loop.last }}{% else %}<span class="mute">مفيش</span>{% endfor %}
+      {% if l.avg is not none %} · متوسط <span class="{{ 'pos' if l.avg>0 else 'neg' if l.avg<0 else '' }}">{{ '%+.2f'|format(l.avg) }}٪</span>{% endif %}
+      <span class="note">(أول ٥: {{ l.top5|join('، ') }})</span>{% endif %}</p>
+  {% endfor %}
   <div class="tablewrap"><table>
-    <tr><th>السهم</th><th>تغير اليوم اللي قبله</th><th>تغير اليوم</th><th>الفرق بين أعلى وأقل</th><th>قيمة التداول (مليون)</th><th>الإقفال</th><th>الجلسة اللي بعدها</th><th>من الفتح للإقفال</th></tr>
+    <tr><th>السهم</th><th>تغير اليوم اللي قبله</th><th>تغير اليوم</th><th>الفرق بين أعلى وأقل</th><th>آخر نص ساعة</th><th>قيمة التداول (مليون)</th><th>الإقفال</th><th>الجلسة اللي بعدها</th><th>من الفتح للإقفال</th></tr>
     {% for x in r.rows %}
     <tr>
       <td><a href="{{ murl('stock', sym=x.sym) }}">{{ x.sym }}</a> <span class="note">{{ x.name }}</span></td>
       <td class="num neg">{{ '%+.2f'|format(x.chg1) }}٪</td>
       <td class="num neg">{{ '%+.2f'|format(x.chg) }}٪</td>
       <td class="num">{{ '%.2f'|format(x.rng) }}٪</td>
+      <td class="num">{% if x.late is not none %}{{ '%+.2f'|format(x.late) }}٪{% else %}<span class="mute">—</span>{% endif %}</td>
       <td class="num">{{ '%.1f'|format(x.val_m) }}</td>
       <td class="num">{{ x.last }}</td>
       {% if x.next is defined %}

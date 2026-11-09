@@ -308,7 +308,16 @@ def bounce():
     done = [r for r in rows if r.get('g_med') is not None]
     sm = None
     if done:
-        sm = dict(days=len(done), hit=sum(r['hit'] for r in done),
+        lists = {}
+        for k in ('late', 'rng'):
+            v = [x['next'] for r in done for l in r['lists'] if l['key'] == k for x in l['items'] if 'next' in x]
+            oc = [x['oc'] for r in done for l in r['lists'] if l['key'] == k for x in l['items'] if 'oc' in x]
+            lists[k] = dict(n=len(v), avg=round(sum(v) / len(v), 2) if v else None,
+                            oc=round(sum(oc) / len(oc), 2) if oc else None,
+                            wins=sum(1 for x in v if x > 0), g10=sum(1 for x in v if x >= 10))
+        allg = [x['next'] for r in done for x in r['rows'] if 'next' in x]
+        sm = dict(days=len(done), hit=sum(r['hit'] for r in done), lists=lists,
+                  all_avg=round(sum(allg) / len(allg), 2) if allg else None,
                   stocks=sum(len(r['rows']) for r in done), g10=sum(r['g_10'] for r in done),
                   g_avg=round(sum(r['g_avg'] for r in done) / len(done), 2),
                   mk=round(sum(r['mk_med'] for r in done) / len(done), 2))
