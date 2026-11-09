@@ -415,67 +415,30 @@ def _sim(entry_limit, tp, b, row):
     return True, buy, last, 'close', False
 
 
-def same_day_trades(store: Store, day_win=20, min_prices=7, tp=3.0, **_):
-    """لكل جلسة: السهم صاحب أكبر نسبة اتلمت عند مستواه، وإقفاله موجب.
-    الجلسة اللي بعدها: أمر شراء عند المستوى، والخروج مع الهدف أو آخر الجلسة."""
+def same_day_trades(store: Store, day_win=20, min_prices=7, tp=3.0, picks=2, **_):
+    """لكل جلسة: أكبر سهمين (أو العدد المحدد) في النسبة اللي اتلمت عند المستوى، وإقفالهم موجب.
+    الجلسة اللي بعدها: شراء مع الفتح، والبيع مع الهدف أو الإقفال، ومعاه نتيجة الفتح للإقفال."""
     dates = store.dates()
     out = []
     for i, date in enumerate(dates):
         st, lv, _ = store.load(date)
         sig = signals_for(st, lv, day_win, min_prices).sort_values('share', ascending=False)
-        pick, skipped = None, []
+        sig = sig[sig['chg'] > 0].head(max(1, int(picks)))
+        nd = dates[i + 1] if i + 1 < len(dates) else None
+        s2 = store.load(nd)[0] if nd else None
+        items = []
         for r in sig.itertuples():
-            if pd.notna(r.chg) and r.chg > 0:
-                pick = r
-                break
-            skipped.append(dict(sym=r.sym, share=r.share, chg=r.chg))
-        row = dict(date=date, skipped=skipped, pick=None, next=None, count=len(sig))
-        if pick is None:
-            out.append(row)
-            continue
-        level = float(pick.price)
-        row['pick'] = dict(sym=pick.sym, name=pick.name, level=level, share=float(pick.share),
-                           win=int(pick.win), chg=float(pick.chg), last=float(pick.last),
-                           target=round(level * (1 + tp / 100), 4))
-        if i + 1 < len(dates):
-            nd = dates[i + 1]
-            s2 = store.load(nd)[0]
-            if pick.sym in s2.index:
-                r2 = s2.loc[pick.sym]
-                bb = store.load_bars(nd)
-                b = bb[bb['sym'] == pick.sym].sort_values('mi') if bb is not None else None
-                f, buy, ex, why, exact = _sim(level, tp, b, r2)
-                f2, buy2, ex2, why2, _ = _sim(None, tp, b, r2)
-                row['next'] = dict(
-                    date=nd, open=float(r2['open']), lo=float(r2['lo']), hi=float(r2['hi']), last=float(r2['last']),
-                    gap=round((float(r2['open']) / level - 1) * 100, 2), exact=exact,
-                    filled=f, buy=buy, exit=ex, why=why, res=round((ex / buy - 1) * 100, 2) if f else None,
-                    o_buy=buy2, o_exit=ex2, o_why=why2, o_res=round((ex2 / buy2 - 1) * 100, 2))
-                # الشيل لجلسات بعد يوم التريدة، وأعلى سعر في ٣ جلسات (يوم التريدة واللي بعده)
-                buy = buy2
-                # ت+٠ = يوم الاختيار، ت+١ = إقفال يوم التريدة، ت+٢ = إقفال الجلسة اللي بعدها
-                hold = [dict(date=nd, price=float(r2['last']), res=round((float(r2['last']) / buy - 1) * 100, 2))]
-                hi, hits = float(r2['hi']), {}
-                for lvl in (5, 10):
-                    if float(r2['hi']) >= buy * (1 + lvl / 100):
-                        hits[lvl] = nd
-                for j in (2, 3):
-                    if i + j >= len(dates):
-                        break
-                    dj = dates[i + j]
-                    sj = store.load(dj)[0]
-                    if pick.sym not in sj.index:
-                        break
-                    rj = sj.loc[pick.sym]
-                    if j == 2:
-                        hold.append(dict(date=dj, price=float(rj['last']), res=round((float(rj['last']) / buy - 1) * 100, 2)))
-                    hi = max(hi, float(rj['hi']))
-                    for lvl in (5, 10):
-                        if lvl not in hits and float(rj['hi']) >= buy * (1 + lvl / 100):
-                            hits[lvl] = dj
-                row['next'].update(hold=hold, max_up=round((hi / buy - 1) * 100, 2), hits=hits,
-                                   days3=1 + sum(1 for j in (2, 3) if i + j < len(dates)))
-            else:
-                row['next'] = dict(date=nd, missing=True)
-        out.append(row)
+            k = dict(sym=r.sym, name=r.name, share=float(r.share), chg=float(r.chg), last=float(r.last))
+            n = None
+            if nd:
+                if r.sym in s2.index:
+                    r2 = s2.loc[r.sym]
+                    _, buy, ex, why, _ = _sim(None, tp, None, r2)
+                    last = float(r2['last'])
+                    n = dict(date=nd, buy=buy, target=round(buy * (1 + tp / 100), 4), exit=ex, why=why,
+                             res=round((ex / buy - 1) * 100, 2), last=last, oc=round((last / buy - 1) * 100, 2))
+                else:
+                    n = dict(date=nd, missing=True)
+            items.append(dict(pick=k, next=n))
+        out.append(dict(date=date, next_date=nd, stocks=items))
     return out

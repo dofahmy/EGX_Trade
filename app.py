@@ -27,14 +27,14 @@ STORES = {m: Store(v['root']) for m, v in MARKETS.items()}
 
 DEFAULTS = {
     'egx': dict(day_win=20, min_prices=7, threshold=10, mult=2.0, min_win=20, max_win=None,
-                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0),
+                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2),
     # الجلسة الأمريكية ٧٨ فترة بدل ٥٤، فعدد المرات متكبّر بنفس النسبة. وعدد الأسهم أكبر، فالحد أكبر.
     # والسهم الأمريكي بيتداول على مئات الأسعار، فالنسبة اللي بتتلم عند سعر واحد صغيرة جدًا مقارنة بمصر
     'us': dict(day_win=29, min_prices=7, threshold=10, mult=2.0, min_win=29, max_win=None,
-               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0),
+               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2),
 }
 TYPES = dict(day_win=int, min_prices=int, threshold=int, mult=float, min_win=int, max_win=int,
-             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float)
+             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int)
 OPTIONAL = {'max_win', 'gap_max'}
 
 
@@ -279,13 +279,15 @@ def trade():
     p = params(m)
     rows = same_day_trades(STORES[m], **p)
 
-    done = [r['next'] for r in rows if r.get('next') and not r['next'].get('missing')]
-    sm = None
+    done = [it['next'] for r in rows for it in r['stocks'] if it['next'] and not it['next'].get('missing')]
+    sm = {}
+    for key in ('res', 'oc'):
+        if done:
+            v = [n[key] for n in done]
+            sm[key] = dict(n=len(v), avg=round(sum(v) / len(v), 2), total=round(sum(v), 2),
+                           wins=sum(1 for x in v if x > 0), losses=sum(1 for x in v if x < 0))
     if done:
-        res = [n['o_res'] for n in done]
-        sm = dict(n=len(res), avg=round(sum(res) / len(res), 2), total=round(sum(res), 2),
-                  wins=sum(1 for x in res if x > 0), losses=sum(1 for x in res if x < 0),
-                  tp=sum(1 for n in done if n['o_why'] == 'tp'))
+        sm['res']['tp'] = sum(1 for n in done if n['why'] == 'tp')
     return render_template('trade.html', rows=rows, p=p, sm=sm)
 
 
