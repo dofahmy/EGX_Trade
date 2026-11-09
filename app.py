@@ -316,7 +316,8 @@ def bounce():
         # لو القاعدة طلّعت أسهم أقل من الحد، مفيش شراء اليوم ده
         r['few'] = 0 < len(r['rows']) < p['b_min']
         r['picks'] = [] if r['few'] else picks
-        res = [x['next'] for x in picks if 'next' in x]
+        r['need_bars'] = bool(r['rows']) and any(not l['avail'] for l in r.get('lists', []))
+        res = [x['next'] for x in r['picks'] if 'next' in x]
         r['p_avg'] = round(sum(res) / len(res), 2) if res else None
         r['p_hit'] = (r['p_avg'] > r['mk_med']) if (res and r.get('mk_med') is not None) else None
     done = [r for r in rows if r['p_hit'] is not None]
