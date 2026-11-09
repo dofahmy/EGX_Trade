@@ -453,7 +453,9 @@ def same_day_trades(store: Store, day_win=20, min_prices=7, tp=3.0, **_):
                     o_buy=buy2, o_exit=ex2, o_why=why2, o_res=round((ex2 / buy2 - 1) * 100, 2))
                 # الشيل لجلسات بعد يوم التريدة، وأعلى سعر في ٣ جلسات (يوم التريدة واللي بعده)
                 buy = buy2
-                hold, hi, hits = [], float(r2['hi']), {}
+                # ت+٠ = يوم الاختيار، ت+١ = إقفال يوم التريدة، ت+٢ = إقفال الجلسة اللي بعدها
+                hold = [dict(date=nd, price=float(r2['last']), res=round((float(r2['last']) / buy - 1) * 100, 2))]
+                hi, hits = float(r2['hi']), {}
                 for lvl in (5, 10):
                     if float(r2['hi']) >= buy * (1 + lvl / 100):
                         hits[lvl] = nd
@@ -465,13 +467,14 @@ def same_day_trades(store: Store, day_win=20, min_prices=7, tp=3.0, **_):
                     if pick.sym not in sj.index:
                         break
                     rj = sj.loc[pick.sym]
-                    hold.append(dict(date=dj, price=float(rj['last']), res=round((float(rj['last']) / buy - 1) * 100, 2)))
+                    if j == 2:
+                        hold.append(dict(date=dj, price=float(rj['last']), res=round((float(rj['last']) / buy - 1) * 100, 2)))
                     hi = max(hi, float(rj['hi']))
                     for lvl in (5, 10):
                         if lvl not in hits and float(rj['hi']) >= buy * (1 + lvl / 100):
                             hits[lvl] = dj
                 row['next'].update(hold=hold, max_up=round((hi / buy - 1) * 100, 2), hits=hits,
-                                   days3=1 + len(hold))
+                                   days3=1 + sum(1 for j in (2, 3) if i + j < len(dates)))
             else:
                 row['next'] = dict(date=nd, missing=True)
         out.append(row)
