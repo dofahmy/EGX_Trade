@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}الارتداد{% endblock %}
+{% block body %}
+{% set last = rows[-1] if rows else none %}
+<div class="card">
+  <h2>الارتداد — {{ mtitle }}</h2>
+  <p class="mute">الأسهم اللي <b>نزلت يومين ورا بعض</b>، وتاني يوم نزلت <b>{{ p.b_drop }}٪ أو أكتر</b>، والفرق بين أعلى وأقل سعر فيه <b>{{ p.b_range }}٪ أو أكتر</b>، وقيمة تداولها {{ p.b_val }} مليون أو أكتر. وبنشوف عملت إيه الجلسة اللي بعدها مقارنة بالسوق.
+  اليوم بيبقى <span class="pill buy">اتحققت</span> لو نص أسهم القاعدة طلع أكتر من نص السوق.</p>
+  {% if last and not last.next_date %}
+  <div class="banner {{ 'buy' if last.rows else 'idle' }}">
+    {% if last.rows %}<b>أسهم القاعدة من جلسة {{ last.date }}</b> ({{ last.rows|length }}):
+      {% for x in last.rows %}<a href="{{ murl('stock', sym=x.sym) }}">{{ x.sym }}</a>{{ '، ' if not loop.last }}{% endfor %}
+    {% else %}جلسة {{ last.date }}: مفيش أسهم بتعدّي القاعدة.{% endif %}
+  </div>
+  {% endif %}
+  {% if sm %}
+  <div class="big">اتحققت {{ sm.hit }} من {{ sm.days }} يوم</div>
+  <div class="note">متوسط أسهم القاعدة الجلسة اللي بعدها {{ '%+.2f'|format(sm.g_avg) }}٪، ونص السوق في المتوسط {{ '%+.2f'|format(sm.mk) }}٪ · {{ sm.stocks }} سهم في كل الأيام، منهم {{ sm.g10 }} طلعوا ١٠٪ أو أكتر</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="tablewrap"><table>
+    <tr><th>يوم القاعدة</th><th>عدد الأسهم</th><th>الجلسة اللي بعدها</th><th>نص أسهم القاعدة</th><th>نص السوق</th><th>طلعوا من أسهم القاعدة</th><th>من أعلى ١٠٪ في السوق</th><th>طلعوا ١٠٪ أو أكتر</th><th>النتيجة</th></tr>
+    {% for r in rows|reverse %}
+    <tr>
+      <td><a href="#d{{ r.date }}">{{ r.date }}</a></td>
+      <td class="num">{{ r.rows|length }} <span class="note">من {{ r.n_market }}</span></td>
+      {% if not r.next_date %}
+      <td colspan="7"><span class="pill armed">الجلسة الجاية</span></td>
+      {% elif r.g_med is not defined or r.g_med is none %}
+      <td>{{ r.next_date }}</td><td colspan="6" class="mute">مفيش أسهم</td>
+      {% else %}
+      <td>{{ r.next_date }}</td>
+      <td class="num {{ 'pos' if r.g_med>0 else 'neg' if r.g_med<0 else '' }}">{{ '%+.2f'|format(r.g_med) }}٪</td>
+      <td class="num {{ 'pos' if r.mk_med>0 else 'neg' if r.mk_med<0 else '' }}">{{ '%+.2f'|format(r.mk_med) }}٪</td>
+      <td class="num">{{ r.g_up|int }}٪ <span class="note">السوق {{ r.mk_up|int }}٪</span></td>
+      <td class="num">{{ r.g_top }} <span class="note">(فوق {{ '%+.2f'|format(r.top) }}٪)</span></td>
+      <td class="num">{{ r.g_10 }}</td>
+      <td>{% if r.hit %}<span class="pill buy">اتحققت</span>{% else %}<span class="pill idle">لأ</span>{% endif %}</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table></div>
+</div>
+
+{% for r in rows|reverse %}{% if r.rows %}
+<div class="card" id="d{{ r.date }}">
+  <h3>جلسة {{ r.date }} <span class="mute">← {{ r.next_date or 'الجلسة الجاية' }}</span></h3>
+  <div class="tablewrap"><table>
+    <tr><th>السهم</th><th>تغير اليوم اللي قبله</th><th>تغير اليوم</th><th>الفرق بين أعلى وأقل</th><th>قيمة التداول (مليون)</th><th>الإقفال</th><th>الجلسة اللي بعدها</th><th>من الفتح للإقفال</th></tr>
+    {% for x in r.rows %}
+    <tr>
+      <td><a href="{{ murl('stock', sym=x.sym) }}">{{ x.sym }}</a> <span class="note">{{ x.name }}</span></td>
+      <td class="num neg">{{ '%+.2f'|format(x.chg1) }}٪</td>
+      <td class="num neg">{{ '%+.2f'|format(x.chg) }}٪</td>
+      <td class="num">{{ '%.2f'|format(x.rng) }}٪</td>
+      <td class="num">{{ '%.1f'|format(x.val_m) }}</td>
+      <td class="num">{{ x.last }}</td>
+      {% if x.next is defined %}
+      <td class="num {{ 'pos' if x.next>0 else 'neg' if x.next<0 else '' }}">{{ '%+.2f'|format(x.next) }}٪ <span class="note">{{ x.n_last }}</span></td>
+      <td class="num {{ 'pos' if x.oc>0 else 'neg' if x.oc<0 else '' }}">{{ '%+.2f'|format(x.oc) }}٪</td>
+      {% else %}<td class="mute" colspan="2">{{ 'لسه' if not r.next_date else 'ماتداولش' }}</td>{% endif %}
+    </tr>
+    {% endfor %}
+  </table></div>
+</div>
+{% endif %}{% endfor %}
+{% endblock %}

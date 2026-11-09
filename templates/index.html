@@ -283,7 +283,15 @@ fieldset .inline{gap:14px}
         <p class="note">زي أسهم بورصة النيل. وتقدري تستبعدي أي سهم بزرار "استبعاد" جنبه في صفحة التريدة. ورجوع الإعدادات للأصل مابيمسحش القايمة دي.</p>
         <p class="note">السهم بيتختار من قايمة إشارات اليوم بعدد المرات وعدد الأسعار اللي في الجزء الأول.</p>
       </fieldset>
-      <fieldset><legend>٥. التحذيرات</legend>
+      <fieldset><legend>٥. الارتداد</legend>
+        <div style="display:flex;flex-wrap:wrap;gap:14px">
+          <label>نزول اليوم ٪ أو أكتر<input type="number" name="b_drop" value="{{ p.b_drop }}" min="0" step="any"></label>
+          <label>الفرق بين أعلى وأقل سعر ٪ أو أكتر<input type="number" name="b_range" value="{{ p.b_range }}" min="0" step="any"></label>
+          <label>أقل قيمة تداول (مليون)<input type="number" name="b_val" value="{{ p.b_val }}" min="0" step="any"></label>
+        </div>
+        <p class="note">السهم لازم يكون نازل كمان في الجلسة اللي قبلها. ووثائق الصناديق مش داخلة.</p>
+      </fieldset>
+      <fieldset><legend>٦. التحذيرات</legend>
         <label>المستوى يبقى تحذير لو النسبة اللي اتلمت عنده أقل من ٪<input type="number" name="warn_share" value="{{ p.warn_share }}" min="0" step="any"></label>
       </fieldset>
       <button>حفظ</button>

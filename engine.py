@@ -443,3 +443,45 @@ def same_day_trades(store: Store, day_win=20, min_prices=7, tp=3.0, picks=2, exc
             items.append(dict(pick=k, next=n))
         out.append(dict(date=date, next_date=nd, stocks=items))
     return out
+
+
+# ---------- قاعدة الارتداد ----------
+
+def bounce_days(store: Store, b_drop=2.5, b_range=7.0, b_val=0.5, **_):
+    """الأسهم اللي نزلت يومين ورا بعض، وتاني يوم نزلت b_drop٪ أو أكتر، والفرق بين أعلى وأقل سعر b_range٪ أو أكتر.
+    وبنقارن أداءها الجلسة اللي بعدها بالسوق."""
+    dates = store.dates()
+    stats = {d: store.load(d)[0] for d in dates}
+    out = []
+    for i, date in enumerate(dates):
+        if i == 0:
+            continue
+        st, prev = stats[date], stats[dates[i - 1]]
+        st = st[(st['val_m'] >= b_val) & ~st['name'].astype(str).str.contains('وثائق')]
+        rng = (st['hi'] / st['lo'] - 1) * 100
+        c1 = prev['chg'].reindex(st.index)
+        m = (c1 < 0) & (st['chg'] <= -b_drop) & (rng >= b_range)
+        g = st[m].assign(chg1=c1[m], rng=rng[m].round(2))
+        nd = dates[i + 1] if i + 1 < len(dates) else None
+        row = dict(date=date, next_date=nd, n_market=len(st), rows=[])
+        if nd:
+            nx = stats[nd]
+            mk = nx['chg'].reindex(st.index).dropna()
+            top = mk.quantile(0.9) if len(mk) else None
+            row.update(mk_med=round(float(mk.median()), 2), mk_up=round(float((mk > 0).mean() * 100), 0), top=round(float(top), 2))
+        for sym, r in g.sort_values('chg').iterrows():
+            it = dict(sym=sym, name=r['name'], chg1=float(r['chg1']), chg=float(r['chg']), rng=float(r['rng']),
+                      val_m=float(r['val_m']), last=float(r['last']))
+            if nd and sym in stats[nd].index:
+                n2 = stats[nd].loc[sym]
+                it.update(next=float(n2['chg']), n_open=float(n2['open']), n_last=float(n2['last']),
+                          oc=round((float(n2['last']) / float(n2['open']) - 1) * 100, 2))
+            row['rows'].append(it)
+        res = [x['next'] for x in row['rows'] if 'next' in x]
+        if nd and res:
+            ser = pd.Series(res)
+            row.update(g_med=round(float(ser.median()), 2), g_avg=round(float(ser.mean()), 2),
+                       g_up=round(float((ser > 0).mean() * 100), 0), g_top=int((ser >= row['top']).sum()),
+                       g_10=int((ser >= 10).sum()), hit=bool(ser.median() > row['mk_med']))
+        out.append(row)
+    return out

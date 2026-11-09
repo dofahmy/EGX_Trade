@@ -4,7 +4,7 @@ from functools import wraps
 
 from flask import Flask, request, redirect, url_for, render_template, Response, abort
 
-from engine import Store, process_upload, analyze, METHODS, same_day_trades
+from engine import Store, process_upload, analyze, METHODS, same_day_trades, bounce_days
 import us
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
@@ -27,14 +27,14 @@ STORES = {m: Store(v['root']) for m, v in MARKETS.items()}
 
 DEFAULTS = {
     'egx': dict(day_win=20, min_prices=7, threshold=10, mult=2.0, min_win=20, max_win=None,
-                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2, exclude='INEG'),
+                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2, exclude='INEG', b_drop=2.5, b_range=7.0, b_val=0.5),
     # الجلسة الأمريكية ٧٨ فترة بدل ٥٤، فعدد المرات متكبّر بنفس النسبة. وعدد الأسهم أكبر، فالحد أكبر.
     # والسهم الأمريكي بيتداول على مئات الأسعار، فالنسبة اللي بتتلم عند سعر واحد صغيرة جدًا مقارنة بمصر
     'us': dict(day_win=29, min_prices=7, threshold=10, mult=2.0, min_win=29, max_win=None,
-               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2, exclude=''),
+               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2, exclude='', b_drop=2.5, b_range=7.0, b_val=0.5),
 }
 TYPES = dict(day_win=int, min_prices=int, threshold=int, mult=float, min_win=int, max_win=int,
-             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int, exclude=str)
+             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int, exclude=str, b_drop=float, b_range=float, b_val=float)
 OPTIONAL = {'max_win', 'gap_max', 'exclude'}
 
 
@@ -296,6 +296,23 @@ def trade():
     if done:
         sm['res']['tp'] = sum(1 for n in done if n['why'] == 'tp')
     return render_template('trade.html', rows=rows, p=p, sm=sm)
+
+
+@app.route('/bounce')
+@auth
+def bounce():
+    """قاعدة الارتداد: الأسهم اللي نزلت يومين ورا بعض بقوة، وأداؤها الجلسة اللي بعدها مقارنة بالسوق."""
+    m = market()
+    p = params(m)
+    rows = bounce_days(STORES[m], **p)
+    done = [r for r in rows if r.get('g_med') is not None]
+    sm = None
+    if done:
+        sm = dict(days=len(done), hit=sum(r['hit'] for r in done),
+                  stocks=sum(len(r['rows']) for r in done), g10=sum(r['g_10'] for r in done),
+                  g_avg=round(sum(r['g_avg'] for r in done) / len(done), 2),
+                  mk=round(sum(r['mk_med'] for r in done) / len(done), 2))
+    return render_template('bounce.html', rows=rows, p=p, sm=sm)
 
 
 @app.route('/exclude', methods=['POST'])
