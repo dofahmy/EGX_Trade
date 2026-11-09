@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}التريدة{% endblock %}
+{% block body %}
+{% set last = rows[-1] if rows else none %}
+<div class="card">
+  <h2>التريدة — {{ mtitle }}</h2>
+  <p class="mute">كل جلسة بنختار السهم صاحب <b>أكبر نسبة اتلمت عند مستواه</b> من قايمة إشارات اليوم، بشرط إقفاله يكون موجب. الجلسة اللي بعدها بنشتري <b>مع الفتح</b>، ونبيع لو السعر طلع {{ p.tp }}٪ فوق سعر الشراء، أو مع <b>الإقفال</b>، أيهم يحصل الأول.</p>
+  {% if last and last.pick and not last.next %}
+  <div class="banner buy">
+    <b>الجلسة الجاية</b> (اختيار جلسة {{ last.date }}): شراء <b>{{ last.pick.name }}</b> <span class="mute">{{ last.pick.sym }}</span> مع الفتح،
+    والبيع عند +{{ p.tp }}٪ من سعر الفتح، أو مع الإقفال.
+  </div>
+  {% elif last and not last.pick %}
+  <div class="banner idle">جلسة {{ last.date }}: مفيش سهم في قايمة الإشارات إقفاله موجب، فمفيش تريدة الجلسة الجاية.</div>
+  {% endif %}
+  {% if sm %}
+  <div class="big" style="margin-top:6px">
+    <span class="{{ 'pos' if sm.avg>0 else 'neg' if sm.avg<0 else '' }}">{{ '%+.2f'|format(sm.avg) }}٪</span> متوسط
+    · مجموع <span class="{{ 'pos' if sm.total>0 else 'neg' if sm.total<0 else '' }}">{{ '%+.2f'|format(sm.total) }}٪</span>
+  </div>
+  <div class="note">{{ sm.n }} تريدة · كسبانة {{ sm.wins }} · خسرانة {{ sm.losses }} · وصلت الهدف {{ sm.tp }}</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="tablewrap"><table>
+    <tr><th>يوم الاختيار</th><th>السهم</th><th>يوم التريدة</th><th>الشراء (الفتح)</th><th>الهدف</th><th>البيع</th><th>النتيجة</th></tr>
+    {% for r in rows|reverse %}
+    {% set k = r.pick %}{% set n = r.next %}
+    <tr>
+      <td><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a></td>
+      {% if not k %}
+      <td colspan="6" class="mute">مفيش سهم إقفاله موجب</td>
+      {% else %}
+      <td><a href="{{ murl('stock', sym=k.sym) }}">{{ k.sym }}</a> <span class="note">{{ k.name }}</span></td>
+      {% if not n %}
+      <td colspan="5"><span class="pill armed">الجلسة الجاية</span></td>
+      {% elif n.missing %}
+      <td>{{ n.date }}</td><td colspan="4" class="mute">السهم ماتداولش</td>
+      {% else %}
+      <td>{{ n.date }}</td>
+      <td class="num">{{ n.o_buy }}</td>
+      <td class="num">{{ (n.o_buy * (1 + p.tp / 100))|round(4) }}</td>
+      <td class="num">{{ n.o_exit }} <span class="note">{{ 'الهدف' if n.o_why=='tp' else 'الإقفال' }}</span></td>
+      <td class="num {{ 'pos' if n.o_res>0 else 'neg' if n.o_res<0 else '' }}">{{ '%+.2f'|format(n.o_res) }}٪</td>
+      {% endif %}
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table></div>
+</div>
+{% endblock %}
