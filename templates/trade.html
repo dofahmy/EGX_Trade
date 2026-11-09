@@ -11,6 +11,7 @@
   {% elif last and not last.stocks %}
   <div class="banner idle">جلسة {{ last.date }}: مفيش سهم في قايمة الإشارات إقفاله موجب، فمفيش تريدة الجلسة الجاية.</div>
   {% endif %}
+  {% if p.exclude %}<p class="note">مستبعد: <span dir="ltr">{{ p.exclude }}</span> · <a href="{{ murl('index', tab='settings') }}">تعديل</a></p>{% endif %}
   {% if sm %}
   <div style="display:flex;flex-wrap:wrap;gap:30px;margin-top:6px">
     {% for key, title in [('res', 'مع الهدف ' ~ p.tp ~ '٪ أو الإقفال'), ('oc', 'من الفتح للإقفال')] %}{% set s = sm[key] %}
@@ -33,7 +34,8 @@
     {% for it in r.stocks %}{% set k = it.pick %}{% set n = it.next %}
     <tr{% if loop.last and not loop.first %} style="border-bottom:2px solid var(--line)"{% endif %}>
       {% if loop.first %}<td rowspan="{{ r.stocks|length }}" style="vertical-align:top"><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a></td>{% endif %}
-      <td><a href="{{ murl('stock', sym=k.sym) }}">{{ k.sym }}</a> <span class="note">{{ k.name }}</span></td>
+      <td><a href="{{ murl('stock', sym=k.sym) }}">{{ k.sym }}</a> <span class="note">{{ k.name }}</span>
+        <form method="post" action="{{ murl('exclude') }}" style="display:inline" onsubmit="return confirm('تستبعدي {{ k.sym }} من التريدة؟')"><input type="hidden" name="sym" value="{{ k.sym }}"><button class="danger" style="margin-right:6px">استبعاد</button></form></td>
       {% if not n %}
       <td><span class="pill armed">الجلسة الجاية</span></td>
       <td class="num">مع الفتح<div class="note">آخر إقفال {{ k.last }}</div></td>

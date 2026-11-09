@@ -27,15 +27,15 @@ STORES = {m: Store(v['root']) for m, v in MARKETS.items()}
 
 DEFAULTS = {
     'egx': dict(day_win=20, min_prices=7, threshold=10, mult=2.0, min_win=20, max_win=None,
-                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2),
+                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2, exclude='INEG'),
     # الجلسة الأمريكية ٧٨ فترة بدل ٥٤، فعدد المرات متكبّر بنفس النسبة. وعدد الأسهم أكبر، فالحد أكبر.
     # والسهم الأمريكي بيتداول على مئات الأسعار، فالنسبة اللي بتتلم عند سعر واحد صغيرة جدًا مقارنة بمصر
     'us': dict(day_win=29, min_prices=7, threshold=10, mult=2.0, min_win=29, max_win=None,
-               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2),
+               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2, exclude=''),
 }
 TYPES = dict(day_win=int, min_prices=int, threshold=int, mult=float, min_win=int, max_win=int,
-             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int)
-OPTIONAL = {'max_win', 'gap_max'}
+             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int, exclude=str)
+OPTIONAL = {'max_win', 'gap_max', 'exclude'}
 
 
 def market():
@@ -67,6 +67,12 @@ def load_settings(m):
     return s
 
 
+def norm_codes(v):
+    """أكواد مفصولة بمسافة أو فاصلة أو سطر جديد، بنرجعها مرتبة ومن غير تكرار."""
+    import re
+    return ' '.join(sorted({c.upper() for c in re.split(r'[\s,،;]+', v or '') if c}))
+
+
 def parse(src, base):
     out = dict(base)
     for k, t in TYPES.items():
@@ -78,7 +84,7 @@ def parse(src, base):
                 out[k] = None
             continue
         try:
-            out[k] = t(float(v)) if t is int else t(v)
+            out[k] = t(float(v)) if t is int else norm_codes(v) if k == 'exclude' else t(v)
         except Exception:
             pass
     return out
@@ -224,7 +230,8 @@ def job(jid):
 def save_settings():
     m = market()
     if request.form.get('reset'):
-        s = dict(DEFAULTS[m])
+        # الرجوع للأصل مابيمسحش قايمة الأسهم المستبعدة
+        s = dict(DEFAULTS[m], exclude=load_settings(m).get('exclude'))
     else:
         s = parse(request.form, load_settings(m))
     settings_file(m).write_text(json.dumps(s, ensure_ascii=False), encoding='utf-8')
@@ -289,6 +296,17 @@ def trade():
     if done:
         sm['res']['tp'] = sum(1 for n in done if n['why'] == 'tp')
     return render_template('trade.html', rows=rows, p=p, sm=sm)
+
+
+@app.route('/exclude', methods=['POST'])
+@auth
+def exclude():
+    """استبعاد سهم من التريدة بزرار من الجدول."""
+    m = market()
+    s = load_settings(m)
+    s['exclude'] = norm_codes((s.get('exclude') or '') + ' ' + request.form.get('sym', ''))
+    settings_file(m).write_text(json.dumps(s, ensure_ascii=False), encoding='utf-8')
+    return redirect(url_for('trade', m=m))
 
 
 @app.route('/export')

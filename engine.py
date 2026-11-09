@@ -415,15 +415,16 @@ def _sim(entry_limit, tp, b, row):
     return True, buy, last, 'close', False
 
 
-def same_day_trades(store: Store, day_win=20, min_prices=7, tp=3.0, picks=2, **_):
+def same_day_trades(store: Store, day_win=20, min_prices=7, tp=3.0, picks=2, exclude=None, **_):
     """لكل جلسة: أكبر سهمين (أو العدد المحدد) في النسبة اللي اتلمت عند المستوى، وإقفالهم موجب.
     الجلسة اللي بعدها: شراء مع الفتح، والبيع مع الهدف أو الإقفال، ومعاه نتيجة الفتح للإقفال."""
     dates = store.dates()
+    skip = set((exclude or '').split())
     out = []
     for i, date in enumerate(dates):
         st, lv, _ = store.load(date)
         sig = signals_for(st, lv, day_win, min_prices).sort_values('share', ascending=False)
-        sig = sig[sig['chg'] > 0].head(max(1, int(picks)))
+        sig = sig[(sig['chg'] > 0) & ~sig['sym'].isin(skip)].head(max(1, int(picks)))
         nd = dates[i + 1] if i + 1 < len(dates) else None
         s2 = store.load(nd)[0] if nd else None
         items = []
