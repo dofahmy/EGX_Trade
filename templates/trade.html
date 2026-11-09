@@ -34,7 +34,10 @@
       {% else %}
       <td><a href="{{ murl('stock', sym=k.sym) }}">{{ k.sym }}</a> <span class="note">{{ k.name }}</span></td>
       {% if not n %}
-      <td colspan="5"><span class="pill armed">الجلسة الجاية</span></td>
+      <td><span class="pill armed">الجلسة الجاية</span></td>
+      <td class="num">مع الفتح<div class="note">آخر إقفال {{ k.last }}</div></td>
+      <td class="num">الفتح +{{ p.tp }}٪<div class="note">لو فتح على {{ k.last }}: {{ (k.last * (1 + p.tp / 100))|round(4) }}</div></td>
+      <td class="mute">—</td><td class="mute">—</td>
       {% elif n.missing %}
       <td>{{ n.date }}</td><td colspan="4" class="mute">السهم ماتداولش</td>
       {% else %}
