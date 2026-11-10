@@ -16,6 +16,10 @@
     لو الفتح أعلى من فتح الشمعة اللي قبلها والإقفال أعلى من إقفالها = دهبية. لو الاتنين أقل = سودا. لو واحد بس = محايدة.
     من غير أيام الحد الأدنى والأقصى، ووثائق الصناديق، والأسهم المستبعدة، والأسهم اللي تداولها أقل من {{ p.c_val|num }} مليون. الأرقام دي بتتغير من الإعدادات.
     والنتايج محسوبة من إقفال يوم الشمعة.
+    <br><b>اتعمل عندها:</b> قيمة التداول اللي اتعمل عند سعر الحيطة يوم الشمعة.
+    <b>السرعة:</b> أكتر نص ساعة في اليوم خد كام في المية من القيمة دي. أقل من ٤٠٪ = هادي (تجميع على مهله طول اليوم)، من ٤٠ لـ٥٠ = متوسط، ٥٠٪ أو أكتر = مستعجل.
+    ولو دقيقة واحدة فيها ١٠ صفقات أو أقل خدت ٣٠٪ أو أكتر من القيمة، بيظهر تنبيه "صفقة كبيرة"، لأنها غالبًا صفقة متفق عليها مش تجميع من السوق.
+    والعلامة (—) معناها إن الجلسة اترفعت قبل التحديث ده، ولازم ترفعيها تاني عشان تتحسب.
   </details>
 </div>
 
@@ -48,7 +52,7 @@
   {% endif %}
   {% if g.rows %}
   <div class="tablewrap"><table>
-    <tr><th>اليوم</th><th>السهم</th><th>الحيطة</th><th>اتلم عندها</th><th>أتخن من عادته</th><th>الإقفال</th><th>بعد يوم</th><th>بعد يومين</th><th>بعد ٣ جلسات</th><th>لحد آخر جلسة</th></tr>
+    <tr><th>اليوم</th><th>السهم</th><th>الحيطة</th><th>اتلم عندها</th><th>أتخن من عادته</th><th>اتعمل عندها</th><th>السرعة</th><th>الإقفال</th><th>بعد يوم</th><th>بعد يومين</th><th>بعد ٣ جلسات</th><th>لحد آخر جلسة</th></tr>
     {% for r in g.rows %}
     <tr{% if r.sym == sel %} style="background:var(--amberbg)"{% endif %}>
       <td>{{ r.date }}</td>
@@ -56,6 +60,12 @@
       <td class="num">{{ r.wall }}</td>
       <td class="num">{{ '%.0f'|format(r.share) }}٪</td>
       <td class="num">{{ r.ratio }} مرة</td>
+      <td class="num">{% if r.f_val is defined and r.f_val is not none %}{{ r.f_val }} مليون{% else %}<span class="mute">—</span>{% endif %}</td>
+      <td>{% if r.f_speed is defined and r.f_speed %}
+        {% set sp = {'slow': ('هادي', 'pos'), 'mid': ('متوسط', ''), 'fast': ('مستعجل', 'neg')}[r.f_speed] %}
+        <b class="{{ sp[1] }}">{{ sp[0] }}</b> <span class="note">{{ r.f_best }}٪ في نص ساعة</span>
+        {% if r.f_block %}<div class="neg" style="font-size:12px">صفقة كبيرة: {{ r.f_block.val }} مليون في دقيقة واحدة الساعة {{ r.f_block.t }} ({{ r.f_block.pct }}٪)</div>{% endif %}
+      {% else %}<span class="mute">—</span>{% endif %}</td>
       <td class="num">{{ r.close }} <span class="note {{ 'pos' if r.chg > 0 else 'neg' if r.chg < 0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</span></td>
       {% for key in ['r1', 'r2', 'r3', 'now'] %}
       <td class="num {{ 'pos' if r[key] is not none and r[key] > 0 else 'neg' if r[key] is not none and r[key] < 0 else '' }}">{% if r[key] is not none %}{{ '%+.1f'|format(r[key]) }}٪{% else %}<span class="mute">لسه</span>{% endif %}</td>

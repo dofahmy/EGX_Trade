@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from engine import day_stats, levels, bars, profile
+from engine import day_stats, levels, bars, profile, flow
 
 BASE = Path(__file__).resolve().parent
 DATASET = os.environ.get('US_DATASET', 'XNAS.ITCH')
@@ -111,7 +111,7 @@ def process_fetch(store, jid: str, date: str):
         syms = list(names)
         start, end = session_bounds(date)
         c = client()
-        stats, lvls, brs, prs, ntr = [], [], [], [], 0
+        stats, lvls, brs, prs, fls, pks, ntr = [], [], [], [], [], [], 0
         for i in range(0, len(syms), BATCH):
             batch = syms[i:i + BATCH]
             store.job_set(jid, state=f'بجيب الأسهم {i + 1}–{min(i + BATCH, len(syms))} من {len(syms)}')
@@ -123,9 +123,13 @@ def process_fetch(store, jid: str, date: str):
             if len(tr):
                 ntr += len(tr)
                 stats.append(day_stats(tr))
-                lvls.append(levels(tr))
+                lv_ = levels(tr)
+                lvls.append(lv_)
                 brs.append(bars(tr))
                 prs.append(profile(tr))
+                f_, p_ = flow(tr, lv_)
+                if f_ is not None:
+                    fls.append(f_); pks.append(p_)
         if not stats:
             raise RuntimeError('مفيش صفقات في اليوم ده. ممكن يكون أجازة في البورصة الأمريكية، أو التاريخ لسه ماجاش.')
         st = pd.concat(stats)
@@ -133,7 +137,8 @@ def process_fetch(store, jid: str, date: str):
         st = fill_prev(store, date, st)
         meta = {'date': date, 'trades': int(ntr), 'stocks': int(len(st)), 'source': DATASET,
                 'uploaded_at': dt.datetime.now().isoformat(timespec='seconds'), 'chain': []}
-        store.save(date, st, lv, meta, pd.concat(brs, ignore_index=True), pd.concat(prs, ignore_index=True))
+        store.save(date, st, lv, meta, pd.concat(brs, ignore_index=True), pd.concat(prs, ignore_index=True),
+                   (pd.concat(fls, ignore_index=True), pd.concat(pks, ignore_index=True)) if fls else None)
         # لو فيه جلسة بعدها متخزنة، نحدّث الإقفال السابق بتاعها
         after = [d for d in store.dates() if d > date]
         if after:

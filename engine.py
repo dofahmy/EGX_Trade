@@ -11,6 +11,7 @@
 import os, json, shutil, subprocess, tempfile, datetime as dt
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from openpyxl import load_workbook
 
@@ -142,6 +143,33 @@ def profile(df: pd.DataFrame, min_win=2) -> pd.DataFrame:
     return p[['sym', 'price', 'win_s', 'sh_s', 'win_b', 'sh_b']].reset_index(drop=True)
 
 
+def flow(df: pd.DataFrame, lv: pd.DataFrame, band=0.5):
+    """التداول عند الأسعار القريبة من مستويات البيع بس (في حدود band٪)، عشان نعرف التجميع اتعمل بسرعة ولا على مهله.
+    flow: لكل سهم وسعر وربع ساعة (k من أول الجلسة) قيمة التداول وعدد الصفقات.
+    peak: لكل سهم وسعر أكبر دقيقة اتعمل فيها تداول، قيمتها وعدد صفقاتها ووقتها."""
+    if lv is None or lv.empty or df.empty:
+        return None, None
+    d = df[['sym', 'price', 'secs', 'vol']].copy()
+    d['val'] = d['price'] * d['vol']
+    d['tid'] = np.arange(len(d))
+    ref = lv[['sym', 'price']].rename(columns={'price': 'lp'})
+    m = d.merge(ref, on='sym')
+    m = m[(m['price'] - m['lp']).abs() <= m['lp'] * band / 100].drop(columns='lp')
+    if m.empty:
+        return None, None
+    # الصفقة ممكن تتكرر لو قريبة من أكتر من مستوى
+    m = m.drop_duplicates('tid')
+    t0 = int(df['secs'].min())
+    m['k'] = ((m['secs'] - t0) // 900).astype(int)
+    m['mi'] = (m['secs'] // 60).astype(int)
+    fl = m.groupby(['sym', 'price', 'k']).agg(val=('val', 'sum'), n=('val', 'size')).reset_index()
+    fl['val'] = fl['val'].round(0)
+    pm = m.groupby(['sym', 'price', 'mi']).agg(pk_val=('val', 'sum'), pk_n=('val', 'size')).reset_index()
+    pk = pm.sort_values('pk_val', ascending=False).drop_duplicates(['sym', 'price'])
+    pk['pk_val'] = pk['pk_val'].round(0)
+    return fl.reset_index(drop=True), pk.reset_index(drop=True)
+
+
 # ---------- التخزين ----------
 
 class Store:
@@ -174,6 +202,17 @@ class Store:
         p = self.sdir(date) / 'profile.csv.gz'
         return pd.read_csv(p, dtype={'sym': str}) if p.exists() else None
 
+    def save_flow(self, date, fl, pk):
+        if fl is not None:
+            fl.to_csv(self.sdir(date) / 'flow.csv.gz', index=False, compression='gzip')
+            pk.to_csv(self.sdir(date) / 'peak.csv.gz', index=False, compression='gzip')
+
+    def load_flow(self, date):
+        a, b = self.sdir(date) / 'flow.csv.gz', self.sdir(date) / 'peak.csv.gz'
+        if not a.exists():
+            return None, None
+        return pd.read_csv(a, dtype={'sym': str}), pd.read_csv(b, dtype={'sym': str})
+
     def load_bars(self, date):
         p = self.sdir(date) / 'bars.csv.gz'
         return pd.read_csv(p, dtype={'sym': str}) if p.exists() else None
@@ -181,9 +220,11 @@ class Store:
     def delete(self, date):
         shutil.rmtree(self.sdir(date), ignore_errors=True)
 
-    def save(self, date, st, lv, meta, bars=None, prof=None):
+    def save(self, date, st, lv, meta, bars=None, prof=None, fl=None):
         d = self.sdir(date)
         d.mkdir(parents=True, exist_ok=True)
+        if fl is not None:
+            self.save_flow(date, *fl)
         if prof is not None:
             prof.to_csv(d / 'profile.csv.gz', index=False, compression='gzip')
         if bars is not None:
@@ -237,7 +278,7 @@ def process_upload(store: Store, jid: str, path: Path, date: str):
         msgs = chain_check(store, date, st)
         meta = {'date': date, 'trades': int(len(df)), 'stocks': int(len(st)),
                 'uploaded_at': dt.datetime.now().isoformat(timespec='seconds'), 'chain': msgs}
-        store.save(date, st, lv, meta, bars(df), profile(df))
+        store.save(date, st, lv, meta, bars(df), profile(df), flow(df, lv))
         store.job_set(jid, state='تم', done=True, trades=int(len(df)), stocks=int(len(st)), chain=msgs)
     except Exception as e:
         store.job_set(jid, state='حصل خطأ', done=True, error=str(e)[:500])

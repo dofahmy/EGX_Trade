@@ -133,11 +133,38 @@ def special(dates, S, TOP, i, sym, c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=
     return dict(kind=kind, wall=float(r['price']), share=round(float(r['share']), 1), ratio=round(ratio, 1))
 
 
+FAST, MID = 50, 40   # أكتر نص ساعة خد كام في المية من اللي اتعمل عند الحيطة
+
+
+def wall_flow(fl, pk, sym, wall, zone=0.0):
+    """الكمية اللي اتعملت عند الحيطة (بالمليون) وسرعتها، وتنبيه لو فيه صفقة كبيرة في دقيقة واحدة."""
+    if fl is None:
+        return None
+    band = max(0.2, zone / 2) / 100
+    f = fl[(fl['sym'] == sym) & ((fl['price'] - wall).abs() <= wall * band)]
+    tot = f['val'].sum()
+    if not tot:
+        return None
+    b = f.groupby('k')['val'].sum()
+    b = b.reindex(range(int(b.index.min()), int(b.index.max()) + 1), fill_value=0)
+    best = float(b.rolling(2, min_periods=1).sum().max()) / tot * 100
+    speed = 'fast' if best >= FAST else 'mid' if best >= MID else 'slow'
+    out = dict(f_val=round(tot / 1e6, 1), f_best=round(best), f_speed=speed, f_block=None)
+    p = pk[(pk['sym'] == sym) & ((pk['price'] - wall).abs() <= wall * band)]
+    if len(p):
+        top = p.sort_values('pk_val', ascending=False).iloc[0]
+        if top['pk_val'] >= 0.3 * tot and top['pk_n'] <= 10:
+            mi = int(top['mi'])
+            out['f_block'] = dict(val=round(top['pk_val'] / 1e6, 1), n=int(top['pk_n']),
+                                  t='%d:%02d' % (mi // 60, mi % 60), pct=round(top['pk_val'] / tot * 100))
+    return out
+
+
 def scan(store, exclude=(), why=None, **cfg):
     """كل الشموع الدهبية والسودا والمحايدة في كل الجلسات، ومعاها النتيجة بعدها."""
     cfg = cfg_of(cfg)
     dates, S, TOP, LV = load_all(store, cfg['c_zone'])
-    rows = []
+    rows, FL = [], {}
     last = dates[-1] if dates else None
     for i, d in enumerate(dates):
         for sym in TOP[d].index:
@@ -152,7 +179,10 @@ def scan(store, exclude=(), why=None, **cfg):
                 else:
                     res.append(None)
             now = round((S[last].loc[sym, 'last'] / a['last'] - 1) * 100, 2) if d != last and sym in S[last].index else None
-            rows.append(dict(sp, date=d, sym=sym, name=a['name'], close=float(a['last']), chg=float(a['chg']),
+            if d not in FL:
+                FL[d] = store.load_flow(d) if hasattr(store, 'load_flow') else (None, None)
+            wf = wall_flow(*FL[d], sym, sp['wall'], cfg['c_zone']) or {}
+            rows.append(dict(sp, **wf, date=d, sym=sym, name=a['name'], close=float(a['last']), chg=float(a['chg']),
                              val_m=float(a['val_m']), r1=res[0], r2=res[1], r3=res[2], now=now))
     return rows
 
