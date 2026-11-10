@@ -1,4 +1,5 @@
 import os, json, uuid, threading, datetime as dt
+import pandas as pd
 from pathlib import Path
 from functools import wraps
 
@@ -6,6 +7,7 @@ from flask import Flask, request, redirect, url_for, render_template, Response, 
 
 from engine import Store, process_upload, analyze, METHODS, same_day_trades, bounce_days
 import us
+import candles
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -310,6 +312,40 @@ def stock(sym):
     if not rows:
         abort(404)
     return render_template('stock.html', sym=sym, rows=rows, p=p)
+
+
+@app.route('/chart/<sym>')
+@auth
+def chart(sym):
+    """شموع السهم ملونة بحالة الحيطة، وعرضها بقوتها، والشمعة الدهبية والسودا بإطار."""
+    m = market()
+    sym = sym.upper()
+    data = candles.series(STORES[m], sym)
+    if not data:
+        abort(404)
+    name = STORES[m].load(data[-1]['d'])[0].loc[sym, 'name']
+    return render_template('chart.html', sym=sym, name=name, data=data)
+
+
+@app.route('/candles')
+@auth
+def candles_page():
+    """جداول الشموع الدهبية والسودا والمحايدة، والسهم بيترسم لما تدوسي عليه."""
+    m = market()
+    p = params(m)
+    rows = candles.scan(STORES[m], exclude=(p.get('exclude') or '').split())
+    groups = {}
+    for k in ('gold', 'black', 'neutral'):
+        g = sorted([r for r in rows if r['kind'] == k], key=lambda r: (r['date'], r['share']), reverse=True)
+        sm = {}
+        for key in ('r1', 'r2', 'r3', 'now'):
+            v = [r[key] for r in g if r[key] is not None]
+            sm[key] = (round(sum(v) / len(v), 2), len(v)) if v else None
+        groups[k] = dict(rows=g, sm=sm)
+    sel = (request.args.get('sym') or (groups['gold']['rows'][0]['sym'] if groups['gold']['rows'] else '')).upper()
+    data = candles.series(STORES[m], sel) if sel else []
+    sel_name = next((r['name'] for r in rows if r['sym'] == sel), sel)
+    return render_template('candles.html', groups=groups, sel=sel, sel_name=sel_name, data=data)
 
 
 @app.route('/trade')

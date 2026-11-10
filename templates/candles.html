@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}الشموع{% endblock %}
+{% block body %}
+{% set titles = {'gold': ('الشموع الدهبية', 'تجميع: حيطة تخينة، والفتح والإقفال الاتنين أعلى من الشمعة اللي قبلها'),
+                 'black': ('الشموع السودا', 'خطر بيع: حيطة تخينة، والفتح والإقفال الاتنين أقل من الشمعة اللي قبلها'),
+                 'neutral': ('الشموع المحايدة', 'حيطة تخينة، وواحد بس من الفتح والإقفال أعلى من الشمعة اللي قبلها')} %}
+<div class="card" id="chart">
+  {% if sel and data %}
+  <h2>{{ sel_name }} <span class="mute">{{ sel }}</span> · <a href="{{ murl('chart', sym=sel) }}" style="font-size:14px">افتح الرسم لوحده</a></h2>
+  {% include '_candles_chart.html' %}
+  {% else %}
+  <h2>الشموع</h2><p class="mute">دوسي على أي سهم في الجداول تحت عشان يترسم هنا.</p>
+  {% endif %}
+  <details class="note"><summary>الشمعة الدهبية يعني إيه؟</summary>
+    حيطة اتلم عندها ١٠٪ أو أكتر من تداول اليوم، وأتخن ٤ مرات أو أكتر من عادة السهم، والسهم قفل عليها أو فوقها بـ٣٪ أو أقل.
+    لو الفتح أعلى من فتح الشمعة اللي قبلها والإقفال أعلى من إقفالها = دهبية. لو الاتنين أقل = سودا. لو واحد بس = محايدة.
+    من غير أيام الحد الأدنى والأقصى، ووثائق الصناديق، والأسهم المستبعدة، والأسهم اللي تداولها أقل من مليون.
+    والنتايج محسوبة من إقفال يوم الشمعة.
+  </details>
+</div>
+
+{% for k in ['gold', 'black', 'neutral'] %}{% set g = groups[k] %}
+<div class="card">
+  <h2>{{ titles[k][0] }} <span class="mute">({{ g.rows|length }})</span></h2>
+  <p class="note">{{ titles[k][1] }}</p>
+  {% if g.sm.r1 %}
+  <p class="mute">المتوسط:
+    {% for key, t in [('r1', 'بعد يوم'), ('r2', 'بعد يومين'), ('r3', 'بعد ٣ جلسات'), ('now', 'لحد آخر جلسة')] %}{% if g.sm[key] %}
+    {{ t }} <b class="{{ 'pos' if g.sm[key][0] > 0 else 'neg' if g.sm[key][0] < 0 else '' }}">{{ '%+.2f'|format(g.sm[key][0]) }}٪</b> <span class="note">({{ g.sm[key][1] }})</span>{{ ' · ' if not loop.last }}
+    {% endif %}{% endfor %}</p>
+  {% endif %}
+  {% if g.rows %}
+  <div class="tablewrap"><table>
+    <tr><th>اليوم</th><th>السهم</th><th>الحيطة</th><th>اتلم عندها</th><th>أتخن من عادته</th><th>الإقفال</th><th>بعد يوم</th><th>بعد يومين</th><th>بعد ٣ جلسات</th><th>لحد آخر جلسة</th></tr>
+    {% for r in g.rows %}
+    <tr{% if r.sym == sel %} style="background:var(--amberbg)"{% endif %}>
+      <td>{{ r.date }}</td>
+      <td><a href="{{ murl('candles_page', sym=r.sym) }}#chart"><b>{{ r.sym }}</b></a> <span class="note">{{ r.name }}</span></td>
+      <td class="num">{{ r.wall }}</td>
+      <td class="num">{{ '%.0f'|format(r.share) }}٪</td>
+      <td class="num">{{ r.ratio }} مرة</td>
+      <td class="num">{{ r.close }} <span class="note {{ 'pos' if r.chg > 0 else 'neg' if r.chg < 0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</span></td>
+      {% for key in ['r1', 'r2', 'r3', 'now'] %}
+      <td class="num {{ 'pos' if r[key] is not none and r[key] > 0 else 'neg' if r[key] is not none and r[key] < 0 else '' }}">{% if r[key] is not none %}{{ '%+.1f'|format(r[key]) }}٪{% else %}<span class="mute">لسه</span>{% endif %}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<p class="mute">مفيش لحد دلوقتي.</p>{% endif %}
+</div>
+{% endfor %}
+{% endblock %}

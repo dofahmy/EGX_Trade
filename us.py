@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from engine import day_stats, levels, bars
+from engine import day_stats, levels, bars, profile
 
 BASE = Path(__file__).resolve().parent
 DATASET = os.environ.get('US_DATASET', 'XNAS.ITCH')
@@ -101,7 +101,7 @@ def process_fetch(store, jid: str, date: str):
         syms = list(names)
         start, end = session_bounds(date)
         c = client()
-        stats, lvls, brs, ntr = [], [], [], 0
+        stats, lvls, brs, prs, ntr = [], [], [], [], 0
         for i in range(0, len(syms), BATCH):
             batch = syms[i:i + BATCH]
             store.job_set(jid, state=f'بجيب الأسهم {i + 1}–{min(i + BATCH, len(syms))} من {len(syms)}')
@@ -115,6 +115,7 @@ def process_fetch(store, jid: str, date: str):
                 stats.append(day_stats(tr))
                 lvls.append(levels(tr))
                 brs.append(bars(tr))
+                prs.append(profile(tr))
         if not stats:
             raise RuntimeError('مفيش صفقات في اليوم ده. ممكن يكون أجازة في البورصة الأمريكية، أو التاريخ لسه ماجاش.')
         st = pd.concat(stats)
@@ -122,7 +123,7 @@ def process_fetch(store, jid: str, date: str):
         st = fill_prev(store, date, st)
         meta = {'date': date, 'trades': int(ntr), 'stocks': int(len(st)), 'source': DATASET,
                 'uploaded_at': dt.datetime.now().isoformat(timespec='seconds'), 'chain': []}
-        store.save(date, st, lv, meta, pd.concat(brs, ignore_index=True))
+        store.save(date, st, lv, meta, pd.concat(brs, ignore_index=True), pd.concat(prs, ignore_index=True))
         # لو فيه جلسة بعدها متخزنة، نحدّث الإقفال السابق بتاعها
         after = [d for d in store.dates() if d > date]
         if after:
@@ -150,6 +151,10 @@ def process_bars(store, jid: str, date: str, syms):
         if old is not None:
             new = pd.concat([old[~old['sym'].isin(new['sym'].unique())], new], ignore_index=True)
         store.save_bars(date, new.sort_values(['sym', 'mi']).reset_index(drop=True))
+        pr, oldp = profile(tr), store.load_profile(date)
+        if oldp is not None:
+            pr = pd.concat([oldp[~oldp['sym'].isin(pr['sym'].unique())], pr], ignore_index=True)
+        store.save_profile(date, pr)
         store.job_set(jid, state='تم', done=True, trades=int(len(tr)), stocks=int(tr['sym'].nunique()), chain=[], back='bounce')
     except Exception as e:
         store.job_set(jid, state='حصل خطأ', done=True, error=str(e)[:600])

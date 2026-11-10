@@ -124,6 +124,24 @@ def bars(df: pd.DataFrame) -> pd.DataFrame:
     return b.sort_values(['sym', 'mi']).reset_index(drop=True)
 
 
+def profile(df: pd.DataFrame, min_win=2) -> pd.DataFrame:
+    """لكل سهم ولكل سعر: اتكرر عنده بيع في كام فترة وشراء في كام فترة، وكمية كل واحد كنسبة من تداول اليوم.
+    ده اللي بيترسم في صفحة الرسم (البيع شمال والشراء يمين)."""
+    d = df[['sym', 'price', 'secs', 'side', 'vol']].copy()
+    d['w'] = d['secs'] // 300
+    tot = d.groupby('sym')['vol'].sum()
+    out = []
+    for side, k in (('S', 's'), ('B', 'b')):
+        x = d[d['side'] == side].groupby(['sym', 'price']).agg(**{f'win_{k}': ('w', 'nunique'), f'vol_{k}': ('vol', 'sum')})
+        out.append(x)
+    p = pd.concat(out, axis=1).fillna(0).reset_index()
+    for k in ('s', 'b'):
+        p[f'win_{k}'] = p[f'win_{k}'].astype(int)
+        p[f'sh_{k}'] = (p[f'vol_{k}'] / p['sym'].map(tot) * 100).round(3)
+    p = p[(p['win_s'] >= min_win) | (p['win_b'] >= min_win)]
+    return p[['sym', 'price', 'win_s', 'sh_s', 'win_b', 'sh_b']].reset_index(drop=True)
+
+
 # ---------- التخزين ----------
 
 class Store:
@@ -149,6 +167,13 @@ class Store:
     def save_bars(self, date, b):
         b.to_csv(self.sdir(date) / 'bars.csv.gz', index=False, compression='gzip')
 
+    def save_profile(self, date, p):
+        p.to_csv(self.sdir(date) / 'profile.csv.gz', index=False, compression='gzip')
+
+    def load_profile(self, date):
+        p = self.sdir(date) / 'profile.csv.gz'
+        return pd.read_csv(p, dtype={'sym': str}) if p.exists() else None
+
     def load_bars(self, date):
         p = self.sdir(date) / 'bars.csv.gz'
         return pd.read_csv(p, dtype={'sym': str}) if p.exists() else None
@@ -156,9 +181,11 @@ class Store:
     def delete(self, date):
         shutil.rmtree(self.sdir(date), ignore_errors=True)
 
-    def save(self, date, st, lv, meta, bars=None):
+    def save(self, date, st, lv, meta, bars=None, prof=None):
         d = self.sdir(date)
         d.mkdir(parents=True, exist_ok=True)
+        if prof is not None:
+            prof.to_csv(d / 'profile.csv.gz', index=False, compression='gzip')
         if bars is not None:
             bars.to_csv(d / 'bars.csv.gz', index=False, compression='gzip')
         st.to_csv(d / 'stats.csv', index_label='sym')
@@ -210,7 +237,7 @@ def process_upload(store: Store, jid: str, path: Path, date: str):
         msgs = chain_check(store, date, st)
         meta = {'date': date, 'trades': int(len(df)), 'stocks': int(len(st)),
                 'uploaded_at': dt.datetime.now().isoformat(timespec='seconds'), 'chain': msgs}
-        store.save(date, st, lv, meta, bars(df))
+        store.save(date, st, lv, meta, bars(df), profile(df))
         store.job_set(jid, state='تم', done=True, trades=int(len(df)), stocks=int(len(st)), chain=msgs)
     except Exception as e:
         store.job_set(jid, state='حصل خطأ', done=True, error=str(e)[:500])
