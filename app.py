@@ -1,4 +1,5 @@
-import os, json, uuid, threading, datetime as dt
+import os, json, uuid, threading, tempfile, datetime as dt
+import engine
 import pandas as pd
 from pathlib import Path
 from functools import wraps
@@ -190,13 +191,19 @@ def upload():
     if not f or not f.filename:
         return 'اختاري ملف', 400
     ext = Path(f.filename).suffix.lower() or '.xlsx'
-    if ext not in ('.xlsx', '.xlsm', '.rar', '.zip'):
-        return 'الملف لازم يكون إكسل أو مضغوط', 400
+    if ext not in ('.xlsx', '.xlsm', '.rar', '.zip', '.csv'):
+        return 'الملف لازم يكون إكسل أو csv أو مضغوط', 400
     jid = uuid.uuid4().hex[:10]
     tmp = MARKETS['egx']['root'] / 'jobs' / f'{jid}{ext}'
     f.save(tmp)
     store.job_set(jid, state='اترفع', date=date, done=False)
-    threading.Thread(target=process_upload, args=(store, jid, tmp, date), daemon=True).start()
+    # ملفات سيجما فيها التاريخ جواها، وممكن تبقى أيام كتير في ملف مضغوط واحد
+    with tempfile.TemporaryDirectory() as td:
+        sig = ext == '.csv' or (ext in ('.zip', '.rar') and engine.is_sigma(tmp, Path(td)))
+    if sig:
+        threading.Thread(target=engine.process_sigma, args=(store, jid, tmp), daemon=True).start()
+    else:
+        threading.Thread(target=process_upload, args=(store, jid, tmp, date), daemon=True).start()
     return redirect(url_for('job', jid=jid, m='egx'))
 
 

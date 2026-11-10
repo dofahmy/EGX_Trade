@@ -208,8 +208,8 @@ fieldset .inline{gap:14px}
   <div class="card">
     <h2>رفع جلسة جديدة</h2>
     <form class="inline" method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
-      <label>ملف التنفيذات (إكسل أو مضغوط)<input type="file" name="file" accept=".xlsx,.xlsm,.rar,.zip" required></label>
-      <label>تاريخ الجلسة<input type="date" name="date" value="{{ today }}" required></label>
+      <label>ملف التنفيذات: ملف سيجما (csv)، أو مضغوط فيه أيام كتير من سيجما، أو ملف الإكسل القديم<input type="file" name="file" accept=".csv,.xlsx,.xlsm,.rar,.zip" required></label>
+      <label>تاريخ الجلسة (لملف الإكسل القديم بس، ملفات سيجما التاريخ جواها)<input type="date" name="date" value="{{ today }}"></label>
       <button>رفع</button>
     </form>
     <p class="note">لو رفعتي ملف لتاريخ موجود، هيتحسب من جديد بدل القديم. الجلسات لازم تترفع بتواريخها الصح ومن غير ما تنقص جلسة.</p>

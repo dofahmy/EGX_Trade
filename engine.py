@@ -85,6 +85,144 @@ def read_trades(xlsx: Path) -> pd.DataFrame:
     return df.sort_values('seq').reset_index(drop=True)
 
 
+# ---------- ملفات سيجما (صفقات اليوم من شركة السمسرة) ----------
+
+# سيجما بيكتب بعض الأكواد بشكل مختلف عن ملف التنفيذات القديم
+SIGMA_RENAME = {'QNBA': 'QNBE', 'PSAD': 'RKAZ'}
+
+
+def sigma_names():
+    """أسماء الأسهم بالإنجليزي من قايمة الأيزن، لو السهم مالوش اسم عربي متخزن."""
+    f = Path(__file__).with_name('egx_isin.csv')
+    if not f.exists():
+        return {}
+    t = pd.read_csv(f)
+    return dict(zip(t['Symbol'], t['Name']))
+
+
+def sigma_files(path: Path, workdir: Path):
+    """بيرجع ملفات سيجما (csv) من ملف واحد أو ملف مضغوط، مرتبة بالتاريخ."""
+    suf = path.suffix.lower()
+    if suf == '.csv':
+        found = [path]
+    else:
+        out = workdir / 'sg'
+        out.mkdir(parents=True, exist_ok=True)
+        if suf == '.zip':
+            shutil.unpack_archive(str(path), str(out))
+        else:
+            r = subprocess.run(['unar', '-q', '-f', '-o', str(out), str(path)], capture_output=True, text=True)
+            if r.returncode != 0:
+                raise RuntimeError('تعذر فك الملف المضغوط: ' + (r.stderr or r.stdout)[:300])
+        found = [p for p in out.rglob('*.csv') if not p.name.startswith('._')]
+    days = {}
+    for p in found:
+        with open(p, encoding='utf-8-sig') as fh:
+            head = fh.readline()
+            first = fh.readline()
+        if 'Ticket No.' not in head or not first.strip():
+            continue
+        cols = [c.strip() for c in head.strip().split(',')]
+        d = first.strip().split(',')[cols.index('Date')]
+        dd, mm, yy = d.split('/')
+        days[f'{yy}-{mm}-{dd}'] = p     # لو اليوم متكرر بناخد آخر ملف
+    return sorted(days.items())
+
+
+def is_sigma(path: Path, workdir: Path) -> bool:
+    """الملف المضغوط فيه ملفات csv (سيجما) ولا إكسل (الملف القديم)؟"""
+    try:
+        if path.suffix.lower() == '.zip':
+            import zipfile
+            names = zipfile.ZipFile(path).namelist()
+            return any(n.lower().endswith('.csv') for n in names) and not any(n.lower().endswith(('.xlsx', '.xlsm')) for n in names)
+        return bool(sigma_files(path, workdir))
+    except Exception:
+        return False
+
+
+def read_sigma(csv: Path, prev_close: dict, names: dict) -> pd.DataFrame:
+    """بيحوّل ملف سيجما لنفس شكل ملف التنفيذات القديم.
+    الشراء والبيع بيتحسبوا من حركة السعر (لو السعر طلع عن الصفقة اللي قبلها = شراء، نزل = بيع)،
+    ودي نفس الطريقة اللي كان ملف التنفيذات القديم معمول بيها."""
+    d = pd.read_csv(csv, dtype={'Symbol': str})
+    if 'Symbol' not in d:
+        sym = csv.name.split('_')[0]
+        d['Symbol'] = sym
+    d['Symbol'] = d['Symbol'].str.strip().replace(SIGMA_RENAME)
+    t = pd.to_datetime(d['Time'].str.strip(), format='%I:%M:%S %p')
+    d['secs'] = t.dt.hour * 3600 + t.dt.minute * 60 + t.dt.second
+    d['seq'] = d['Ticket No.'].astype(str).str.split('-').str[-1].astype('int64')
+    d = d.sort_values('seq').reset_index(drop=True)
+    out = []
+    for sym, g in d.groupby('Symbol', sort=False):
+        p = g['Price'].to_numpy(dtype=float)
+        prev = prev_close.get(sym)
+        ref = prev if prev is not None else p[0]
+        side, last = [], 'B'
+        for x in p:
+            if x > ref:
+                last = 'B'
+            elif x < ref:
+                last = 'S'
+            side.append(last)
+            ref = x
+        base = prev if prev is not None else p[0]
+        out.append(pd.DataFrame({
+            'sym': sym, 'name': names.get(sym, sym), 'time': t[g.index].dt.time.to_numpy(),
+            'price': p, 'vol': g['Volume'].to_numpy(), 'chg': (p - base).round(4),
+            'chgp': ((p / base - 1) * 100).round(2) if base else 0.0, 'side': side,
+            'val': g['Value'].to_numpy(dtype=float), 'cnt': 1, 'seq': g['seq'].to_numpy(),
+            'secs': g['secs'].to_numpy()}))
+    df = pd.concat(out, ignore_index=True)
+    return df.sort_values('seq').reset_index(drop=True)
+
+
+def process_sigma(store, jid: str, path: Path):
+    """رفع يوم أو أيام كتير من ملفات سيجما مرة واحدة."""
+    try:
+        store.job_set(jid, state='بفك الملف')
+        with tempfile.TemporaryDirectory() as tmp:
+            days = sigma_files(path, Path(tmp))
+            if not days:
+                raise RuntimeError('مفيش ملفات صفقات سيجما في الملف ده')
+            en = sigma_names()
+            # الأسامي العربي من آخر جلسة متخزنة قبل ما نبدأ (عشان الأيام اللي هتتكتب فوقها ما تضيعش أساميها)
+            ar = {}
+            for x in reversed(store.dates()):
+                try:
+                    nm = store.load(x)[0]['name']
+                    ar = {s: n for s, n in nm.items() if isinstance(n, str) and any('\u0600' <= ch <= '\u06ff' for ch in n)}
+                    if ar:
+                        break
+                except Exception:
+                    pass
+            done, msgs = [], []
+            for k, (date, csv) in enumerate(days, 1):
+                store.job_set(jid, state=f'بحسب يوم {date} ({k} من {len(days)})', date=date)
+                before = [x for x in store.dates() if x < date]
+                prev, names = {}, {**en, **ar}
+                if before:
+                    prev = store.load(before[-1])[0]['last'].to_dict()
+                df = read_sigma(csv, prev, names)
+                st, lv = day_stats(df), levels(df)
+                meta = {'date': date, 'trades': int(len(df)), 'stocks': int(len(st)), 'source': 'sigma',
+                        'uploaded_at': dt.datetime.now().isoformat(timespec='seconds'),
+                        'chain': [f'من سيجما، الإقفال السابق محسوب من آخر صفقة في {before[-1]}' if before else 'أول جلسة، مفيش إقفال سابق']}
+                store.save(date, st, lv, meta, bars(df), profile(df), flow(df, lv))
+                done.append(date)
+                del df
+        store.job_set(jid, state='تم', done=True, days=done,
+                      trades=sum(store.load(d)[2].get('trades', 0) for d in done), stocks=len(st), chain=[f'اترفع {len(done)} يوم: من {done[0]} لـ {done[-1]}'])
+    except Exception as e:
+        store.job_set(jid, state='حصل خطأ', done=True, error=str(e)[:500])
+    finally:
+        try:
+            path.unlink()
+        except Exception:
+            pass
+
+
 # ---------- الحساب ----------
 
 def day_stats(df: pd.DataFrame) -> pd.DataFrame:
