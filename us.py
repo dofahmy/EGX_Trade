@@ -1,3 +1,4 @@
+import re
 """
 جلب صفقات الأسهم الأمريكية (إس آند بي ٥٠٠) من داتابينتو، وتحويلها لنفس شكل ملف "تنفيذات الجلسة"
 عشان نفس الحسابات تشتغل عليها.
@@ -18,6 +19,15 @@ DATASET = os.environ.get('US_DATASET', 'XNAS.ITCH')
 TZ = 'America/New_York'
 BATCH = int(os.environ.get('US_BATCH', '40'))
 
+
+
+def _friendly(e):
+    t = str(e)
+    m = re.search(r'after (\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})', t)
+    if 'license' in t.lower() and m:
+        return ('بيانات الجلسة دي لسه ما اتاحتش في اشتراكك الحالي. داتابينتو بتفتح الجلسة بعد حوالي يوم من نهايتها، '
+                'والمتاح دلوقتي لحد ' + m.group(1) + ' الساعة ' + m.group(2) + ' بتوقيت جرينتش. جربي تاني بكرة.')
+    return t[:600]
 
 def sp500():
     with open(BASE / 'sp500.csv', encoding='utf-8') as f:
@@ -131,7 +141,7 @@ def process_fetch(store, jid: str, date: str):
             store.save(after[0], fill_prev(store, after[0], s2), l2, m2)
         store.job_set(jid, state='تم', done=True, trades=int(ntr), stocks=int(len(st)), chain=[])
     except Exception as e:
-        store.job_set(jid, state='حصل خطأ', done=True, error=str(e)[:600])
+        store.job_set(jid, state='حصل خطأ', done=True, error=_friendly(e))
 
 
 def process_bars(store, jid: str, date: str, syms):
@@ -157,7 +167,7 @@ def process_bars(store, jid: str, date: str, syms):
         store.save_profile(date, pr)
         store.job_set(jid, state='تم', done=True, trades=int(len(tr)), stocks=int(tr['sym'].nunique()), chain=[], back='bounce')
     except Exception as e:
-        store.job_set(jid, state='حصل خطأ', done=True, error=str(e)[:600])
+        store.job_set(jid, state='حصل خطأ', done=True, error=_friendly(e))
 
 
 def last_us_session():

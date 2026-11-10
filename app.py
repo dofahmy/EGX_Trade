@@ -14,6 +14,16 @@ PASSWORD = os.environ.get('APP_PASSWORD', '')
 
 BASE = Path(__file__).resolve().parent
 app = Flask(__name__, template_folder=str(BASE / 'templates'))
+
+
+@app.template_filter('num')
+def num_filter(v):
+    """رقم من غير .0 لو صحيح."""
+    try:
+        f = float(v)
+        return str(int(f)) if f == int(f) else ('%g' % f)
+    except Exception:
+        return v
 # يدوّر على ملفات الصفحات جوه فولدر templates، ولو مش موجود يدوّر جنب app.py
 from jinja2 import ChoiceLoader, FileSystemLoader
 app.jinja_loader = ChoiceLoader([FileSystemLoader(str(BASE / 'templates')), FileSystemLoader(str(BASE))])
@@ -29,14 +39,17 @@ STORES = {m: Store(v['root']) for m, v in MARKETS.items()}
 
 DEFAULTS = {
     'egx': dict(day_win=20, min_prices=7, threshold=10, mult=2.0, min_win=20, max_win=None,
-                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2, exclude='INEG', b_drop=2.5, b_range=7.0, b_val=0.5, b_min=30, b_maxdrop=10.0),
+                min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2, exclude='INEG', b_drop=2.5, b_range=7.0, b_val=0.5, b_min=30, b_maxdrop=10.0,
+                c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_wall=2.0, c_zone=0.0),
     # الجلسة الأمريكية ٧٨ فترة بدل ٥٤، فعدد المرات متكبّر بنفس النسبة. وعدد الأسهم أكبر، فالحد أكبر.
     # والسهم الأمريكي بيتداول على مئات الأسعار، فالنسبة اللي بتتلم عند سعر واحد صغيرة جدًا مقارنة بمصر
     'us': dict(day_win=29, min_prices=7, threshold=10, mult=2.0, min_win=29, max_win=None,
-               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2, exclude='', b_drop=2.5, b_range=7.0, b_val=0.5, b_min=30, b_maxdrop=10.0),
+               min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2, exclude='', b_drop=2.5, b_range=7.0, b_val=0.5, b_min=30, b_maxdrop=10.0,
+               c_share=5.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_wall=2.0, c_zone=0.1),
 }
 TYPES = dict(day_win=int, min_prices=int, threshold=int, mult=float, min_win=int, max_win=int,
-             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int, exclude=str, b_drop=float, b_range=float, b_val=float, b_min=int, b_maxdrop=float)
+             min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int, exclude=str, b_drop=float, b_range=float, b_val=float, b_min=int, b_maxdrop=float,
+             c_share=float, c_ratio=float, c_val=float, c_near=float, c_wall=float, c_zone=float)
 OPTIONAL = {'max_win', 'gap_max', 'exclude', 'b_maxdrop'}
 
 
@@ -320,7 +333,7 @@ def chart(sym):
     """شموع السهم ملونة بحالة الحيطة، وعرضها بقوتها، والشمعة الدهبية والسودا بإطار."""
     m = market()
     sym = sym.upper()
-    data = candles.series(STORES[m], sym)
+    data = candles.series(STORES[m], sym, **params(m))
     if not data:
         abort(404)
     name = STORES[m].load(data[-1]['d'])[0].loc[sym, 'name']
@@ -333,7 +346,8 @@ def candles_page():
     """جداول الشموع الدهبية والسودا والمحايدة، والسهم بيترسم لما تدوسي عليه."""
     m = market()
     p = params(m)
-    rows = candles.scan(STORES[m], exclude=(p.get('exclude') or '').split())
+    why = {}
+    rows = candles.scan(STORES[m], why=why, **dict(p, exclude=(p.get('exclude') or '').split()))
     groups = {}
     for k in ('gold', 'black', 'neutral'):
         g = sorted([r for r in rows if r['kind'] == k], key=lambda r: (r['date'], r['share']), reverse=True)
@@ -343,9 +357,9 @@ def candles_page():
             sm[key] = (round(sum(v) / len(v), 2), len(v)) if v else None
         groups[k] = dict(rows=g, sm=sm)
     sel = (request.args.get('sym') or (groups['gold']['rows'][0]['sym'] if groups['gold']['rows'] else '')).upper()
-    data = candles.series(STORES[m], sel) if sel else []
+    data = candles.series(STORES[m], sel, **p) if sel else []
     sel_name = next((r['name'] for r in rows if r['sym'] == sel), sel)
-    return render_template('candles.html', groups=groups, sel=sel, sel_name=sel_name, data=data)
+    return render_template('candles.html', groups=groups, sel=sel, sel_name=sel_name, data=data, why=why, p=p)
 
 
 @app.route('/trade')

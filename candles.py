@@ -2,6 +2,8 @@
 الحيطان والشموع الملونة بالحالة، والشمعة الدهبية والسودا.
 
 - الحيطة: أكتر سعر اتلم عنده بيع في اليوم (من مستويات البيع المتخزنة)، بـ٢٪ أو أكتر من تداول اليوم.
+  ولو "منطقة الحيطة" أكبر من صفر، الأسعار القريبة من بعض بتتجمع في حيطة واحدة (مهم لأمريكا).
+- كل الأرقام دي بتتغير من الإعدادات (c_share, c_ratio, c_val, c_near, c_wall, c_zone).
 - حالة الحيطة يوم بيوم:
     أخضر  = كل الإقفالات بعدها عليها أو فوقها
     برتقالي = قفل تحتها بأقل من ٣٪ أول يوم
@@ -19,16 +21,56 @@ import pandas as pd
 MIN_WALL = 2.0
 NEAR = 3.0
 
+# الأرقام الأصلية، وبتتغير من الإعدادات لكل سوق
+CFG = dict(c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_wall=2.0, c_zone=0.0)
 
-def load_all(store):
+
+def cfg_of(p):
+    c = dict(CFG)
+    for k in CFG:
+        if p.get(k) is not None:
+            c[k] = float(p[k])
+    return c
+
+
+def zones(lv, zone):
+    """بيجمع الأسعار القريبة من بعض في حيطة واحدة: كل الأسعار اللي في حدود zone٪ من أول سعر فيها.
+    سعر الحيطة = السعر اللي اتلم عنده أكتر بيع جوه المنطقة، ونسبتها = مجموع المنطقة كلها."""
+    if not zone or lv.empty:
+        return lv
+    out = []
+    for sym, g in lv.sort_values(['sym', 'price']).groupby('sym', sort=False):
+        pr, sh = g['price'].to_numpy(), g['share'].to_numpy()
+        i = 0
+        while i < len(pr):
+            j = i
+            while j + 1 < len(pr) and pr[j + 1] <= pr[i] * (1 + zone / 100):
+                j += 1
+            k = i + int(np.argmax(sh[i:j + 1]))
+            out.append((sym, float(pr[k]), float(sh[i:j + 1].sum()), float(pr[i]), float(pr[j])))
+            i = j + 1
+    return pd.DataFrame(out, columns=['sym', 'price', 'share', 'p_lo', 'p_hi'])
+
+
+def load_all(store, zone=0.0):
     dates = store.dates()
     S, TOP, LV = {}, {}, {}
     for d in dates:
         st, lv, _ = store.load(d)
         S[d] = st
         LV[d] = lv
-        TOP[d] = lv.sort_values('share', ascending=False).drop_duplicates('sym').set_index('sym')
+        TOP[d] = zones(lv, zone).sort_values('share', ascending=False).drop_duplicates('sym').set_index('sym')
     return dates, S, TOP, LV
+
+
+def strength(lv, sym, wp, zone):
+    """اللي اتباع عند سعر الحيطة (أو جوه منطقتها) في اليوم ده."""
+    l = lv[lv['sym'] == sym]
+    if zone:
+        m = l[(l['price'] >= wp * (1 - zone / 100)) & (l['price'] <= wp * (1 + zone / 100))]
+    else:
+        m = l[np.isclose(l['price'], wp)]
+    return float(m['share'].sum()) if len(m) else 0.0
 
 
 def locked(s):
@@ -37,7 +79,7 @@ def locked(s):
         (s['last'] == s['hi'] and s['chg'] >= 4.5 and s['open'] == s['hi'])
 
 
-def _status(dates, S, sym, wall_day, price, upto):
+def _status(dates, S, sym, wall_day, price, upto, near=NEAR):
     cur, below = None, 0
     for dd in dates[dates.index(wall_day):dates.index(upto) + 1]:
         if sym not in S[dd].index:
@@ -47,44 +89,56 @@ def _status(dates, S, sym, wall_day, price, upto):
             cur, below = 'g', 0
         else:
             below += 1
-            cur = 'r' if (q <= -NEAR or below >= 2 or cur == 'r') else 'o'
+            cur = 'r' if (q <= -near or below >= 2 or cur == 'r') else 'o'
     return cur
 
 
-def special(dates, S, TOP, i, sym, g_share=10.0, g_ratio=4.0, min_val=1.0, exclude=()):
-    """لو الشمعة دي دهبية أو سودا أو محايدة بيرجع النوع والتفاصيل، غير كده None."""
+def special(dates, S, TOP, i, sym, c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, exclude=(), why=None, **_):
+    """لو الشمعة دي دهبية أو سودا أو محايدة بيرجع النوع والتفاصيل، غير كده None.
+    why: عداد بيتسجل فيه كل سهم وقع عند أنهي شرط."""
+    def out(reason):
+        if why is not None:
+            why[reason] = why.get(reason, 0) + 1
+        return None
     d = dates[i]
     if i < 1 or sym in exclude or sym not in S[d].index or sym not in TOP[d].index:
         return None
     a = S[d].loc[sym]
     p = S[dates[i - 1]].loc[sym] if sym in S[dates[i - 1]].index else None
-    if p is None or a['val_m'] < min_val or 'وثائق' in str(a['name']) or locked(a):
+    if p is None:
         return None
+    if why is not None:
+        why['all'] = why.get('all', 0) + 1
+    if a['val_m'] < c_val or 'وثائق' in str(a['name']) or locked(a):
+        return out('val')
     r = TOP[d].loc[sym]
-    if r['share'] < g_share:
-        return None
+    if r['share'] < c_share:
+        return out('share')
     q = (a['last'] / r['price'] - 1) * 100
-    if not (-0.1 <= q <= NEAR):
-        return None
+    if not (-0.1 <= q <= c_near):
+        return out('near')
     prev = [TOP[x].loc[sym, 'share'] for x in dates[:i] if sym in TOP[x].index]
     if not prev:
-        return None
+        return out('ratio')
     ratio = r['share'] / float(np.median(prev))
-    if ratio < g_ratio:
-        return None
+    if ratio < c_ratio:
+        return out('ratio')
+    if why is not None:
+        why['ok'] = why.get('ok', 0) + 1
     o_up, c_up = a['open'] > p['open'], a['last'] > p['last']
     kind = 'gold' if (o_up and c_up) else 'black' if (not o_up and not c_up) else 'neutral'
     return dict(kind=kind, wall=float(r['price']), share=round(float(r['share']), 1), ratio=round(ratio, 1))
 
 
-def scan(store, exclude=(), **cfg):
+def scan(store, exclude=(), why=None, **cfg):
     """كل الشموع الدهبية والسودا والمحايدة في كل الجلسات، ومعاها النتيجة بعدها."""
-    dates, S, TOP, LV = load_all(store)
+    cfg = cfg_of(cfg)
+    dates, S, TOP, LV = load_all(store, cfg['c_zone'])
     rows = []
     last = dates[-1] if dates else None
     for i, d in enumerate(dates):
         for sym in TOP[d].index:
-            sp = special(dates, S, TOP, i, sym, exclude=set(exclude), **cfg)
+            sp = special(dates, S, TOP, i, sym, exclude=set(exclude), why=why, **cfg)
             if not sp:
                 continue
             a = S[d].loc[sym]
@@ -100,35 +154,33 @@ def scan(store, exclude=(), **cfg):
     return rows
 
 
-def series(store, sym):
+def series(store, sym, **cfg):
     """شموع سهم واحد بالألوان والعرض، لصفحة الرسم."""
-    dates, S, TOP, LV = load_all(store)
+    cfg = cfg_of(cfg)
+    zone, near = cfg['c_zone'], cfg['c_near']
+    dates, S, TOP, LV = load_all(store, zone)
     days = [d for d in dates if sym in S[d].index]
     walls = []
     for d in days:
-        if sym in TOP[d].index and TOP[d].loc[sym, 'share'] >= MIN_WALL and not locked(S[d].loc[sym]):
+        if sym in TOP[d].index and TOP[d].loc[sym, 'share'] >= cfg['c_wall'] and not locked(S[d].loc[sym]):
             walls.append((d, float(TOP[d].loc[sym, 'price'])))
     out = []
     for d in days:
         s = S[d].loc[sym]
         c = float(s['last'])
-        act = [(w, _status(dates, S, sym, w[0], w[1], d)) for w in walls if w[0] <= d]
-        near = [(w, st) for w, st in act if abs(c / w[1] - 1) * 100 <= NEAR]
+        act = [(w, _status(dates, S, sym, w[0], w[1], d, near)) for w in walls if w[0] <= d]
+        close = [(w, st) for w, st in act if abs(c / w[1] - 1) * 100 <= near]
         wp = None
-        if near:
-            today = [x for x in near if x[0][0] == d]
-            (w, stt) = today[0] if today else min(near, key=lambda x: abs(c / x[0][1] - 1))
+        if close:
+            today = [x for x in close if x[0][0] == d]
+            (w, stt) = today[0] if today else min(close, key=lambda x: abs(c / x[0][1] - 1))
             wp = w[1]
             col = {'g': 'green', 'o': 'orange', 'r': 'red'}[stt]
         else:
             col = 'lightgreen' if any(stt == 'g' and w[1] < c for w, stt in act) else 'gray'
-        strength = 0.0
-        if wp is not None:
-            l = LV[d]
-            m = l[(l['sym'] == sym) & (np.isclose(l['price'], wp))]
-            strength = float(m['share'].sum()) if len(m) else 0.0
-        sp = special(dates, S, TOP, dates.index(d), sym)
+        st_ = strength(LV[d], sym, wp, zone) if wp is not None else 0.0
+        sp = special(dates, S, TOP, dates.index(d), sym, **cfg)
         out.append(dict(d=d, o=float(s['open']), h=float(s['hi']), l=float(s['lo']), c=c,
                         chg=float(s['chg']) if pd.notna(s['chg']) else 0.0, col=col, wall=wp,
-                        str=round(strength, 1), kind=sp['kind'] if sp else None))
+                        str=round(st_, 1), kind=sp['kind'] if sp else None))
     return out
