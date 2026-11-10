@@ -40,17 +40,17 @@ STORES = {m: Store(v['root']) for m, v in MARKETS.items()}
 DEFAULTS = {
     'egx': dict(day_win=20, min_prices=7, threshold=10, mult=2.0, min_win=20, max_win=None,
                 min_share=10.0, gap=3.0, gap_max=None, hold=2, warn_share=2.0, tp=3.0, picks=2, exclude='INEG', b_drop=2.5, b_range=7.0, b_val=0.5, b_min=30, b_maxdrop=10.0,
-                c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_wall=2.0, c_zone=0.0),
+                c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_wall=2.0, c_zone=0.0, c_share_max=None, c_ratio_max=None),
     # الجلسة الأمريكية ٧٨ فترة بدل ٥٤، فعدد المرات متكبّر بنفس النسبة. وعدد الأسهم أكبر، فالحد أكبر.
     # والسهم الأمريكي بيتداول على مئات الأسعار، فالنسبة اللي بتتلم عند سعر واحد صغيرة جدًا مقارنة بمصر
     'us': dict(day_win=29, min_prices=7, threshold=10, mult=2.0, min_win=29, max_win=None,
                min_share=0.0, gap=3.0, gap_max=None, hold=2, warn_share=0.2, tp=3.0, picks=2, exclude='', b_drop=2.5, b_range=7.0, b_val=0.5, b_min=30, b_maxdrop=10.0,
-               c_share=5.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_wall=2.0, c_zone=0.1),
+               c_share=5.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_wall=2.0, c_zone=0.1, c_share_max=None, c_ratio_max=None),
 }
 TYPES = dict(day_win=int, min_prices=int, threshold=int, mult=float, min_win=int, max_win=int,
              min_share=float, gap=float, gap_max=float, hold=int, warn_share=float, tp=float, picks=int, exclude=str, b_drop=float, b_range=float, b_val=float, b_min=int, b_maxdrop=float,
-             c_share=float, c_ratio=float, c_val=float, c_near=float, c_wall=float, c_zone=float)
-OPTIONAL = {'max_win', 'gap_max', 'exclude', 'b_maxdrop'}
+             c_share=float, c_ratio=float, c_val=float, c_near=float, c_wall=float, c_zone=float, c_share_max=float, c_ratio_max=float)
+OPTIONAL = {'max_win', 'gap_max', 'exclude', 'b_maxdrop', 'c_share_max', 'c_ratio_max'}
 
 
 def market():

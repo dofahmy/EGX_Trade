@@ -22,7 +22,7 @@ MIN_WALL = 2.0
 NEAR = 3.0
 
 # الأرقام الأصلية، وبتتغير من الإعدادات لكل سوق
-CFG = dict(c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_wall=2.0, c_zone=0.0)
+CFG = dict(c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_wall=2.0, c_zone=0.0, c_share_max=None, c_ratio_max=None)
 
 
 def cfg_of(p):
@@ -30,6 +30,8 @@ def cfg_of(p):
     for k in CFG:
         if p.get(k) is not None:
             c[k] = float(p[k])
+        elif k.endswith('_max') and k in p:
+            c[k] = None
     return c
 
 
@@ -93,7 +95,8 @@ def _status(dates, S, sym, wall_day, price, upto, near=NEAR):
     return cur
 
 
-def special(dates, S, TOP, i, sym, c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, exclude=(), why=None, **_):
+def special(dates, S, TOP, i, sym, c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_share_max=None, c_ratio_max=None,
+            exclude=(), why=None, **_):
     """لو الشمعة دي دهبية أو سودا أو محايدة بيرجع النوع والتفاصيل، غير كده None.
     why: عداد بيتسجل فيه كل سهم وقع عند أنهي شرط."""
     def out(reason):
@@ -112,7 +115,7 @@ def special(dates, S, TOP, i, sym, c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=
     if a['val_m'] < c_val or 'وثائق' in str(a['name']) or locked(a):
         return out('val')
     r = TOP[d].loc[sym]
-    if r['share'] < c_share:
+    if r['share'] < c_share or (c_share_max is not None and r['share'] > c_share_max):
         return out('share')
     q = (a['last'] / r['price'] - 1) * 100
     if not (-0.1 <= q <= c_near):
@@ -121,7 +124,7 @@ def special(dates, S, TOP, i, sym, c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=
     if not prev:
         return out('ratio')
     ratio = r['share'] / float(np.median(prev))
-    if ratio < c_ratio:
+    if ratio < c_ratio or (c_ratio_max is not None and ratio > c_ratio_max):
         return out('ratio')
     if why is not None:
         why['ok'] = why.get('ok', 0) + 1

@@ -295,8 +295,10 @@ fieldset .inline{gap:14px}
       </fieldset>
       <fieldset><legend>٦. الشموع</legend>
         <div style="display:flex;flex-wrap:wrap;gap:14px">
-          <label>الحيطة التخينة: اتلم عندها ٪ أو أكتر<input type="number" name="c_share" value="{{ p.c_share }}" min="0" step="any"></label>
-          <label>وأتخن من عادة السهم بـ مرة أو أكتر<input type="number" name="c_ratio" value="{{ p.c_ratio }}" min="0" step="any"></label>
+          <label>الحيطة التخينة: اتلم عندها من ٪<input type="number" name="c_share" value="{{ p.c_share }}" min="0" step="any"></label>
+          <label>لـ ٪ (فاضي = من غير حد)<input type="number" name="c_share_max" value="{{ p.c_share_max if p.c_share_max is not none else '' }}" min="0" step="any"></label>
+          <label>أتخن من عادة السهم من مرة<input type="number" name="c_ratio" value="{{ p.c_ratio }}" min="0" step="any"></label>
+          <label>لـ مرة (فاضي = من غير حد)<input type="number" name="c_ratio_max" value="{{ p.c_ratio_max if p.c_ratio_max is not none else '' }}" min="0" step="any"></label>
           <label>والإقفال فوقها بـ٪ بالكتير<input type="number" name="c_near" value="{{ p.c_near }}" min="0" step="any"></label>
           <label>أقل قيمة تداول (مليون)<input type="number" name="c_val" value="{{ p.c_val }}" min="0" step="any"></label>
           <label>أقل حيطة تتحسب في الألوان ٪<input type="number" name="c_wall" value="{{ p.c_wall }}" min="0" step="any"></label>
