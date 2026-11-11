@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 from functools import wraps
 
-from flask import Flask, request, redirect, url_for, render_template, Response, abort
+from flask import jsonify, Flask, request, redirect, url_for, render_template, Response, abort
 
 from engine import Store, process_upload, analyze, METHODS, same_day_trades, bounce_days
 import us
@@ -350,23 +350,28 @@ def chart(sym):
 @app.route('/candles')
 @auth
 def candles_page():
-    """جداول الشموع الدهبية والسودا والمحايدة، والسهم بيترسم لما تدوسي عليه."""
+    """الشموع: قايمة كل الأسهم على اليمين، والسهم اللي تدوسي عليه بيترسم على الشمال بشموعنا."""
+    m = market()
+    st_all = STORES[m]
+    dates = st_all.dates()
+    stocks = []
+    if dates:
+        st = st_all.load(dates[-1])[0]
+        for sym, r in st.sort_values('val_m', ascending=False).iterrows():
+            stocks.append(dict(sym=sym, name=str(r['name']), last=float(r['last']),
+                               chg=round(float(r['chg']), 2) if pd.notna(r['chg']) else None))
+    sel = (request.args.get('sym') or (stocks[0]['sym'] if stocks else '')).upper()
+    return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None)
+
+
+@app.route('/candles/data/<sym>')
+@auth
+def candles_data(sym):
     m = market()
     p = params(m)
-    why = {}
-    rows = candles.scan(STORES[m], why=why, **dict(p, exclude=(p.get('exclude') or '').split()))
-    groups = {}
-    for k in ('gold', 'black', 'neutral'):
-        g = sorted([r for r in rows if r['kind'] == k], key=lambda r: (r['date'], r['share']), reverse=True)
-        sm = {}
-        for key in ('r1', 'r2', 'r3', 'now'):
-            v = [r[key] for r in g if r[key] is not None]
-            sm[key] = (round(sum(v) / len(v), 2), len(v)) if v else None
-        groups[k] = dict(rows=g, sm=sm)
-    sel = (request.args.get('sym') or (groups['gold']['rows'][0]['sym'] if groups['gold']['rows'] else '')).upper()
-    data = candles.series(STORES[m], sel, **p) if sel else []
-    sel_name = next((r['name'] for r in rows if r['sym'] == sel), sel)
-    return render_template('candles.html', groups=groups, sel=sel, sel_name=sel_name, data=data, why=why, p=p)
+    sym = sym.upper()
+    data = candles.series(STORES[m], sym, **p)
+    return jsonify(sym=sym, data=data)
 
 
 @app.route('/trade')

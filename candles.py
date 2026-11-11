@@ -54,8 +54,26 @@ def zones(lv, zone):
     return pd.DataFrame(out, columns=['sym', 'price', 'share', 'p_lo', 'p_hi'])
 
 
+_CACHE = {}
+
+
 def load_all(store, zone=0.0):
+    """كل الجلسات في الذاكرة. بنحتفظ بيها لحد ما جلسة تتضاف أو تتغير، عشان الرسم يبقى سريع."""
     dates = store.dates()
+    try:
+        stamp = tuple((d, (store.sdir(d) / 'levels.csv').stat().st_mtime) for d in dates)
+    except Exception:
+        stamp = None
+    key = (str(getattr(store, 'root', id(store))), zone)
+    if stamp is not None and key in _CACHE and _CACHE[key][0] == stamp:
+        return _CACHE[key][1]
+    res = _load_all(store, dates, zone)
+    if stamp is not None:
+        _CACHE[key] = (stamp, res)
+    return res
+
+
+def _load_all(store, dates, zone):
     S, TOP, LV = {}, {}, {}
     for d in dates:
         st, lv, _ = store.load(d)
@@ -215,5 +233,7 @@ def series(store, sym, **cfg):
         sp = special(dates, S, TOP, dates.index(d), sym, **cfg)
         out.append(dict(d=d, o=float(s['open']), h=float(s['hi']), l=float(s['lo']), c=c,
                         chg=float(s['chg']) if pd.notna(s['chg']) else 0.0, col=col, wall=wp,
-                        str=round(st_, 1), kind=sp['kind'] if sp else None))
+                        str=round(st_, 1), kind=sp['kind'] if sp else None,
+                        sp_wall=sp['wall'] if sp else None, sp_share=round(sp['share'], 1) if sp else None,
+                        sp_ratio=round(sp['ratio'], 1) if sp else None))
     return out
