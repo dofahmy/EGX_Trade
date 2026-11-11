@@ -28,15 +28,15 @@ main{max-width:none}
       <div class="big" id="cv-px"></div>
     </div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:8px 0">
-      <label class="note" style="flex-direction:row;align-items:center;gap:6px">آخر <select id="cc-n"><option value="30">٣٠ جلسة</option><option value="60" selected>٦٠ جلسة</option><option value="120">١٢٠ جلسة</option><option value="9999">كله</option></select></label>
-      <span class="note" style="display:flex;flex-wrap:wrap;gap:4px 14px"><span><span class="lg" style="background:#D4AF37;outline:1px solid #14213d"></span>دهبية</span><span><span class="lg" style="background:#2C2C2A"></span>سودا</span><span><span class="lg" style="background:#D3D1C7;outline:1px solid #14213d"></span>محايدة</span><span><span class="lg" style="background:#3B6D11"></span>اتحمت</span><span><span class="lg" style="background:#97C459"></span>فوق دعم</span><span><span class="lg" style="background:#EF9F27"></span>بتتجرب</span><span><span class="lg" style="background:#E24B4A"></span>اتكسرت</span><span><span class="lg" style="background:#888780"></span>مفيش دعم</span></span>
+      <label class="note" style="flex-direction:row;align-items:center;gap:6px">الفترة <select id="cc-n"><option value="30">آخر ٣٠ جلسة</option><option value="60" selected>آخر ٦٠ جلسة</option><option value="120">آخر ١٢٠ جلسة</option><option value="9999">كل الجلسات</option></select></label>
+      <span class="note" style="display:flex;flex-wrap:wrap;gap:4px 14px"><span><span class="lg" style="background:#D4AF37;outline:1px solid #14213d"></span>ذهبية (تجميع)</span><span><span class="lg" style="background:#2C2C2A"></span>سوداء (تصريف)</span><span><span class="lg" style="background:#D3D1C7;outline:1px solid #14213d"></span>محايدة</span><span><span class="lg" style="background:#3B6D11"></span>دعم صامد</span><span><span class="lg" style="background:#97C459"></span>أعلى الدعم</span><span><span class="lg" style="background:#EF9F27"></span>اختبار الدعم</span><span><span class="lg" style="background:#E24B4A"></span>كسر الدعم</span><span><span class="lg" style="background:#888780"></span>بدون دعم</span></span>
     </div>
     <div id="cc-wrap" style="overflow-x:auto;direction:ltr"><svg id="cc"></svg></div>
-    <p class="note">عرض الشمعة = اللي اتباع عند سعر الحيطة في اليوم ده كنسبة من تداول اليوم. لونها = حالة الحيطة. الشموع الخاصة مكتوب تحتها نوعها، وتفاصيلها تحت الرسم.</p>
+    <p class="note">عرض الشمعة يعكس نسبة كميات البيع المنفذة عند مستوى الدعم من إجمالي تداولات الجلسة، ولونها يعكس حالة الدعم. نوع الشموع الخاصة موضح أسفلها، وتفاصيلها أسفل الرسم.</p>
     <div id="cv-notes" class="cv-notes"></div>
   </div>
   <div class="cv-side card">
-    <input id="cv-q" type="search" placeholder="ابحثي بالكود أو الاسم">
+    <input id="cv-q" type="search" placeholder="ابحث بالرمز أو اسم الشركة">
     <div class="note" style="margin-bottom:4px">{{ stocks|length }} سهم · جلسة {{ last_date }}</div>
     <div class="cv-list" id="cv-list">
       {% for s in stocks %}
@@ -54,9 +54,9 @@ main{max-width:none}
 const NAMES = {}; document.querySelectorAll('.cv-row').forEach(r => NAMES[r.dataset.sym] = r.querySelector('.n').textContent);
 const COL = {green:'#3B6D11', lightgreen:'#97C459', orange:'#EF9F27', red:'#E24B4A', gray:'#888780'};
 const KIND = {gold:'#D4AF37', black:'#2C2C2A', neutral:'#D3D1C7'};
-const STATE = {green:'قاعد على حيطة اتحمت', lightgreen:'ماشي فوق دعم', orange:'بيجرب حيطة', red:'كسر حيطة', gray:'مفيش دعم تحته'};
-const KNAME = {gold:'دهبية', black:'سودا', neutral:'محايدة'};
-const KLONG = {gold:'شمعة دهبية: الفتح والإقفال الاتنين أعلى من الشمعة اللي قبلها', black:'شمعة سودا: الفتح والإقفال الاتنين أقل من الشمعة اللي قبلها', neutral:'شمعة محايدة: واحد بس من الفتح والإقفال أعلى من الشمعة اللي قبلها'};
+const STATE = {green:'السعر على دعم صامد', lightgreen:'السعر أعلى الدعم', orange:'اختبار الدعم', red:'كسر الدعم', gray:'لا يوجد دعم أسفل السعر'};
+const KNAME = {gold:'ذهبية', black:'سوداء', neutral:'محايدة'};
+const KLONG = {gold:'شمعة ذهبية (تجميع): افتتاح وإغلاق أعلى من الجلسة السابقة', black:'شمعة سوداء (تصريف): افتتاح وإغلاق أدنى من الجلسة السابقة', neutral:'شمعة محايدة: الافتتاح أو الإغلاق فقط أعلى من الجلسة السابقة'};
 const NS = 'http://www.w3.org/2000/svg';
 const AR = s => String(s).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g, '٫');
 function el(t, a, p){ const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p && p.appendChild(e); return e; }
@@ -69,6 +69,7 @@ let ALL = [];
 function draw(){
   const n = +document.getElementById('cc-n').value, D = ALL.slice(-n);
   const svg = document.getElementById('cc'); svg.innerHTML = '';
+  notes(D);
   if (!D.length){ svg.setAttribute('height', 40); return; }
   const wrapW = document.getElementById('cc-wrap').clientWidth || 800;
   const PADL = 60, PADT = 14, H = 480, PB = 70;
@@ -102,19 +103,21 @@ function draw(){
         .textContent = step >= 34 ? KNAME[d.kind] : KNAME[d.kind][0];
     }
     const hit = el('rect', {x: x - step / 2, y: PADT, width: step, height: H - PADT - PB, fill: 'transparent'}, svg);
-    hover(hit, `<b>${d.d}</b>${special ? ' · شمعة ' + KNAME[d.kind] : ''}<br>فتح ${d.o} · إقفال ${d.c} (${d.chg > 0 ? '+' : ''}${d.chg}٪)<br>أقل ${d.l} · أعلى ${d.h}<br>${STATE[d.col]}${d.wall ? ' · الحيطة ' + d.wall : ''}<br>اتلم عند الحيطة ${d.str}٪`);
-    if (i % every === 0 || i === D.length - 1)
+    hover(hit, `<b>${d.d}</b>${special ? ' · شمعة ' + KNAME[d.kind] : ''}<br>افتتاح ${d.o} · إغلاق ${d.c} (${d.chg > 0 ? '+' : ''}${d.chg}٪)<br>أدنى ${d.l} · أعلى ${d.h}<br>${STATE[d.col]}${d.wall ? ' · مستوى الدعم ' + d.wall : ''}<br>تركز البيع عند الدعم ${d.str}٪`);
+    const lastLbl = D.length - 1;
+    if (i === lastLbl || (i % every === 0 && lastLbl - i >= every))
       el('text', {x: x, y: H - PB + 22, 'text-anchor': 'middle', 'font-size': 11, fill: '#1d2433'}, svg).textContent = d.d.slice(5);
   });
   document.getElementById('cc-wrap').scrollLeft = 1e9;
 }
-function notes(){
+function notes(D){
+  // الشموع الخاصة اللي ظاهرة في الفترة المعروضة بس
   const box = document.getElementById('cv-notes');
-  const sp = ALL.filter(d => d.kind).reverse();
-  box.innerHTML = sp.length ? '<h3 style="font-size:16px;margin:14px 0 6px">الشموع الخاصة</h3>' + sp.map(d =>
+  const sp = D.filter(d => d.kind).reverse();
+  box.innerHTML = sp.length ? '<h3 style="font-size:16px;margin:14px 0 6px">الشموع الخاصة في الفترة المعروضة</h3>' + sp.map(d =>
     `<p class="${d.kind}"><b>${AR(d.d.slice(8))}/${AR(d.d.slice(5, 7))}/${AR(d.d.slice(0, 4))}</b> · ${KLONG[d.kind]}.
-     الحيطة عند ${AR(d.sp_wall)}، اتلم عندها ${AR(d.sp_share)}٪ من البيع، وأتخن من عادة السهم ${AR(d.sp_ratio)} مرة.
-     الإقفال ${AR(d.c)} (${d.chg > 0 ? '+' : ''}${AR(d.chg)}٪).</p>`).join('') : '';
+     مستوى الدعم ${AR(d.sp_wall)}، بتركز بيع ${AR(d.sp_share)}٪ من تداولات الجلسة، أي ${AR(d.sp_ratio)} ضعف المعدل المعتاد للسهم.
+     الإغلاق ${AR(d.c)} (${d.chg > 0 ? '+' : ''}${AR(d.chg)}٪).</p>`).join('') : '';
 }
 const px = document.getElementById('cv-px');
 async function load(sym, push){
@@ -126,7 +129,7 @@ async function load(sym, push){
   ALL = (await res.json()).data || [];
   const L = ALL[ALL.length - 1];
   px.innerHTML = L ? `${L.c} <span class="${L.chg > 0 ? 'pos' : L.chg < 0 ? 'neg' : 'mute'}" style="font-size:14px">${L.chg > 0 ? '+' : ''}${L.chg}٪</span>` : '';
-  draw(); notes();
+  draw();
   if (push){ const u = new URL(location); u.searchParams.set('sym', sym); history.replaceState(null, '', u); }
 }
 document.getElementById('cv-list').addEventListener('click', e => { const r = e.target.closest('.cv-row'); if (r) load(r.dataset.sym, true); });
