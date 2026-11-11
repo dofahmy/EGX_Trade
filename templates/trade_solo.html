@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التريدة — {{ mtitle }}</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2433;--mute:#6b7385;--line:#e4e7ee;--green:#0f7b4d;--greenbg:#e6f4ec;--red:#b42318;--redbg:#fdecea;--amber:#9a6200;--amberbg:#fff4dc;--blue:#1f4fb5}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.6}
+header{background:#14213d;color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center}
+header a{color:#fff;text-decoration:none;font-weight:600}
+main{max-width:1150px;margin:0 auto;padding:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+h1,h2,h3{margin:0 0 12px}
+h2{font-size:19px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{background:#f0f2f6;font-weight:600;color:#3a4256}
+td.num{font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+.pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:13px;font-weight:600}
+.buy{background:var(--greenbg);color:var(--green)}
+.armed{background:var(--amberbg);color:var(--amber)}
+.idle{background:#eef0f4;color:var(--mute)}
+.pos{color:var(--green);font-weight:600}
+.neg{color:var(--red);font-weight:600}
+.mute{color:var(--mute)}
+.big{font-size:17px}
+form.inline{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mute);gap:4px}
+input{padding:7px 9px;border:1px solid #cfd4de;border-radius:7px;font-size:14px;font-family:inherit}
+input[type=number]{width:90px}
+button{background:var(--blue);color:#fff;border:0;border-radius:7px;padding:8px 16px;font-size:14px;cursor:pointer;font-family:inherit}
+button.danger{background:none;color:var(--red);padding:0;font-size:13px}
+.banner{border-radius:10px;padding:16px 18px;margin-bottom:18px;font-size:16px}
+.banner.buy{border:1px solid #b7e0c8}
+.banner.armed{border:1px solid #f1d79a}
+.banner.idle{border:1px solid var(--line)}
+a{color:var(--blue)}
+.note{font-size:13px;color:var(--mute)}
+</style>
+</head>
+<body>
+<main>
+<style>
+.tt{font-size:12.5px}
+.tt th,.tt td{padding:6px 5px;white-space:normal;vertical-align:top}
+.tt th{font-size:12px;line-height:1.3}
+.tt td.num{white-space:nowrap}
+.tt .note{font-size:11px}
+.tt .nm{display:block;font-size:11px;color:var(--mute);max-width:170px}
+.tt button.danger{padding:1px 6px;font-size:11px;margin:2px 0 0}
+</style>
+{% set last = allrows[-1] if allrows else none %}
+<div class="card">
+  <h2>التريدة — {{ mtitle }}</h2>
+  {% if state == 'bottom' %}
+  <div class="banner idle"><b>السوق عامل قاع</b> (آخر قاع {{ last_bottom }}). أول أسهم السستم يرشحها في جلسة جاية هي اللي هتتنقي.</div>
+  {% elif state == 'buy' %}
+  <div class="banner buy"><b>الجلسة الجاية</b> (أول اختيار بعد قاع {{ last_bottom }}): شراء
+    {% for it in last.stocks %}<b>{{ it.pick.name }}</b> <span class="mute">{{ it.pick.sym }}</span>{{ '، ' if not loop.last }}{% endfor %} مع الفتح.</div>
+  {% elif state == 'wait' %}
+  <div class="banner idle">مفيش تريدة دلوقتي: مستنيين القاع الجاي.{% if last_bottom %} آخر قاع كان {{ last_bottom }}.{% endif %}</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div><table class="tt">
+    <tr><th>يوم<br>الاختيار</th><th>السهم</th><th>يوم<br>التريدة</th><th>الشراء<br>(الفتح)</th><th>الهدف</th><th>البيع</th><th>النتيجة</th><th>الإقفال</th><th>من الفتح<br>للإقفال</th><th>أعلى<br>عائد</th><th>العائد<br>حتى اليوم</th></tr>
+    {% for r in rows|reverse %}
+    {% if not r.stocks %}
+    <tr style="background:#fdecea"><td>{{ r.date }}</td><td colspan="10"><b class="neg">قاع</b> <span class="mute">· مفيش سهم إقفاله موجب</span></td></tr>
+    {% endif %}
+    {% for it in r.stocks %}{% set k = it.pick %}{% set n = it.next %}
+    <tr{% if loop.last and not loop.first %} style="border-bottom:2px solid var(--line)"{% endif %}>
+      {% if loop.first %}<td rowspan="{{ r.stocks|length }}" style="vertical-align:top{% if r.selected %};background:#eaf3de{% endif %}">{{ r.date }}{% if r.selected %}<div><span class="pill" style="background:#3B6D11;color:#fff">منتقاه</span></div>{% endif %}</td>{% endif %}
+      <td><b>{{ k.sym }}</b><span class="nm">{{ k.name }}</span></td>
+      {% if not n %}
+      <td><span class="pill armed">الجلسة الجاية</span></td>
+      <td class="num">مع الفتح<div class="note">آخر إقفال {{ k.last }}</div></td>
+      <td class="num">الفتح +{{ p.tp }}٪<div class="note">لو فتح على {{ k.last }}: {{ (k.last * (1 + p.tp / 100))|round(4) }}</div></td>
+      <td class="mute">—</td><td class="mute">—</td><td class="mute">—</td><td class="mute">—</td><td class="mute">—</td><td class="mute">—</td>
+      {% elif n.missing %}
+      <td>{{ n.date }}</td><td colspan="8" class="mute">السهم ماتداولش</td>
+      {% else %}
+      <td>{{ n.date }}</td>
+      <td class="num">{{ n.buy }}</td>
+      <td class="num">{{ n.target }}</td>
+      <td class="num">{{ n.exit }} <span class="note">{{ 'الهدف' if n.why=='tp' else 'الإقفال' }}</span></td>
+      <td class="num {{ 'pos' if n.res>0 else 'neg' if n.res<0 else '' }}">{{ '%+.2f'|format(n.res) }}٪</td>
+      <td class="num">{{ n.last }}</td>
+      <td class="num {{ 'pos' if n.oc>0 else 'neg' if n.oc<0 else '' }}">{{ '%+.2f'|format(n.oc) }}٪</td>
+      {% if n.max_ret is defined %}
+      <td class="num {{ 'pos' if n.max_ret>0 else 'neg' if n.max_ret<0 else '' }}">{{ '%+.2f'|format(n.max_ret) }}٪<div class="note">{{ n.max_date }}</div></td>
+      <td class="num {{ 'pos' if n.now_ret>0 else 'neg' if n.now_ret<0 else '' }}">{{ '%+.2f'|format(n.now_ret) }}٪<div class="note">{{ n.now_last }} · {{ n.now_date }}</div></td>
+      {% else %}<td class="mute">—</td><td class="mute">—</td>{% endif %}
+      {% endif %}
+    </tr>
+    {% endfor %}
+    {% endfor %}
+  </table></div>
+</div>
+</main>
+</body>
+</html>
