@@ -373,6 +373,17 @@ def candles_page():
 @auth
 def trade():
     """التريدة: شراء وبيع في نفس اليوم على السهم صاحب أكبر نسبة اتلمت."""
+    return _trade('trade.html')
+
+
+@app.route('/t')
+@auth
+def trade_solo():
+    """صفحة التريدة لوحدها: الجدول بس، من غير أي لينكات."""
+    return _trade('trade_solo.html')
+
+
+def _trade(tpl):
     m = market()
     p = params(m)
     rows = same_day_trades(STORES[m], **p)
@@ -441,7 +452,7 @@ def trade():
         if v:
             sm[key] = dict(n=len(v), avg=round(sum(v) / len(v), 2), total=round(sum(v), 2),
                            wins=sum(1 for x in v if x > 0), losses=sum(1 for x in v if x < 0))
-    return render_template('trade.html', rows=shown, allrows=rows, p=p, sm=sm, state=state,
+    return render_template(tpl, rows=shown, allrows=rows, p=p, sm=sm, state=state,
                            last_bottom=last_bottom, n_bottom=sum(r['bottom'] for r in rows),
                            n_sel=sum(r['selected'] for r in rows))
 
