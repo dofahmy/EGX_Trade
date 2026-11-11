@@ -114,7 +114,7 @@ def _status(dates, S, sym, wall_day, price, upto, near=NEAR):
 
 
 def special(dates, S, TOP, i, sym, c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=3.0, c_share_max=None, c_ratio_max=None,
-            exclude=(), why=None, **_):
+            exclude=(), why=None, prev_shares=None, **_):
     """لو الشمعة دي دهبية أو سودا أو محايدة بيرجع النوع والتفاصيل، غير كده None.
     why: عداد بيتسجل فيه كل سهم وقع عند أنهي شرط."""
     def out(reason):
@@ -138,7 +138,7 @@ def special(dates, S, TOP, i, sym, c_share=10.0, c_ratio=4.0, c_val=1.0, c_near=
     q = (a['last'] / r['price'] - 1) * 100
     if not (-0.1 <= q <= c_near):
         return out('near')
-    prev = [TOP[x].loc[sym, 'share'] for x in dates[:i] if sym in TOP[x].index]
+    prev = prev_shares if prev_shares is not None else [TOP[x].loc[sym, 'share'] for x in dates[:i] if sym in TOP[x].index]
     if not prev:
         return out('ratio')
     ratio = r['share'] / float(np.median(prev))
@@ -211,15 +211,36 @@ def series(store, sym, **cfg):
     zone, near = cfg['c_zone'], cfg['c_near']
     dates, S, TOP, LV = load_all(store, zone)
     days = [d for d in dates if sym in S[d].index]
+    if not days:
+        return []
+    rows = {d: S[d].loc[sym] for d in days}
+    closes = [float(rows[d]['last']) for d in days]
+    pos = {d: k for k, d in enumerate(days)}
     walls = []
     for d in days:
-        if sym in TOP[d].index and TOP[d].loc[sym, 'share'] >= cfg['c_wall'] and not locked(S[d].loc[sym]):
+        if sym in TOP[d].index and TOP[d].loc[sym, 'share'] >= cfg['c_wall'] and not locked(rows[d]):
             walls.append((d, float(TOP[d].loc[sym, 'price'])))
-    out = []
-    for d in days:
-        s = S[d].loc[sym]
-        c = float(s['last'])
-        act = [(w, _status(dates, S, sym, w[0], w[1], d, near)) for w in walls if w[0] <= d]
+    # حالة كل حيطة في كل يوم بعدها، مرة واحدة بس (نفس منطق _status)
+    status = []
+    for wd, price in walls:
+        cur, below, st = None, 0, {}
+        for k in range(pos[wd], len(days)):
+            q = (closes[k] / price - 1) * 100
+            if q >= -0.1:
+                cur, below = 'g', 0
+            else:
+                below += 1
+                cur = 'r' if (q <= -near or below >= 2 or cur == 'r') else 'o'
+            st[k] = cur
+        status.append(st)
+    # نسبة أكبر حيطة في كل يوم قبل كده (عشان "المعدل المعتاد")
+    shares = {d: float(TOP[d].loc[sym, 'share']) for d in dates if sym in TOP[d].index}
+    out, hist = [], []
+    di = {d: k for k, d in enumerate(dates)}
+    for k, d in enumerate(days):
+        s = rows[d]
+        c = closes[k]
+        act = [(w, status[n][k]) for n, w in enumerate(walls) if pos[w[0]] <= k]
         close = [(w, st) for w, st in act if abs(c / w[1] - 1) * 100 <= near]
         wp = None
         if close:
@@ -230,8 +251,10 @@ def series(store, sym, **cfg):
         else:
             col = 'lightgreen' if any(stt == 'g' and w[1] < c for w, stt in act) else 'gray'
         st_ = strength(LV[d], sym, wp, zone) if wp is not None else 0.0
-        sp = special(dates, S, TOP, dates.index(d), sym, **cfg)
-        out.append(dict(d=d, o=float(s['open']), h=float(s['hi']), l=float(s['lo']), c=c,
+        prev = [shares[x] for x in dates[:di[d]] if x in shares]
+        sp = special(dates, S, TOP, di[d], sym, prev_shares=prev, **cfg)
+        f = lambda v: float(v) if pd.notna(v) else None
+        out.append(dict(d=d, o=f(s['open']), h=f(s['hi']), l=f(s['lo']), c=c,
                         chg=float(s['chg']) if pd.notna(s['chg']) else 0.0, col=col, wall=wp,
                         str=round(st_, 1), kind=sp['kind'] if sp else None,
                         sp_wall=sp['wall'] if sp else None, sp_share=round(sp['share'], 1) if sp else None,

@@ -370,7 +370,11 @@ def candles_data(sym):
     m = market()
     p = params(m)
     sym = sym.upper()
-    data = candles.series(STORES[m], sym, **p)
+    try:
+        data = candles.series(STORES[m], sym, **p)
+    except Exception as e:
+        app.logger.exception('candles_data %s', sym)
+        return jsonify(sym=sym, data=None, error=str(e)[:200]), 500
     return jsonify(sym=sym, data=data)
 
 
