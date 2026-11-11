@@ -386,8 +386,36 @@ def trade():
             waiting = True
         elif r['selected']:
             waiting = False
-    view = request.args.get('view', 'bottom')
-    shown = rows if view == 'all' else [r for r in rows if r['bottom'] or r['selected']]
+    shown = [r for r in rows if r['bottom'] or r['selected']]
+    # أعلى عائد وصله السهم من يوم الشراء لحد آخر جلسة، والعائد لحد آخر جلسة
+    st_all = STORES[m]
+    dates = st_all.dates()
+    cache = {}
+    def stats(d):
+        if d not in cache:
+            cache[d] = st_all.load(d)[0]
+        return cache[d]
+    for r in shown:
+        for it in r['stocks']:
+            n = it['next']
+            if not n or n.get('missing'):
+                continue
+            sym, buy = it['pick']['sym'], n['buy']
+            best, best_d, now, now_d = None, None, None, None
+            for d in dates[dates.index(n['date']):]:
+                s = stats(d)
+                if sym not in s.index:
+                    continue
+                hi, last = float(s.loc[sym, 'hi']), float(s.loc[sym, 'last'])
+                if best is None or hi > best:
+                    best, best_d = hi, d
+                now, now_d = last, d
+            if best is not None:
+                n['max_ret'] = round((best / buy - 1) * 100, 2)
+                n['max_date'] = best_d
+                n['now_ret'] = round((now / buy - 1) * 100, 2)
+                n['now_date'] = now_d
+                n['now_last'] = now
     state = None
     if rows:
         if waiting:
@@ -398,7 +426,7 @@ def trade():
             state = 'wait'
     last_bottom = next((r['date'] for r in reversed(rows) if r['bottom']), None)
 
-    used = [r for r in rows if r['selected']] if view != 'all' else rows
+    used = [r for r in rows if r['selected']]
     done = [it['next'] for r in used for it in r['stocks'] if it['next'] and not it['next'].get('missing')]
     sm = {}
     for key in ('res', 'oc'):
@@ -408,7 +436,12 @@ def trade():
                            wins=sum(1 for x in v if x > 0), losses=sum(1 for x in v if x < 0))
     if done:
         sm['res']['tp'] = sum(1 for n in done if n['why'] == 'tp')
-    return render_template('trade.html', rows=shown, allrows=rows, p=p, sm=sm, view=view, state=state,
+    for key in ('max_ret', 'now_ret'):
+        v = [n[key] for n in done if key in n]
+        if v:
+            sm[key] = dict(n=len(v), avg=round(sum(v) / len(v), 2), total=round(sum(v), 2),
+                           wins=sum(1 for x in v if x > 0), losses=sum(1 for x in v if x < 0))
+    return render_template('trade.html', rows=shown, allrows=rows, p=p, sm=sm, state=state,
                            last_bottom=last_bottom, n_bottom=sum(r['bottom'] for r in rows),
                            n_sel=sum(r['selected'] for r in rows))
 

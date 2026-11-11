@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}الارتداد{% endblock %}
+{% block body %}
+{% set last = rows[-1] if rows else none %}
+
+{# ============ بكرة ============ #}
+<div class="card">
+  <h2>الارتداد — {{ mtitle }}</h2>
+  {% if last and not last.next_date %}
+    {% if last.need_bars %}<div class="banner" style="background:var(--redbg);border:1px solid #f3b8b2">⚠ جلسة {{ last.date }} اترفعت قبل ما البرنامج يحفظ حركة اليوم، فقايمة "آخر نص ساعة" ناقصة.
+      {% if mkt == 'us' %}<form method="post" action="{{ url_for('us_bars_estimate', m='us') }}" style="display:inline"><input type="hidden" name="date" value="{{ last.date }}"><input type="hidden" name="syms" value="{{ last.missing_bars|join(' ') }}"><button style="padding:3px 10px;font-size:12px">كمّل حركة اليوم ({{ last.missing_bars|length }} سهم)</button></form>
+      {% else %}احذفيها وارفعيها تاني قبل ما تشتري.{% endif %}</div>{% endif %}
+    {% if last.picks %}
+    <div class="banner buy" style="font-size:18px">
+      <b>الجلسة الجاية: اشتري مع الفتح</b>
+      <div style="margin-top:8px">{% for x in last.picks %}<div><a href="{{ murl('stock', sym=x.sym) }}"><b>{{ x.sym }}</b></a> {{ x.name }} <span class="note">· قفل {{ x.last }} ({{ '%+.2f'|format(x.chg) }}٪)</span></div>{% endfor %}</div>
+      <div class="note" style="margin-top:6px">من جلسة {{ last.date }}</div>
+    </div>
+    {% else %}
+    <div class="banner idle" style="font-size:18px"><b>الجلسة الجاية: مفيش حاجة تتعمل.</b> <span class="note">{% if last.few %}جلسة {{ last.date }} طلّعت {{ last.rows|length }} سهم بس، أقل من {{ p.b_min }}.{% else %}جلسة {{ last.date }} ماطلّعتش أسهم بالقاعدة.{% endif %}</span></div>
+    {% endif %}
+  {% endif %}
+  <details class="note"><summary>القاعدة إيه؟</summary>
+    السهم نزل يومين ورا بعض، وتاني يوم نزل {{ p.b_drop }}٪ أو أكتر{% if p.b_maxdrop %} ومش أكتر من {{ p.b_maxdrop }}٪ (النزول الأكبر غالبًا خبر){% endif %}، والفرق بين أعلى وأقل سعر {{ p.b_range }}٪ أو أكتر، وقيمة تداوله {{ p.b_val }} مليون أو أكتر، ومش من الأسهم المستبعدة. ولازم القاعدة تطلّع {{ p.b_min }} سهم أو أكتر عشان نختار منها.
+    من الأسهم دي بنرتب بطريقتين (أكبر صعود في آخر نص ساعة، وأكبر فرق بين أعلى وأقل سعر)، وناخد أول ٥ في كل طريقة، ونشيل المشترك، ونختار ٣ من كل طريقة بأقل نزول.
+    اليوم بيبقى <b>اتحققت</b> لو متوسط الأسهم المختارة في الجلسة اللي بعدها كان أحسن من نص السوق.
+  </details>
+</div>
+
+{# ============ الملخص والأيام ============ #}
+<div class="card">
+  <h2>النتايج</h2>
+  {% if sm %}
+  <p class="big">اتحققت <b>{{ sm.hit }} من {{ sm.days }}</b> يوم ·
+    متوسط اختياراتنا <span class="{{ 'pos' if sm.p_avg>0 else 'neg' if sm.p_avg<0 else '' }}">{{ '%+.2f'|format(sm.p_avg) }}٪</span>
+    · نص السوق <span class="{{ 'pos' if sm.mk>0 else 'neg' if sm.mk<0 else '' }}">{{ '%+.2f'|format(sm.mk) }}٪</span></p>
+  <p class="note">{{ sm.n }} سهم اتشروا · طلع منهم {{ sm.wins }} · طلع ١٠٪ أو أكتر {{ sm.g10 }}</p>
+  {% endif %}
+  <div class="tablewrap"><table>
+    <tr><th>يوم القاعدة</th><th>يوم الشراء</th><th>الأسهم المختارة ونتيجتها</th><th>متوسطنا</th><th>نص السوق</th><th>النتيجة</th></tr>
+    {% for r in rows|reverse %}{% if r.picks %}
+    <tr>
+      <td>{{ r.date }}</td>
+      <td>{{ r.next_date or 'الجلسة الجاية' }}</td>
+      <td style="white-space:normal">{% for x in r.picks %}<span style="display:inline-block;margin-left:12px"><a href="{{ murl('stock', sym=x.sym) }}">{{ x.sym }}</a>
+        {% if x.next is defined %}<span class="{{ 'pos' if x.next>0 else 'neg' if x.next<0 else '' }}">{{ '%+.2f'|format(x.next) }}٪</span>{% endif %}</span>{% endfor %}
+        {% if r.need_bars %}<div class="note" style="color:var(--red)">⚠ ناقص قايمة "آخر نص ساعة": الجلسة دي اترفعت قبل ما البرنامج يحفظ حركة اليوم.
+          {% if mkt == 'us' %}<form method="post" action="{{ url_for('us_bars_estimate', m='us') }}" style="display:inline"><input type="hidden" name="date" value="{{ r.date }}"><input type="hidden" name="syms" value="{{ r.missing_bars|join(' ') }}"><button style="padding:3px 10px;font-size:12px">كمّل حركة اليوم ({{ r.missing_bars|length }} سهم)</button></form>
+          {% else %}احذفيها وارفعيها تاني.{% endif %}</div>{% endif %}</td>
+      {% if r.p_hit is none %}
+      <td colspan="3"><span class="pill armed">مستنيين</span></td>
+      {% else %}
+      <td class="num {{ 'pos' if r.p_avg>0 else 'neg' if r.p_avg<0 else '' }}"><b>{{ '%+.2f'|format(r.p_avg) }}٪</b></td>
+      <td class="num">{{ '%+.2f'|format(r.mk_med) }}٪</td>
+      <td>{% if r.p_hit %}<span class="pill buy">اتحققت</span>{% else %}<span class="pill" style="background:var(--redbg);color:var(--red)">ماتحققتش</span>{% endif %}</td>
+      {% endif %}
+    </tr>
+    {% endif %}{% endfor %}
+  </table></div>
+  {% set few = rows|selectattr('few')|list %}
+  {% set empty = rows|rejectattr('few')|selectattr('picks', 'equalto', [])|map(attribute='date')|list %}
+  {% if few %}<p class="note">أيام طلّعت أسهم أقل من {{ p.b_min }} (مفيش شراء): {% for r in few|reverse %}{{ r.date }} ({{ r.rows|length }}){{ '، ' if not loop.last }}{% endfor %}</p>{% endif %}
+  {% if empty %}<p class="note">أيام ماطلّعتش أسهم (مفيش شراء): {{ empty|reverse|join('، ') }}</p>{% endif %}
+</div>
+
+{# ============ التفاصيل لمين عاوز ============ #}
+{% for r in rows|reverse %}{% if r.rows %}
+<details class="card">
+  <summary><b>كل أسهم القاعدة يوم {{ r.date }}</b> <span class="mute">({{ r.rows|length }} سهم)</span></summary>
+  <div class="tablewrap" style="margin-top:10px"><table>
+    <tr><th>السهم</th><th>تغير اليوم اللي قبله</th><th>تغير اليوم</th><th>الفرق بين أعلى وأقل</th><th>آخر نص ساعة</th><th>قيمة التداول (مليون)</th><th>الجلسة اللي بعدها</th></tr>
+    {% set chosen = r.picks|map(attribute='sym')|list %}
+    {% for x in r.rows %}
+    <tr{% if x.sym in chosen %} style="background:var(--greenbg)"{% endif %}>
+      <td><a href="{{ murl('stock', sym=x.sym) }}">{{ x.sym }}</a> <span class="note">{{ x.name }}</span></td>
+      <td class="num">{{ '%+.2f'|format(x.chg1) }}٪</td>
+      <td class="num">{{ '%+.2f'|format(x.chg) }}٪</td>
+      <td class="num">{{ '%.2f'|format(x.rng) }}٪</td>
+      <td class="num">{% if x.late is not none %}{{ '%+.2f'|format(x.late) }}٪{% else %}—{% endif %}</td>
+      <td class="num">{{ '%.1f'|format(x.val_m) }}</td>
+      <td class="num {{ 'pos' if x.next is defined and x.next>0 else 'neg' if x.next is defined and x.next<0 else '' }}">{% if x.next is defined %}{{ '%+.2f'|format(x.next) }}٪{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  <p class="note">الأسهم المختارة لونها أخضر.</p>
+</details>
+{% endif %}{% endfor %}
+{% endblock %}

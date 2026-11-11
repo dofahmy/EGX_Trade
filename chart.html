@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}رسم {{ sym }}{% endblock %}
+{% block body %}
+<div class="card">
+  <h2>{{ name }} <span class="mute">{{ sym }}</span> · <a href="{{ murl('stock', sym=sym) }}" style="font-size:14px">جدول السهم</a> · <a href="{{ murl('candles_page') }}" style="font-size:14px">جداول الشموع</a></h2>
+  {% include '_candles_chart.html' %}
+</div>
+{% endblock %}

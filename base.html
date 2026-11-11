@@ -49,6 +49,8 @@ a{color:var(--blue)}
       <a href="{{ url_for('index', m=k) }}" style="font-weight:{{ 700 if k==mkt else 400 }};opacity:{{ 1 if k==mkt else 0.65 }};padding:4px 10px;border-radius:6px;{{ 'background:rgba(255,255,255,.14);' if k==mkt }}">{{ v.title }}</a>
     {% endfor %}
     <a href="{{ murl('trade') }}" style="background:#f2b705;color:#14213d;padding:4px 12px;border-radius:6px">التريدة</a>
+    <a href="{{ murl('bounce') }}" style="background:#8ecae6;color:#14213d;padding:4px 12px;border-radius:6px">الارتداد</a>
+    <a href="{{ murl('candles_page') }}" style="background:#D4AF37;color:#14213d;padding:4px 12px;border-radius:6px">الشموع</a>
   </div>
   <span class="mute" style="color:#c9d1e6;font-size:13px">قراءة لشكل التداول، مش توصية بشراء أو بيع</span>
 </header>

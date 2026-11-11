@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}الشموع{% endblock %}
+{% block body %}
+{% set titles = {'gold': ('الشموع الدهبية', 'تجميع: حيطة تخينة، والفتح والإقفال الاتنين أعلى من الشمعة اللي قبلها'),
+                 'black': ('الشموع السودا', 'خطر بيع: حيطة تخينة، والفتح والإقفال الاتنين أقل من الشمعة اللي قبلها'),
+                 'neutral': ('الشموع المحايدة', 'حيطة تخينة، وواحد بس من الفتح والإقفال أعلى من الشمعة اللي قبلها')} %}
+<div class="card" id="chart">
+  {% if sel and data %}
+  <h2>{{ sel_name }} <span class="mute">{{ sel }}</span> · <a href="{{ murl('chart', sym=sel) }}" style="font-size:14px">افتح الرسم لوحده</a></h2>
+  {% include '_candles_chart.html' %}
+  {% else %}
+  <h2>الشموع</h2><p class="mute">دوسي على أي سهم في الجداول تحت عشان يترسم هنا.</p>
+  {% endif %}
+  <details class="note"><summary>الشمعة الدهبية يعني إيه؟</summary>
+    حيطة اتلم عندها {% if p.c_share_max is not none %}من {{ p.c_share|num }}٪ لـ {{ p.c_share_max|num }}٪{% else %}{{ p.c_share|num }}٪ أو أكتر{% endif %} من تداول اليوم{% if p.c_zone %} (الأسعار اللي في حدود {{ p.c_zone|num }}٪ من بعض بتتحسب حيطة واحدة){% endif %}، وأتخن من عادة السهم {% if p.c_ratio_max is not none %}من {{ p.c_ratio|num }} لـ {{ p.c_ratio_max|num }} مرات{% else %}بـ{{ p.c_ratio|num }} مرات أو أكتر{% endif %}، والسهم قفل عليها أو فوقها بـ{{ p.c_near|num }}٪ أو أقل.
+    لو الفتح أعلى من فتح الشمعة اللي قبلها والإقفال أعلى من إقفالها = دهبية. لو الاتنين أقل = سودا. لو واحد بس = محايدة.
+    من غير أيام الحد الأدنى والأقصى، ووثائق الصناديق، والأسهم المستبعدة، والأسهم اللي تداولها أقل من {{ p.c_val|num }} مليون. الأرقام دي بتتغير من الإعدادات.
+    والنتايج محسوبة من إقفال يوم الشمعة.
+    <br><b>اتعمل عندها:</b> قيمة التداول اللي اتعمل عند سعر الحيطة يوم الشمعة.
+    <b>السرعة:</b> أكتر نص ساعة في اليوم خد كام في المية من القيمة دي. أقل من ٤٠٪ = هادي (تجميع على مهله طول اليوم)، من ٤٠ لـ٥٠ = متوسط، ٥٠٪ أو أكتر = مستعجل.
+    ولو دقيقة واحدة فيها ١٠ صفقات أو أقل خدت ٣٠٪ أو أكتر من القيمة، بيظهر تنبيه "صفقة كبيرة"، لأنها غالبًا صفقة متفق عليها مش تجميع من السوق.
+    والعلامة (—) معناها إن الجلسة اترفعت قبل التحديث ده، ولازم ترفعيها تاني عشان تتحسب.
+  </details>
+</div>
+
+{% if why.all %}
+<div class="card">
+  <h2>الأسهم وقعت فين؟</h2>
+  <p class="note">كل سهم في كل جلسة كان عنده حيطة، والشروط بالترتيب. السهم بيتحسب عند أول شرط وقع فيه.</p>
+  <div class="tablewrap"><table>
+    <tr><th>الشرط</th><th>عدد اللي وقعوا</th></tr>
+    <tr><td>كل الأسهم اللي عندها حيطة</td><td class="num">{{ why.all }}</td></tr>
+    <tr><td>يوم حد أدنى أو أقصى، أو وثيقة صندوق، أو تداول أقل من {{ p.c_val|num }} مليون</td><td class="num">{{ why.val or 0 }}</td></tr>
+    <tr><td>الحيطة اتلم عندها {% if p.c_share_max is not none %}برة {{ p.c_share|num }}٪ لـ {{ p.c_share_max|num }}٪{% else %}أقل من {{ p.c_share|num }}٪{% endif %}</td><td class="num">{{ why.share or 0 }}</td></tr>
+    <tr><td>الإقفال مش على الحيطة أو فوقها بـ{{ p.c_near|num }}٪ بالكتير</td><td class="num">{{ why.near or 0 }}</td></tr>
+    <tr><td>{% if p.c_ratio_max is not none %}الحيطة أتخن من عادة السهم برة {{ p.c_ratio|num }} لـ {{ p.c_ratio_max|num }} مرات{% else %}الحيطة مش أتخن من عادة السهم بـ{{ p.c_ratio|num }} مرات{% endif %}</td><td class="num">{{ why.ratio or 0 }}</td></tr>
+    <tr><td><b>عدوا كل الشروط (دهبية وسودا ومحايدة)</b></td><td class="num"><b>{{ why.ok or 0 }}</b></td></tr>
+  </table></div>
+  <p class="note">لو الأغلبية واقعة عند شرط واحد، يبقى هو اللي خانق النتايج. تقدري تغيريه من الإعدادات، أو تجربيه من غير حفظ بإنك تزودي في الرابط مثلًا <span dir="ltr">&c_share=3</span>.</p>
+</div>
+{% endif %}
+
+{% for k in ['gold', 'black', 'neutral'] %}{% set g = groups[k] %}
+<div class="card">
+  <h2>{{ titles[k][0] }} <span class="mute">({{ g.rows|length }})</span></h2>
+  <p class="note">{{ titles[k][1] }}</p>
+  {% if g.sm.r1 %}
+  <p class="mute">المتوسط:
+    {% for key, t in [('r1', 'بعد يوم'), ('r2', 'بعد يومين'), ('r3', 'بعد ٣ جلسات'), ('now', 'لحد آخر جلسة')] %}{% if g.sm[key] %}
+    {{ t }} <b class="{{ 'pos' if g.sm[key][0] > 0 else 'neg' if g.sm[key][0] < 0 else '' }}">{{ '%+.2f'|format(g.sm[key][0]) }}٪</b> <span class="note">({{ g.sm[key][1] }})</span>{{ ' · ' if not loop.last }}
+    {% endif %}{% endfor %}</p>
+  {% endif %}
+  {% if g.rows %}
+  <div class="tablewrap"><table>
+    <tr><th>اليوم</th><th>السهم</th><th>الحيطة</th><th>اتلم عندها</th><th>أتخن من عادته</th><th>اتعمل عندها</th><th>السرعة</th><th>الإقفال</th><th>بعد يوم</th><th>بعد يومين</th><th>بعد ٣ جلسات</th><th>لحد آخر جلسة</th></tr>
+    {% for r in g.rows %}
+    <tr{% if r.sym == sel %} style="background:var(--amberbg)"{% endif %}>
+      <td>{{ r.date }}</td>
+      <td><a href="{{ murl('candles_page', sym=r.sym) }}#chart"><b>{{ r.sym }}</b></a> <span class="note">{{ r.name }}</span></td>
+      <td class="num">{{ r.wall }}</td>
+      <td class="num">{{ '%.0f'|format(r.share) }}٪</td>
+      <td class="num">{{ r.ratio }} مرة</td>
+      <td class="num">{% if r.f_val is defined and r.f_val is not none %}{{ r.f_val }} مليون{% else %}<span class="mute">—</span>{% endif %}</td>
+      <td>{% if r.f_speed is defined and r.f_speed %}
+        {% set sp = {'slow': ('هادي', 'pos'), 'mid': ('متوسط', ''), 'fast': ('مستعجل', 'neg')}[r.f_speed] %}
+        <b class="{{ sp[1] }}">{{ sp[0] }}</b> <span class="note">{{ r.f_best }}٪ في نص ساعة</span>
+        {% if r.f_block %}<div class="neg" style="font-size:12px">صفقة كبيرة: {{ r.f_block.val }} مليون في دقيقة واحدة الساعة {{ r.f_block.t }} ({{ r.f_block.pct }}٪)</div>{% endif %}
+      {% else %}<span class="mute">—</span>{% endif %}</td>
+      <td class="num">{{ r.close }} <span class="note {{ 'pos' if r.chg > 0 else 'neg' if r.chg < 0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</span></td>
+      {% for key in ['r1', 'r2', 'r3', 'now'] %}
+      <td class="num {{ 'pos' if r[key] is not none and r[key] > 0 else 'neg' if r[key] is not none and r[key] < 0 else '' }}">{% if r[key] is not none %}{{ '%+.1f'|format(r[key]) }}٪{% else %}<span class="mute">لسه</span>{% endif %}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<p class="mute">مفيش لحد دلوقتي.</p>{% endif %}
+</div>
+{% endfor %}
+{% endblock %}

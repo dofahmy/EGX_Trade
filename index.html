@@ -208,8 +208,8 @@ fieldset .inline{gap:14px}
   <div class="card">
     <h2>رفع جلسة جديدة</h2>
     <form class="inline" method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
-      <label>ملف التنفيذات (إكسل أو مضغوط)<input type="file" name="file" accept=".xlsx,.xlsm,.rar,.zip" required></label>
-      <label>تاريخ الجلسة<input type="date" name="date" value="{{ today }}" required></label>
+      <label>ملف التنفيذات: ملف سيجما (csv)، أو مضغوط فيه أيام كتير من سيجما، أو ملف الإكسل القديم<input type="file" name="file" accept=".csv,.xlsx,.xlsm,.rar,.zip" required></label>
+      <label>تاريخ الجلسة (لملف الإكسل القديم بس، ملفات سيجما التاريخ جواها)<input type="date" name="date" value="{{ today }}"></label>
       <button>رفع</button>
     </form>
     <p class="note">لو رفعتي ملف لتاريخ موجود، هيتحسب من جديد بدل القديم. الجلسات لازم تترفع بتواريخها الصح ومن غير ما تنقص جلسة.</p>
@@ -274,10 +274,39 @@ fieldset .inline{gap:14px}
         <p class="note">شرط الفتح: لو "من" ٠ و"لـ" فاضي، يبقى من غير شرط. مدة الشيل بتعد يوم الشراء: ٢ = الإشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر الخميس.</p>
       </fieldset>
       <fieldset><legend>٤. التريدة (شراء وبيع في نفس اليوم)</legend>
-        <label>الهدف: نقفل لو السعر طلع فوق سعر الشراء بـ ٪<input type="number" name="tp" value="{{ p.tp }}" min="0.1" step="any"></label>
+        <div style="display:flex;flex-wrap:wrap;gap:14px">
+          <label>عدد الأسهم في كل جلسة<input type="number" name="picks" value="{{ p.picks }}" min="1" max="10"></label>
+          <label>الهدف: نقفل لو السعر طلع فوق سعر الشراء بـ ٪<input type="number" name="tp" value="{{ p.tp }}" min="0.1" step="any"></label>
+        </div>
+        <label style="margin-top:10px">أسهم مستبعدة من التريدة (أكواد، مفصولة بمسافة أو سطر جديد)
+          <textarea name="exclude" rows="3" style="width:100%;max-width:560px;padding:7px 9px;border:1px solid #cfd4de;border-radius:7px;font-family:inherit;direction:ltr;text-align:left">{{ p.exclude or '' }}</textarea></label>
+        <p class="note">زي أسهم بورصة النيل. وتقدري تستبعدي أي سهم بزرار "استبعاد" جنبه في صفحة التريدة. ورجوع الإعدادات للأصل مابيمسحش القايمة دي.</p>
         <p class="note">السهم بيتختار من قايمة إشارات اليوم بعدد المرات وعدد الأسعار اللي في الجزء الأول.</p>
       </fieldset>
-      <fieldset><legend>٥. التحذيرات</legend>
+      <fieldset><legend>٥. الارتداد</legend>
+        <div style="display:flex;flex-wrap:wrap;gap:14px">
+          <label>نزول اليوم ٪ أو أكتر<input type="number" name="b_drop" value="{{ p.b_drop }}" min="0" step="any"></label>
+          <label>ومايزيدش عن ٪ (فاضي = من غير حد)<input type="number" name="b_maxdrop" value="{{ p.b_maxdrop if p.b_maxdrop is not none else '' }}" min="0" step="any"></label>
+          <label>الفرق بين أعلى وأقل سعر ٪ أو أكتر<input type="number" name="b_range" value="{{ p.b_range }}" min="0" step="any"></label>
+          <label>أقل قيمة تداول (مليون)<input type="number" name="b_val" value="{{ p.b_val }}" min="0" step="any"></label>
+          <label>أقل عدد أسهم في القاعدة عشان نشتري<input type="number" name="b_min" value="{{ p.b_min }}" min="1"></label>
+        </div>
+        <p class="note">السهم لازم يكون نازل كمان في الجلسة اللي قبلها. ووثائق الصناديق مش داخلة.</p>
+      </fieldset>
+      <fieldset><legend>٦. الشموع</legend>
+        <div style="display:flex;flex-wrap:wrap;gap:14px">
+          <label>الحيطة التخينة: اتلم عندها من ٪<input type="number" name="c_share" value="{{ p.c_share }}" min="0" step="any"></label>
+          <label>لـ ٪ (فاضي = من غير حد)<input type="number" name="c_share_max" value="{{ p.c_share_max if p.c_share_max is not none else '' }}" min="0" step="any"></label>
+          <label>أتخن من عادة السهم من مرة<input type="number" name="c_ratio" value="{{ p.c_ratio }}" min="0" step="any"></label>
+          <label>لـ مرة (فاضي = من غير حد)<input type="number" name="c_ratio_max" value="{{ p.c_ratio_max if p.c_ratio_max is not none else '' }}" min="0" step="any"></label>
+          <label>والإقفال فوقها بـ٪ بالكتير<input type="number" name="c_near" value="{{ p.c_near }}" min="0" step="any"></label>
+          <label>أقل قيمة تداول (مليون)<input type="number" name="c_val" value="{{ p.c_val }}" min="0" step="any"></label>
+          <label>أقل حيطة تتحسب في الألوان ٪<input type="number" name="c_wall" value="{{ p.c_wall }}" min="0" step="any"></label>
+          <label>منطقة الحيطة ٪ (٠ = سعر واحد بالظبط)<input type="number" name="c_zone" value="{{ p.c_zone }}" min="0" step="any"></label>
+        </div>
+        <p class="note">منطقة الحيطة: الأسعار اللي في حدود النسبة دي من بعض بتتحسب حيطة واحدة. في مصر سيبيها ٠. في أمريكا السهم بيتداول على مئات الأسعار، فخليها حوالي ٠٫١ عشان البيع اللي حوالين نفس السعر يتلم مع بعض.</p>
+      </fieldset>
+      <fieldset><legend>٧. التحذيرات</legend>
         <label>المستوى يبقى تحذير لو النسبة اللي اتلمت عنده أقل من ٪<input type="number" name="warn_share" value="{{ p.warn_share }}" min="0" step="any"></label>
       </fieldset>
       <button>حفظ</button>

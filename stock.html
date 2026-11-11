@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block body %}
 <div class="card">
-  <h2>{{ rows[0].name }} <span class="mute">{{ sym }}</span></h2>
+  <h2>{{ rows[0].name }} <span class="mute">{{ sym }}</span> <a href="{{ murl('chart', sym=sym) }}" style="font-size:15px;margin-right:10px">الرسم</a></h2>
   <p class="mute">كل الجلسات المرفوعة للسهم. "فتح اللي بعدها فوق المستوى" = سعر فتح الجلسة اللي بعدها مقارنة بأقوى مستوى في اليوم ده.</p>
   <div class="tablewrap"><table>
     <tr><th>الجلسة</th><th>الإقفال السابق</th><th>الفتح</th><th>أقل / أعلى</th><th>الإقفال</th><th>التغير</th><th>عدد الأسعار</th><th>قيمة التداول (مليون)</th>
