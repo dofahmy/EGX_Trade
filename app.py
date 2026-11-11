@@ -376,8 +376,30 @@ def trade():
     m = market()
     p = params(m)
     rows = same_day_trades(STORES[m], **p)
+    # القاع: يوم مفيش فيه ولا سهم من الإشارات إقفاله موجب.
+    # الأسهم المنتقاه: أسهم أول يوم بعد القاع فيه أسهم، وبعده بنستنى لحد القاع الجاي.
+    waiting = False
+    for r in rows:
+        r['bottom'] = not r['stocks']
+        r['selected'] = bool(r['stocks']) and waiting
+        if r['bottom']:
+            waiting = True
+        elif r['selected']:
+            waiting = False
+    view = request.args.get('view', 'bottom')
+    shown = rows if view == 'all' else [r for r in rows if r['bottom'] or r['selected']]
+    state = None
+    if rows:
+        if waiting:
+            state = 'bottom'   # آخر حاجة حصلت قاع، ومستنيين أول أسهم
+        elif rows[-1]['selected'] and not rows[-1]['next_date']:
+            state = 'buy'
+        else:
+            state = 'wait'
+    last_bottom = next((r['date'] for r in reversed(rows) if r['bottom']), None)
 
-    done = [it['next'] for r in rows for it in r['stocks'] if it['next'] and not it['next'].get('missing')]
+    used = [r for r in rows if r['selected']] if view != 'all' else rows
+    done = [it['next'] for r in used for it in r['stocks'] if it['next'] and not it['next'].get('missing')]
     sm = {}
     for key in ('res', 'oc'):
         if done:
@@ -386,7 +408,9 @@ def trade():
                            wins=sum(1 for x in v if x > 0), losses=sum(1 for x in v if x < 0))
     if done:
         sm['res']['tp'] = sum(1 for n in done if n['why'] == 'tp')
-    return render_template('trade.html', rows=rows, p=p, sm=sm)
+    return render_template('trade.html', rows=shown, allrows=rows, p=p, sm=sm, view=view, state=state,
+                           last_bottom=last_bottom, n_bottom=sum(r['bottom'] for r in rows),
+                           n_sel=sum(r['selected'] for r in rows))
 
 
 @app.route('/bounce')
