@@ -120,17 +120,33 @@ function notes(D){
      الإغلاق ${AR(d.c)} (${d.chg > 0 ? '+' : ''}${AR(d.chg)}٪).</p>`).join('') : '';
 }
 const px = document.getElementById('cv-px');
+let token = 0;
 async function load(sym, push){
+  const my = ++token;
   document.getElementById('cv-sym').textContent = sym;
   document.getElementById('cv-name').textContent = NAMES[sym] || '';
   document.querySelectorAll('.cv-row').forEach(r => r.classList.toggle('on', r.dataset.sym === sym));
-  const m = new URLSearchParams(location.search).get('m') || '{{ mkt }}';
-  const res = await fetch(`{{ url_for('candles_data', sym='__S__') }}`.replace('__S__', encodeURIComponent(sym)) + '?m=' + m);
-  ALL = (await res.json()).data || [];
-  const L = ALL[ALL.length - 1];
-  px.innerHTML = L ? `${L.c} <span class="${L.chg > 0 ? 'pos' : L.chg < 0 ? 'neg' : 'mute'}" style="font-size:14px">${L.chg > 0 ? '+' : ''}${L.chg}٪</span>` : '';
-  draw();
+  px.innerHTML = '<span class="mute" style="font-size:14px">جاري التحميل…</span>';
+  document.getElementById('cc-wrap').style.opacity = .35;
   if (push){ const u = new URL(location); u.searchParams.set('sym', sym); history.replaceState(null, '', u); }
+  const m = new URLSearchParams(location.search).get('m') || '{{ mkt }}';
+  let data = null, err = '';
+  try {
+    const res = await fetch(`{{ url_for('candles_data', sym='__S__') }}`.replace('__S__', encodeURIComponent(sym)) + '?m=' + m, {credentials: 'same-origin'});
+    if (!res.ok) throw new Error('السيرفر رد بخطأ ' + res.status);
+    data = (await res.json()).data || [];
+  } catch (e) { err = e.message || String(e); }
+  if (my !== token) return;   // اتدوس على سهم تاني قبل ما ده يخلص
+  document.getElementById('cc-wrap').style.opacity = 1;
+  if (data === null){
+    ALL = []; draw();
+    px.innerHTML = `<span class="neg" style="font-size:14px">تعذر تحميل الرسم: ${err}</span>`;
+    return;
+  }
+  ALL = data;
+  const L = ALL[ALL.length - 1];
+  px.innerHTML = L ? `${L.c} <span class="${L.chg > 0 ? 'pos' : L.chg < 0 ? 'neg' : 'mute'}" style="font-size:14px">${L.chg > 0 ? '+' : ''}${L.chg}٪</span>` : '<span class="mute" style="font-size:14px">لا توجد بيانات</span>';
+  draw();
 }
 document.getElementById('cv-list').addEventListener('click', e => { const r = e.target.closest('.cv-row'); if (r) load(r.dataset.sym, true); });
 document.getElementById('cv-q').addEventListener('input', e => {
