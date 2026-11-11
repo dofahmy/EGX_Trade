@@ -1,15 +1,35 @@
 {% extends 'base.html' %}
 {% block title %}التريدة{% endblock %}
 {% block body %}
-{% set last = rows[-1] if rows else none %}
+<style>.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--line)}.tabs a{padding:8px 14px;text-decoration:none;color:var(--mute);font-weight:600;border-bottom:3px solid transparent;margin-bottom:-2px}.tabs a.on{color:var(--ink);border-bottom-color:var(--blue)}</style>
+{% set last = allrows[-1] if allrows else none %}
 <div class="card">
   <h2>التريدة — {{ mtitle }}</h2>
+  <div class="tabs" style="margin:6px 0 10px">
+    <a class="{{ 'on' if view != 'all' }}" href="{{ murl('trade') }}">القاع والأسهم المنتقاه</a>
+    <a class="{{ 'on' if view == 'all' }}" href="{{ murl('trade', view='all') }}">كل الأيام</a>
+  </div>
+  {% if view != 'all' %}
+  <p class="mute"><b>القاع</b> = يوم مفيش فيه ولا سهم من قايمة الإشارات إقفاله موجب، يعني السوق بيعمل قاع.
+    <b>الأسهم المنتقاه</b> = الأسهم اللي السستم يرشحها في أول يوم بعد القاع، وبس. بعد كده مفيش تريدة لحد ما ييجي قاع تاني.
+    الاختيار نفسه زي ما هو: أكبر {{ p.picks }} في النسبة اللي اتلمت عند المستوى وإقفالهم موجب، والشراء مع الفتح في الجلسة اللي بعدها، والبيع مع الهدف {{ p.tp }}٪ أو الإقفال.
+    <span class="note">· {{ n_bottom }} قاع · {{ n_sel }} مرة اتنقت أسهم</span></p>
+  {% if state == 'bottom' %}
+  <div class="banner idle"><b>السوق عامل قاع</b> (آخر قاع {{ last_bottom }}). أول أسهم السستم يرشحها في جلسة جاية هي اللي هتتنقي.</div>
+  {% elif state == 'buy' %}
+  <div class="banner buy"><b>الجلسة الجاية</b> (أول اختيار بعد قاع {{ last_bottom }}): شراء
+    {% for it in last.stocks %}<b>{{ it.pick.name }}</b> <span class="mute">{{ it.pick.sym }}</span>{{ '، ' if not loop.last }}{% endfor %} مع الفتح.</div>
+  {% elif state == 'wait' %}
+  <div class="banner idle">مفيش تريدة دلوقتي: مستنيين القاع الجاي.{% if last_bottom %} آخر قاع كان {{ last_bottom }}.{% endif %}</div>
+  {% endif %}
+  {% else %}
   <p class="mute">كل جلسة بنختار أكبر {{ p.picks }} {{ 'سهم' if p.picks == 1 else 'أسهم' if p.picks <= 10 else 'سهم' }} في <b>النسبة اللي اتلمت عند المستوى</b> من قايمة إشارات اليوم، بشرط إقفالهم يكون موجب. الجلسة اللي بعدها بنشتري <b>مع الفتح</b>، ونبيع مع الهدف {{ p.tp }}٪ أو الإقفال، أيهم الأول. وجنبها نتيجة الشراء مع الفتح والبيع مع الإقفال.</p>
   {% if last and last.stocks and not last.next_date %}
   <div class="banner buy"><b>الجلسة الجاية</b> (اختيار جلسة {{ last.date }}): شراء
     {% for it in last.stocks %}<b>{{ it.pick.name }}</b> <span class="mute">{{ it.pick.sym }}</span>{{ '، ' if not loop.last }}{% endfor %} مع الفتح.</div>
   {% elif last and not last.stocks %}
   <div class="banner idle">جلسة {{ last.date }}: مفيش سهم في قايمة الإشارات إقفاله موجب، فمفيش تريدة الجلسة الجاية.</div>
+  {% endif %}
   {% endif %}
   {% if p.exclude %}<p class="note">مستبعد: <span dir="ltr">{{ p.exclude }}</span> · <a href="{{ murl('index', tab='settings') }}">تعديل</a></p>{% endif %}
   {% if sm %}
@@ -29,11 +49,11 @@
     <tr><th>يوم الاختيار</th><th>السهم</th><th>يوم التريدة</th><th>الشراء (الفتح)</th><th>الهدف</th><th>البيع</th><th>النتيجة</th><th>الإقفال</th><th>من الفتح للإقفال</th></tr>
     {% for r in rows|reverse %}
     {% if not r.stocks %}
-    <tr><td><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a></td><td colspan="8" class="mute">مفيش سهم إقفاله موجب</td></tr>
+    <tr style="background:#fdecea"><td><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a></td><td colspan="8"><b class="neg">قاع</b> <span class="mute">· مفيش سهم إقفاله موجب</span></td></tr>
     {% endif %}
     {% for it in r.stocks %}{% set k = it.pick %}{% set n = it.next %}
     <tr{% if loop.last and not loop.first %} style="border-bottom:2px solid var(--line)"{% endif %}>
-      {% if loop.first %}<td rowspan="{{ r.stocks|length }}" style="vertical-align:top"><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a></td>{% endif %}
+      {% if loop.first %}<td rowspan="{{ r.stocks|length }}" style="vertical-align:top{% if r.selected %};background:#eaf3de{% endif %}"><a href="{{ murl('day', date=r.date) }}">{{ r.date }}</a>{% if r.selected %}<div><span class="pill" style="background:#3B6D11;color:#fff">منتقاه</span></div>{% endif %}</td>{% endif %}
       <td><a href="{{ murl('stock', sym=k.sym) }}">{{ k.sym }}</a> <span class="note">{{ k.name }}</span>
         <form method="post" action="{{ murl('exclude') }}" style="display:inline" onsubmit="return confirm('تستبعدي {{ k.sym }} من التريدة؟')"><input type="hidden" name="sym" value="{{ k.sym }}"><button class="danger" style="margin-right:6px">استبعاد</button></form></td>
       {% if not n %}
