@@ -70,7 +70,7 @@ def weekly(store, weeks=12, end=None):
     t['bign'] = t['bigb'] - t['bigs']
     w = t.groupby(['sym', 'wk']).agg(val=('val', 'sum'), bign=('bign', 'sum'), bigok=('bigb', lambda v: v.notna().all()),
                                      c=('last', 'last'), days=('date', 'nunique')).reset_index()
-    w = w[w['days'] >= 2].sort_values(['sym', 'wk'])  # أسبوع فيه جلسة واحدة مالوش معنى
+    w = w[(w['days'] >= 2) & (w['val'] > 0)].sort_values(['sym', 'wk'])  # أسبوع فيه جلسة واحدة مالوش معنى
     w['vday'] = w['val'] / w['days']
     # السوق كله: تداول الأسبوع كام ضعف آخر ١٢ أسبوع
     m = w.groupby('wk')['val'].sum() / w.groupby('wk')['days'].max()
@@ -80,6 +80,7 @@ def weekly(store, weeks=12, end=None):
     w['mult'] = w['vday'] / base / w['wk'].map(mm)
     w['bn'] = np.where(w['bigok'], w['bign'] / w['val'], np.nan)
     w['ret'] = w.groupby('sym')['c'].pct_change()
+    w = w.replace([np.inf, -np.inf], np.nan)
     allw = sorted(w['wk'].unique())
     if end:
         allw = [k for k in allw if str(k.end_time.date()) <= end] or allw
