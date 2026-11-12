@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}أول ربع ساعة{% endblock %}
+{% block body %}
+<style>
+main{max-width:none}
+.dy{margin-bottom:18px;border-top:1px solid var(--line);padding-top:10px}
+.dy h3{margin:0 0 8px;font-size:16px;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.dy h3 .m{font-size:14px;font-weight:600}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media(max-width:1000px){.two{grid-template-columns:1fr}}
+.ht{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.ht th,.ht td{border:1px solid var(--line);padding:3px 6px;text-align:center;white-space:nowrap}
+.ht th{background:#f3f5f9;font-weight:600}
+.ht td.s{text-align:right;font-weight:700}
+.ht td.s span{font-weight:400;color:var(--mute);font-size:11px}
+.ht caption{text-align:right;font-weight:700;padding:4px 0}
+.up{color:#138a5e;font-weight:700}.dn{color:#c53030;font-weight:700}
+.live{background:#e8a317;color:#fff;border-radius:6px;padding:0 8px;font-size:12px}
+.sm{background:#f6f8fb;border-radius:8px;padding:8px 12px;font-size:14px;margin-bottom:10px;line-height:1.9}
+.none{color:var(--mute);font-size:13px;padding:4px 0}
+</style>
+{% macro pct(v) %}{% if v is none %}—{% else %}<span class="{{ 'up' if v > 0 else ('dn' if v < 0 else '') }}">{{ '%+.1f'|format(v) }}٪</span>{% endif %}{% endmacro %}
+{% macro tbl(rows, title, live) %}
+<table class="ht">
+  <caption>{{ title }} ({{ rows|length }})</caption>
+  {% if rows %}
+  <tr><th style="text-align:right">السهم</th><th>فلوس أول ربع ساعة (مليون)</th><th>سعر ١٠:١٥</th><th>لحد ١٠:١٥</th>{% if not live %}<th>الإقفال</th><th>من ١٠:١٥ للإقفال</th><th>إقفال بكره</th><th>من ١٠:١٥ لإقفال بكره</th>{% endif %}</tr>
+  {% for r in rows %}
+  <tr><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
+    <td>{{ r.val }}</td><td>{{ r.p15 }}</td><td>{{ pct(r.g15) }}</td>
+    {% if not live %}<td>{{ r.c }}</td><td>{{ pct(r.rest) }}</td><td>{{ r.nc if r.nc is not none else '—' }}</td><td>{{ pct(r.hold) }}</td>{% endif %}</tr>
+  {% endfor %}
+  {% else %}<tr><td class="none" style="border:none">مفيش</td></tr>{% endif %}
+</table>
+{% endmacro %}
+<div class="card">
+  <form method="get" style="margin-bottom:10px;font-size:14px">
+    <label>المدة <select style="width:auto" name="n" onchange="this.form.submit()">
+      {% for v,t in [(20,'آخر ٢٠ جلسة'),(60,'آخر ٦٠ جلسة'),(120,'آخر ١٢٠ جلسة'),(0,'كل الفترة')] %}<option value="{{ v }}" {{ 'selected' if n == v }}>{{ t }}</option>{% endfor %}
+    </select></label>
+  </form>
+  <div class="sm">
+    {% for k,t in [('down','نزل ٢٪ أو أكتر لحد ١٠:١٥'),('up','طلع ٥٪ أو أكتر لحد ١٠:١٥'),('all','أي سهم')] %}{% set z = summ[k] %}{% if z %}
+    <div><b>{{ t }}:</b> {{ z.n }} مرة · من سعر ١٠:١٥ لإقفال بكره كسبان في {{ z.win }}٪ (الوسيط {{ pct(z.med) }}) · لحد الإقفال نفس اليوم الوسيط {{ pct(z.rest) }}</div>
+    {% endif %}{% endfor %}
+  </div>
+  {% for d in days %}
+  <div class="dy">
+    <h3>{{ d.date }}
+      {% if d.live %}<span class="live">الجلسة لسه شغالة</span>
+      {% elif d.mret is not none %}<span class="m">السوق قفل {{ pct(d.mret) }}</span>{% endif %}
+    </h3>
+    <div class="two">{{ tbl(d.down, 'نزل ٢٪ أو أكتر', d.live) }}{{ tbl(d.up, 'طلع ٥٪ أو أكتر', d.live) }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

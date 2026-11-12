@@ -396,8 +396,37 @@ def upload_noon():
         prev = store.load(before[-1])[0]['last'].to_dict() if before else {}
         df = engine.read_sigma(csv, prev, engine.sigma_names())
         st = engine.day_stats(df)
-    st.reset_index()[['sym', 'name', 'open', 'h1vol', 'h1b', 'h1s', 'p11', 'h1val']].to_csv(out / f'{date}.csv', index=False)
+    kind = request.form.get('kind') or request.args.get('kind') or 'noon'
+    if kind == 'm15':
+        out = MARKETS['egx']['root'] / 'm15'
+        out.mkdir(parents=True, exist_ok=True)
+        st.reset_index()[['sym', 'name', 'open', 'p15', 'val15']].to_csv(out / f'{date}.csv', index=False)
+    else:
+        st.reset_index()[['sym', 'name', 'open', 'h1vol', 'h1b', 'h1s', 'p11', 'h1val']].to_csv(out / f'{date}.csv', index=False)
     return 'تمام', 200
+
+
+def m15_table():
+    d = MARKETS['egx']['root'] / 'm15'
+    fs = sorted(d.glob('*.csv')) if d.exists() else []
+    if not fs:
+        return None
+    t = pd.read_csv(fs[-1], dtype={'sym': str})
+    t['date'] = fs[-1].stem
+    return t
+
+
+@app.route('/m15')
+@auth
+def m15_page():
+    n = request.args.get('n', '20')
+    n = int(n) if n.isdigit() else 0
+    try:
+        days, summ = flowsig.m15(STORES['egx'], m15_table())
+    except Exception:
+        app.logger.exception('m15')
+        days, summ = [], {}
+    return render_template('m15.html', days=days[:n] if n else days, summ=summ, n=n)
 
 
 @app.route('/bigsell')

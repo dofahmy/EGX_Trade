@@ -56,12 +56,12 @@ def _build(store, dates):
             continue
         cols = ['name', 'open', 'hi', 'lo', 'last', 'prev', 'chg', 'vol', 'val_m', 'n']
         x = st[[c for c in cols if c in st]].copy()
-        for c in ('h1vol', 'h1b', 'h1s', 'p12', 'p11', 'h1val'):
+        for c in ('h1vol', 'h1b', 'h1s', 'p12', 'p11', 'h1val', 'p15', 'val15'):
             x[c] = st[c] if c in st else np.nan
         if len(sd):
             try:
                 s = sd.loc[d]
-                for c in ('h1vol', 'h1b', 'h1s', 'p12', 'p11', 'h1val'):
+                for c in ('h1vol', 'h1b', 'h1s', 'p12', 'p11', 'h1val', 'p15', 'val15'):
                     if c in s and x[c].isna().all():
                         x[c] = s[c].reindex(x.index)
             except KeyError:
@@ -214,3 +214,76 @@ def _live(t, noon):
     x = x.reset_index()
     b, s = _pick(x)
     return dict(date=noon['date'].iloc[0], live=True, mret=None, buy=_rows(b, True), sell=_rows(s, True))
+
+
+# ---------------- صفحة أول ربع ساعة ----------------
+# اتختبرت على سبتمبر ٢٠٢٥ لنوفمبر ٢٠٢٦ (٢٦٠ جلسة):
+# - السهم اللي نزل ٢٪ أو أكتر لحد ١٠:١٥: من سعر ١٠:١٥ لإقفال بكره وسيط +٠٫٨٪، وكسبان ٥٧٪ (أي سهم: −٠٫٣٪ و٤٣٪).
+# - السهم اللي طلع ٥٪ أو أكتر لحد ١٠:١٥: من سعر ١٠:١٥ لإقفال بكره وسيط −٢٫٢٪، وكسبان ٣٦٪ بس.
+DOWN15 = -2.0
+UP15 = 5.0
+
+
+def _pick15(t):
+    ok = (~t['thin']) & t['p15'].notna() & (t['med'] >= MIN_VAL) & (t['gap'] <= 0.2) & (t['prev'] > 0)
+    z = t[ok].copy()
+    z['g15'] = (z['p15'] / z['prev'] - 1) * 100
+    z['rest'] = (z['last'] / z['p15'] - 1) * 100
+    z['hold'] = (z['nlast'] / z['p15'] - 1) * 100
+    return z[z['g15'] <= DOWN15], z[z['g15'] >= UP15]
+
+
+def _rows15(z, live=False):
+    z = z.sort_values('val15', ascending=False)
+    f = lambda v, n=2: None if pd.isna(v) else round(float(v), n)
+    return [dict(sym=r.sym, name=str(r.name) if isinstance(r.name, str) else '', val=f(r.val15 / 1e6, 1),
+                 p15=f(r.p15, 3), g15=f(r.g15, 1),
+                 c=None if live else f(r.last, 3), rest=None if live else f(r.rest, 1),
+                 nc=None if live else f(r.nlast, 3), hold=None if live else f(r.hold, 1))
+            for r in z.itertuples()]
+
+
+def m15(store, live=None):
+    t, m = table(store)
+    if t.empty:
+        return [], {}
+    if 'name' not in t:
+        t['name'] = ''
+    t = t.copy()
+    t['nlast'] = t.groupby('sym')['last'].shift(-1)
+    dn, up = _pick15(t)
+    days = []
+    for d in sorted(t['date'].unique(), reverse=True):
+        days.append(dict(date=d, live=False, mret=round(float(m.at[d, 'ret']) * 100, 2) if d in m.index else None,
+                         down=_rows15(dn[dn['date'] == d]), up=_rows15(up[up['date'] == d])))
+
+    def st(z):
+        z = z[z['hold'].notna()]
+        if not len(z):
+            return None
+        return dict(n=int(len(z)), win=round(float((z['hold'] > 0).mean() * 100)), med=round(float(z['hold'].median()), 2),
+                    rest=round(float(z['rest'].median()), 2))
+    a = t[t['p15'].notna() & (t['med'] >= MIN_VAL) & ~t['thin']].copy()
+    a['hold'] = (a['nlast'] / a['p15'] - 1) * 100
+    a['rest'] = (a['last'] / a['p15'] - 1) * 100
+    summ = dict(down=st(dn), up=st(up), all=st(a))
+    if live is not None and len(live) and (not days or live['date'].iloc[0] > days[0]['date']):
+        days.insert(0, _live15(t, live))
+    return days, summ
+
+
+def _live15(t, live):
+    s = t.sort_values('date')
+    last = s.groupby('sym').tail(1).set_index('sym')
+    med = s.groupby('sym')['val_m'].apply(lambda v: v.tail(20).median() if len(v) >= 10 else np.nan) * 1e6
+    n = live.set_index('sym')
+    x = pd.DataFrame({'name': n.get('name', ''), 'open': n['open'], 'p15': n['p15'], 'val15': n['val15']})
+    x['prev'] = last['last'].reindex(x.index)
+    x['med'] = med.reindex(x.index)
+    x['gap'] = (x['open'] / x['prev'] - 1).abs()
+    x['thin'] = False
+    x['last'] = np.nan
+    x['nlast'] = np.nan
+    x = x.reset_index().rename(columns={'index': 'sym'})
+    dn, up = _pick15(x)
+    return dict(date=live['date'].iloc[0], live=True, mret=None, down=_rows15(dn, True), up=_rows15(up, True))

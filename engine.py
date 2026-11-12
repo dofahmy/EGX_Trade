@@ -267,6 +267,9 @@ def day_stats(df: pd.DataFrame, thr2: dict = None) -> pd.DataFrame:
         st['h1s'] = h[hs < 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
         st['p12'] = d[d['secs'] < 12 * 3600].groupby('sym')['price'].last().reindex(st.index)
         st['p11'] = h.groupby('sym')['price'].last().reindex(st.index)
+        q = d[d['secs'] < 10 * 3600 + 15 * 60]          # أول ربع ساعة
+        st['p15'] = q.groupby('sym')['price'].last().reindex(st.index)
+        st['val15'] = (q['price'] * q['vol']).groupby(q['sym']).sum().reindex(st.index).round(0)
         st['h1val'] = (h['price'] * h['vol']).groupby(h['sym']).sum().reindex(st.index).round(0)
     # الصفقات الكبيرة: قيمتها وشراها وبيعها (الحد لكل سهم من big_thr.csv، ولو سهم جديد: أعلى ١٠٪ من صفقاته في اليوم)
     try:
