@@ -26,9 +26,9 @@ main{max-width:none}
     </select></label>
   </form>
   <div class="lgd">
-    <span>الرقم = التداول كام ضعف المعتاد</span>
-    <span><i style="background:#1baf7a"></i>الكبار بيشتروا</span>
-    <span><i style="background:#e34948"></i>الكبار بيبيعوا</span>
+    <span>الرقم = تداول السهم كام ضعف آخر ١٢ أسبوع ليه، بعد ما نشيل حركة السوق</span>
+    <span><i style="background:#e34948"></i>٣ أضعاف أو أكتر والكبار بيبيعوا</span>
+    <span><i style="background:#9fdcc3"></i>٣ أضعاف أو أكتر والكبار بيشتروا</span>
     <span>تحت الرقم: تغير السعر في الأسبوع</span>
   </div>
   {% for g in groups %}
@@ -40,12 +40,11 @@ main{max-width:none}
       <tr><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
         {% for c in r.cells %}
           {% if c %}
-            {% set a = ([c.m, 12]|min) / 12 %}
-            {% if c.bn is none %}{% set bg = '#f3f5f9' %}
-            {% elif c.bn >= 5 %}{% set bg = 'rgba(27,175,122,' ~ (0.15 + 0.7 * a) ~ ')' %}
-            {% elif c.bn <= -5 %}{% set bg = 'rgba(227,73,72,' ~ (0.15 + 0.7 * a) ~ ')' %}
-            {% else %}{% set bg = 'rgba(136,135,128,' ~ (0.08 + 0.4 * a) ~ ')' %}{% endif %}
-            <td style="background:{{ bg }}" title="صافي الكبار {{ c.bn if c.bn is not none else '—' }}٪"><b>{{ c.m }}</b><div class="r">{% if c.r is not none %}{{ '%+.0f'|format(c.r) }}٪{% endif %}</div></td>
+            {% set mv = c.m if c.m is not none else 0 %}
+            {% if mv >= 3 and c.bn is not none and c.bn <= -5 %}{% set bg = '#e34948' %}{% set fg = '#fff' %}
+            {% elif mv >= 3 and c.bn is not none and c.bn >= 5 %}{% set bg = '#9fdcc3' %}{% set fg = '' %}
+            {% else %}{% set bg = 'rgba(136,135,128,' ~ (0.04 + 0.3 * ([mv, 3]|min) / 3) ~ ')' %}{% set fg = '' %}{% endif %}
+            <td style="background:{{ bg }};color:{{ fg }}" title="صافي الكبار {{ c.bn if c.bn is not none else '—' }}٪"><b>{{ c.m if c.m is not none else '' }}</b><div class="r">{% if c.r is not none %}{{ '%+.0f'|format(c.r) }}٪{% endif %}</div></td>
           {% else %}<td></td>{% endif %}
         {% endfor %}
       </tr>

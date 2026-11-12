@@ -70,8 +70,14 @@ def weekly(store, weeks=12, end=None):
     t['bign'] = t['bigb'] - t['bigs']
     w = t.groupby(['sym', 'wk']).agg(val=('val', 'sum'), bign=('bign', 'sum'), bigok=('bigb', lambda v: v.notna().all()),
                                      c=('last', 'last'), days=('date', 'nunique')).reset_index()
+    w = w[w['days'] >= 2].sort_values(['sym', 'wk'])  # أسبوع فيه جلسة واحدة مالوش معنى
     w['vday'] = w['val'] / w['days']
-    w['mult'] = w['vday'] / w.groupby('sym')['vday'].transform('median')
+    # السوق كله: تداول الأسبوع كام ضعف آخر ١٢ أسبوع
+    m = w.groupby('wk')['val'].sum() / w.groupby('wk')['days'].max()
+    mm = m / m.shift(1).rolling(12, min_periods=4).median()
+    # السهم: تداول الأسبوع كام ضعف آخر ١٢ أسبوع ليه هو، مقسوم على السوق
+    base = w.groupby('sym')['vday'].transform(lambda v: v.shift(1).rolling(12, min_periods=4).median())
+    w['mult'] = w['vday'] / base / w['wk'].map(mm)
     w['bn'] = np.where(w['bigok'], w['bign'] / w['val'], np.nan)
     w['ret'] = w.groupby('sym')['c'].pct_change()
     allw = sorted(w['wk'].unique())
@@ -88,14 +94,14 @@ def weekly(store, weeks=12, end=None):
             for k in wks:
                 if k in x.index:
                     r = x.loc[k]
-                    cells.append(dict(m=round(float(r['mult']), 1),
+                    cells.append(dict(m=None if pd.isna(r['mult']) else round(float(r['mult']), 1),
                                       bn=None if pd.isna(r['bn']) else round(float(r['bn']) * 100),
                                       r=None if pd.isna(r['ret']) else round(float(r['ret']) * 100, 1)))
                 else:
                     cells.append(None)
             rows.append(dict(sym=s, name=str(names.get(s, '')), cells=cells))
-        last = [(r['cells'][-1] or {}).get('m', 0) for r in rows]
-        hot = [rows[i]['sym'] for i in np.argsort(last)[::-1] if last[i] >= 5][:3]
+        last = [((r['cells'][-1] or {}).get('m') or 0) for r in rows]
+        hot = [rows[i]['sym'] for i in np.argsort(last)[::-1] if last[i] >= 3][:3]
         out.append(dict(members=g['members'], sim=g.get('sim'), title=g.get('title'), rows=rows, hot=hot))
     labels = [str(k.end_time.date())[2:] for k in wks]
     ends = [str(k.end_time.date()) for k in sorted(w['wk'].unique())]
