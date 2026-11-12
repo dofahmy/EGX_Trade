@@ -349,6 +349,56 @@ def chart(sym):
     return render_template('chart.html', sym=sym, name=name, data=data)
 
 
+@app.route('/h11')
+@auth
+def h11_page():
+    store = STORES['egx']
+    n = request.args.get('n', '60')
+    n = int(n) if n.isdigit() else 0
+    try:
+        days, summ = flowsig.h11(store, noon_table())
+    except Exception:
+        app.logger.exception('h11')
+        days, summ = [], {}
+    return render_template('h11.html', days=days[:n] if n else days, summ=summ, n=n)
+
+
+def noon_table():
+    """آخر ملف ساعة ١١ اترفع (لو لسه الجلسة الكاملة ماترفعتش)."""
+    d = MARKETS['egx']['root'] / 'noon'
+    fs = sorted(d.glob('*.csv')) if d.exists() else []
+    if not fs:
+        return None
+    t = pd.read_csv(fs[-1], dtype={'sym': str})
+    t['date'] = fs[-1].stem
+    return t
+
+
+@app.route('/upload_noon', methods=['POST'])
+@auth
+def upload_noon():
+    """ملف صفقات الساعة الأولى من البرنامج اللي على الجهاز: بنحسب منه الساعة الأولى لكل سهم ونخزنه."""
+    store = STORES['egx']
+    f = request.files.get('file')
+    if not f:
+        return 'مفيش ملف', 400
+    out = MARKETS['egx']['root'] / 'noon'
+    out.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / ('x' + (Path(f.filename or '').suffix.lower() or '.csv'))
+        f.save(p)
+        got = engine.sigma_files(p, Path(td))
+        if not got:
+            return 'الملف مش ملف صفقات سيجما', 400
+        date, csv = sorted(got.items())[-1] if isinstance(got, dict) else got[-1]
+        before = [x for x in store.dates() if x < date]
+        prev = store.load(before[-1])[0]['last'].to_dict() if before else {}
+        df = engine.read_sigma(csv, prev, engine.sigma_names())
+        st = engine.day_stats(df)
+    st.reset_index()[['sym', 'name', 'open', 'h1vol', 'h1b', 'h1s', 'p11', 'h1val']].to_csv(out / f'{date}.csv', index=False)
+    return 'تمام', 200
+
+
 @app.route('/groups')
 @auth
 def groups_page():

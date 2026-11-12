@@ -266,6 +266,8 @@ def day_stats(df: pd.DataFrame) -> pd.DataFrame:
         st['h1b'] = h[hs > 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
         st['h1s'] = h[hs < 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
         st['p12'] = d[d['secs'] < 12 * 3600].groupby('sym')['price'].last().reindex(st.index)
+        st['p11'] = h.groupby('sym')['price'].last().reindex(st.index)
+        st['h1val'] = (h['price'] * h['vol']).groupby(h['sym']).sum().reindex(st.index).round(0)
     # الصفقات الكبيرة: قيمتها وشراها وبيعها (الحد لكل سهم من big_thr.csv، ولو سهم جديد: أعلى ١٠٪ من صفقاته في اليوم)
     try:
         d2 = df[['sym', 'price', 'val'] + (['seq'] if 'seq' in df else [])]
