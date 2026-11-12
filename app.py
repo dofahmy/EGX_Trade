@@ -377,7 +377,7 @@ def candles_page():
             if bool(row['cluster']):
                 t = flowsig.table(store)[0]
                 top = t[(t['date'] == d) & t['buy']].sort_values('g12', ascending=False)['sym'].head(3).tolist()
-            mk = dict(d=d, nb=int(row['nb']), ns=int(row['ns']), dd=round(float(row['dd']), 1),
+            mk = dict(d=d, nb=int(row['nb']), ns=int(row['ns']), net=int(row['net']), dd=round(float(row['dd']), 1),
                       cluster=bool(row['cluster']), top=top, h1=bool(row['h1']))
     sel = (request.args.get('sym') or (stocks[0]['sym'] if stocks else '')).upper()
     return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None, mk=mk)

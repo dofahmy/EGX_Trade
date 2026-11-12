@@ -37,10 +37,8 @@ main{max-width:none}
       {% if not mk.h1 %}
         بيانات الساعة الأولى مش موجودة للجلسة دي (اترفعت بنسخة قديمة). ارفعيها تاني.
       {% else %}
-        المشتري مسيطر على الساعة الأولى في <b>{{ mk.nb }}</b> سهم، والبياع في <b>{{ mk.ns }}</b> سهم.
-        السوق {{ 'عند أعلى مستوى في ٢٠ جلسة' if mk.dd >= -0.5 else 'نازل ' ~ (-mk.dd) ~ '٪ من أعلى مستوى في ٢٠ جلسة' }}.
-        {% if mk.cluster %}<br>✅ <b>يوم إشارة على السوق</b>{% if mk.top %} · أعلى ٣ صعودًا لحد الساعة ١٢: <b>{{ mk.top|join('، ') }}</b>{% endif %}{% if mk.dd <= -4 %} · وبعد نزول، يعني قاع محتمل{% endif %}
-        {% else %} مش يوم إشارة (محتاج ١٠ أسهم أو أكتر).{% endif %}
+        المشتري مسيطر على الساعة الأولى في <b>{{ mk.nb }}</b> سهم، والبياع في <b>{{ mk.ns }}</b> سهم، والصافي <b>{{ mk.net }}</b>.
+        {% if mk.cluster %}✅ <b>يوم شراء</b> على الأسهم اللي المشتري مسيطر فيها.{% else %}مش يوم شراء (محتاج الصافي ١٠ أو أكتر).{% endif %}
       {% endif %}
     </div>
     {% endif %}
@@ -50,23 +48,12 @@ main{max-width:none}
     </div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:8px 0">
       <label class="note" style="flex-direction:row;align-items:center;gap:6px">الفترة <select id="cc-n"><option value="30">آخر ٣٠ جلسة</option><option value="60" selected>آخر ٦٠ جلسة</option><option value="120">آخر ١٢٠ جلسة</option><option value="9999">كل الجلسات</option></select></label>
-      <span class="note" style="display:flex;flex-wrap:wrap;gap:4px 14px">
-        <span class="lg"><span class="kb k1">شراء</span></span><span class="lg"><span class="kb k2">خروج</span></span><span class="lg"><span class="kb k3">راقب</span></span><span class="lg"><span class="kb k4">حذر</span></span><span class="lg"><span class="kb k5">حد</span></span><span class="lg"><span class="kb" style="background:#1baf7a">كمّل</span></span><span class="lg"><span class="kb" style="background:#888780">ما كمّلش</span></span>
-        <span class="lg">معناها في الجدول اللي تحت الرسم</span>
-      </span>
+      <span class="note lg"><svg width="12" height="12"><polygon points="6,1 11,11 1,11" fill="#1baf7a"/></svg><b style="color:#0d6b49">شراء</b>: يوم الصافي فيه ١٠ أو أكتر، والمشتري مسيطر على الساعة الأولى في السهم ده</span>
     </div>
     <div id="cc-wrap" style="overflow-x:auto;direction:ltr"><svg id="cc"></svg></div>
-    <table id="cv-key" style="margin-top:8px;font-size:13px;width:100%;table-layout:fixed;border-collapse:collapse">
-      <tr><th style="width:46px">رقم</th><th style="width:76px">الكلمة</th><th>معناها</th><th>نتيجتها في الاختبار (١٣ شهر)</th></tr>
-      <tr><td><span class="kb k1">١</span></td><td><b>شراء</b></td><td>يوم إشارة على السوق (١٠ أسهم أو أكتر المشتري مسيطر على ساعتها الأولى)، والسهم من أعلى ٣ صعودًا لحد الساعة ١٢، وقفل في النص الفوقاني من شمعته. الشراء بسعر الساعة ١٢.</td><td>٦٣ صفقة، ٥٧٪ منها كسبانة بعد ١٠ جلسات، والمتوسط ‎+١٠٪. المكسب الكبير جاي من صفقات قليلة، فلازم تدخلي كل الإشارات مش تنتقي.</td></tr>
-      <tr><td><span class="kb k1">١</span></td><td><b>شراء ضعيف</b></td><td>نفس الشروط، بس السهم قفل في النص التحتاني من شمعته، يعني البياع خد الجلسة لآخرها. بتتقفل تاني يوم الساعة ١٢.</td><td>١٥ صفقة. القفل تاني يوم الساعة ١٢ خسر في المتوسط ‎-٠٫٧٪، والاحتفاظ ١٠ جلسات كان هيخسر ‎-٤٫٨٪.</td></tr>
-      <tr><td><span class="kb k2">٢</span></td><td><b>خروج</b> / <b>خروج ١٢</b></td><td>«خروج»: بعد ١٠ جلسات من الشراء، بسعر الإغلاق. «خروج ١٢»: تاني يوم الساعة ١٢ للشراء الضعيف. ومكتوب فوقها الصفقة عملت كام.</td><td>القاعدتين مع بعض: ٧٨ صفقة، المتوسط ‎+٨٪ بعد التكلفة، بدل ‎+٧٫٣٪ لو كله اتساب ١٠ جلسات. والخروج بالوقت كان أحسن من وقف الخسارة.</td></tr>
-      <tr><td><span class="kb k3">٣</span></td><td><b>راقب</b></td><td>المشتري سيطر على الساعة الأولى في السهم، بس اليوم مش يوم إشارة على السوق، أو السهم مش من أعلى ٣.</td><td>مش إشارة شراء لوحدها. السهم بيعمل أحسن من المعتاد بشوية بس.</td></tr>
-      <tr><td><span class="kb k4">٤</span></td><td><b>حذر</b></td><td>البياع سيطر على الساعة الأولى في السهم.</td><td>ما اتختبرتش لوحدها على السهم. على السوق كله، أيام البياع اتجمعت في نزول سبتمبر وأكتوبر.</td></tr>
-      <tr><td><span class="kb k5">٥</span></td><td><b>حد</b> ← <b>كمّل</b> / <b>ما كمّلش</b></td><td>«حد» على الشمعة اللي قفلت بالحد الأقصى. وعلى الجلسة اللي بعدها: «كمّل» لو طلعت ١٠٪ أو أكتر، و«ما كمّلش» لو لأ.</td><td>معلومة، مش إشارة شراء ولا بيع. لو ماسكة السهم: خليكي طول ما بيكمّل، وأول جلسة «ما كمّلش» بيعي الجلسة اللي بعدها الساعة ١٢ (٣٥ مرة: وسيط ‎+٢٫٦٪، و٥٧٪ كسبانة). لو مش ماسكاه: «ما كمّلش» مش معناها إن السهم هينزل.</td></tr>
-    </table>
-    <p class="note">الكلمات دي قواعد اتختبرت على الداتا اللي فاتت، مش توصية. لما الشمعة تبقى ضيقة بيظهر الرقم بدل الكلمة.
-      اللوحة اللي تحت الشموع: عدد أسهم السوق كله اللي المشتري مسيطر فيها على الساعة الأولى (فوق) واللي البياع مسيطر فيها (تحت). الخط عند ١٠.</p>
+    <p class="note"><b>القاعدة:</b> اللوحة اللي تحت الشموع هي الصافي كل جلسة: عدد أسهم السوق كله اللي المشتري مسيطر على ساعتها الأولى، ناقص عدد اللي البياع مسيطر عليها
+      (مسيطر = ٦٠٪ من كمية الساعة الأولى أو أكتر، والكمية أكبر من الجلسة اللي قبلها كلها). لما الصافي يعدّي ١٠ يبقى يوم شراء، و«شراء» بتظهر على الأسهم اللي المشتري مسيطر فيها اليوم ده.<br>
+      <b>في الاختبار (١٣ شهر):</b> ١٤ يوم شراء، و١٧٠ سهم اتعلّم عليهم. بعد ٢٠ جلسة: ٦٣٪ منهم كانوا أعلى، والمتوسط ‎+٧٫٨٪ (الوسيط ‎+٣٫٣٪)، مقابل ٥٣٪ و‎+٣٫٤٪ لأي سهم في أي يوم. ده تحليل للداتا اللي فاتت، مش توصية.</p>
     <div id="cv-notes" class="cv-notes"></div>
   </div>
   <div class="cv-side card">
@@ -75,7 +62,7 @@ main{max-width:none}
     <div class="cv-list" id="cv-list">
       {% for s in stocks %}
       <div class="cv-row{{ ' on' if s.sym == sel }}" data-sym="{{ s.sym }}" data-q="{{ (s.sym ~ ' ' ~ s.name)|lower }}">
-        <div style="min-width:0"><div class="s">{{ s.sym }}</div><div class="n">{{ s.name }}</div>{% if s.sig %}<div class="sg">إشارة {{ s.sig[5:] }}</div>{% endif %}</div>
+        <div style="min-width:0"><div class="s">{{ s.sym }}</div><div class="n">{{ s.name }}</div>{% if s.sig %}<div class="sg">شراء {{ s.sig[5:] }}</div>{% endif %}</div>
         <div class="p">{{ s.last }}<div class="{{ 'pos' if s.chg and s.chg > 0 else 'neg' if s.chg and s.chg < 0 else 'mute' }}" style="font-size:12px">{% if s.chg is not none %}{{ '%+.2f'|format(s.chg) }}٪{% endif %}</div></div>
       </div>
       {% endfor %}
@@ -99,32 +86,10 @@ function hover(e, html){
 }
 let ALL = [];
 const HOLD = 10;
-const ACT = {1: ['شراء', '#1baf7a'], 2: ['خروج', '#14213d'], 3: ['راقب', '#2a78d6'], 4: ['حذر', '#e34948'], 5: ['', '#e8a317']};
+const ACT = {1: ['شراء', '#1baf7a'], 2: ['خروج', '#14213d'], 3: ['راقب', '#2a78d6'], 4: ['حذر', '#e34948'], 5: ['حد', '#e8a317'], 6: ['كمّل', '#0d6b49'], 7: ['ما كمّلش', '#888780']};
 function actions(A){
-  // لكل شمعة: الكلمات اللي عليها، والصفقات (شراء الساعة ١٢ وخروج بعد ١٠ جلسات)
-  A.forEach(d => { d.acts = []; });
-  const trades = [];
-  A.forEach((d, i) => {
-    if (d.buy && d.cluster && d.rank && d.rank <= 3 && d.p12){
-      // شراء ضعيف: البياع خد الجلسة لآخرها (الإغلاق في النص التحتاني من الشمعة) → نقفل تاني يوم الساعة ١٢
-      const weak = d.h > d.l && (d.c - d.l) / (d.h - d.l) < 0.5;
-      d.acts.push({k: 1, w: weak ? 'شراء ضعيف' : 'شراء', up: true});
-      const j = i + (weak ? 1 : HOLD);
-      let ok = true;
-      for (let q = i + 1; q <= Math.min(j, A.length - 1); q++) if (A[q].gap > 0.2) ok = false;
-      const t = {i, j, entry: d.p12, d: d.d, ok, weak};
-      if (j < A.length){
-        t.exit = weak ? (A[j].p12 || A[j].c) : A[j].c; t.xd = A[j].d; t.ret = ok ? (t.exit / t.entry - 1) * 100 : null;
-        A[j].acts.push({k: 2, w: weak ? 'خروج ١٢' : 'خروج', up: false, ret: t.ret});
-      } else { t.left = j - (A.length - 1); t.now = A[A.length - 1].c; t.cur = ok ? (t.now / t.entry - 1) * 100 : null; }
-      trades.push(t);
-    } else if (d.buy) d.acts.push({k: 3, w: 'راقب', up: true});
-    if (d.sell) d.acts.push({k: 4, w: 'حذر', up: false});
-    if (d.limit) d.acts.push({k: 5, w: 'حد', up: true});
-    // الجلسة اللي بعد الحد: كمّلت ١٠٪ أو أكتر ولا لأ (الكلمة على الشمعة نفسها اللي كمّلت أو ما كمّلتش)
-    if (i > 0 && A[i - 1].limit) d.acts.push({k: 5, w: d.chg >= 10 ? 'كمّل' : 'ما كمّلش', up: true});
-  });
-  return trades;
+  A.forEach(d => { d.acts = (d.buy && d.cluster) ? [{k: 1}] : []; });
+  return [];
 }
 let TRADES = [];
 function draw(){
@@ -135,10 +100,11 @@ function draw(){
   const wrapW = document.getElementById('cc-wrap').clientWidth || 800;
   const PADL = 60, PADT = 64, H1 = 360, GAP = 34, H2 = 120, PB = 26;
   const H = PADT + H1 + 44 + GAP + H2 + PB;
-  const step = Math.max(12, Math.min(60, (wrapW - PADL - 20) / D.length));
+  const step = Math.max(5, Math.min(60, (wrapW - PADL - 20) / D.length));
   const W = PADL + step * D.length + 20;
   svg.setAttribute('width', W); svg.setAttribute('height', H);
-  let lo = Math.min(...D.map(d => d.l)), hi = Math.max(...D.map(d => d.h));
+  const LO = d => Math.max(d.l, Math.min(d.o, d.c) * 0.8), HI = d => Math.min(d.h, Math.max(d.o, d.c) * 1.25);
+  let lo = Math.min(...D.map(LO)), hi = Math.max(...D.map(HI));
   const pad = (hi - lo) * 0.06 || hi * 0.01; lo -= pad; hi += pad;
   const y = v => PADT + (hi - v) / (hi - lo) * H1;
   const BOT = 44;   // مساحة تحت الشموع لكلمة «حذر»
@@ -149,56 +115,32 @@ function draw(){
   }
   // لوحة السوق
   const T2 = PADT + H1 + BOT + GAP, mid = T2 + H2 / 2;
-  const mx = Math.max(12, ...D.map(d => Math.max(d.nb, d.ns)));
+  const mx = Math.max(12, ...D.map(d => Math.abs(d.net)));
   const yb = v => mid - v / mx * (H2 / 2 - 4);
   el('line', {x1: PADL, x2: W - 10, y1: mid, y2: mid, stroke: '#c9ccd4'}, svg);
   el('line', {x1: PADL, x2: W - 10, y1: yb(10), y2: yb(10), stroke: '#1baf7a', 'stroke-dasharray': '4 3'}, svg);
   el('text', {x: PADL - 6, y: yb(10) + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#0d6b49'}, svg).textContent = '١٠';
-  el('text', {x: PADL - 6, y: T2 + 10, 'text-anchor': 'end', 'font-size': 10, fill: '#6b7385'}, svg).textContent = 'مشتري';
-  el('text', {x: PADL - 6, y: T2 + H2, 'text-anchor': 'end', 'font-size': 10, fill: '#6b7385'}, svg).textContent = 'بياع';
+  el('text', {x: PADL - 6, y: T2 - 2, 'text-anchor': 'end', 'font-size': 10, fill: '#6b7385'}, svg).textContent = 'الصافي';
+  
   const every = Math.ceil(40 / step), bw = Math.max(2, step * 0.6);
   D.forEach((d, i) => {
     const x = PADL + step * i + step / 2;
     const up = d.c >= d.o, c = up ? UP : DN;
-    el('line', {x1: x, x2: x, y1: y(d.h), y2: y(d.l), stroke: c, 'stroke-width': 1.3}, svg);
+    el('line', {x1: x, x2: x, y1: y(HI(d)), y2: y(LO(d)), stroke: c, 'stroke-width': 1.3}, svg);
     const top = y(Math.max(d.o, d.c)), hh = Math.max(1.5, Math.abs(y(d.o) - y(d.c)));
     el('rect', {x: x - bw / 2, y: top, width: bw, height: hh, fill: c}, svg);
-    const s = Math.min(7, Math.max(4, step * 0.35));
-    if (d.limit) el('rect', {x: x - bw / 2 - 2, y: top - 2, width: bw + 4, height: hh + 4, fill: 'none', stroke: GOLD, 'stroke-width': 2, rx: 2}, svg);
-    if (d.buy){
-      const ty = y(d.h) - 6;
-      el('polygon', {points: `${x},${ty - 2 * s} ${x + s},${ty} ${x - s},${ty}`, fill: d.cluster ? UP : BLUE, stroke: d.cluster ? '#0d6b49' : 'none'}, svg);
-      if (d.cluster && d.rank && d.rank <= 3 && step >= 16)
-        el('text', {x: x, y: ty - 2 * s - 3, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, fill: '#0d6b49'}, svg).textContent = AR(d.rank);
+    if (d.acts.length){
+      const s2 = Math.min(7, Math.max(4, step * 0.4)), ty = y(LO(d)) + 6;
+      el('polygon', {points: `${x},${ty} ${x + s2},${ty + 2 * s2} ${x - s2},${ty + 2 * s2}`, fill: UP}, svg);
+      el('text', {x: x, y: ty + 2 * s2 + 13, 'text-anchor': 'middle', 'font-size': step >= 14 ? 12 : 10, 'font-weight': 700, fill: '#0d6b49'}, svg).textContent = 'شراء';
     }
-    if (d.sell){
-      const ty = y(d.l) + 6;
-      el('polygon', {points: `${x - s},${ty} ${x + s},${ty} ${x},${ty + 2 * s}`, fill: DN}, svg);
-    }
-    // الكلمات: فوق الشمعة (فوق المثلث) أو تحتها
-    let ua = y(d.h) - (d.buy ? 2 * s + 20 : 8), da = y(d.l) + (d.sell ? 2 * s + 10 : 6);
-    const wide = step >= 15;
-    (d.acts || []).forEach(a => {
-      const col = a.k === 5 ? (a.w === 'كمّل' ? '#1baf7a' : a.w === 'ما كمّلش' ? '#888780' : '#e8a317') : ACT[a.k][1];
-      const txt = wide ? a.w : AR(a.k);
-      const bw2 = wide ? Math.max(28, txt.length * 8 + 8) : 16, bh = 16;
-      const by = a.up ? ua - bh : da;
-      el('rect', {x: x - bw2 / 2, y: by, width: bw2, height: bh, rx: 8, fill: col}, svg);
-      el('text', {x: x, y: by + 12, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#fff'}, svg).textContent = txt;
-      if (a.k === 2 && a.ret != null && wide)
-        el('text', {x: x, y: by + bh + 12, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, fill: a.ret >= 0 ? '#0d6b49' : '#b3261e'}, svg).textContent = (a.ret >= 0 ? '+' : '') + a.ret.toFixed(1) + '%';
-      if (a.up) ua -= bh + 3; else da += bh + (a.k === 2 && wide ? 16 : 3);
-    });
-    // لوحة السوق
-    const cl = d.nb >= 10;
-    el('rect', {x: x - bw / 2, y: yb(d.nb), width: bw, height: mid - yb(d.nb), fill: cl ? UP : '#9fc3ee'}, svg);
-    el('rect', {x: x - bw / 2, y: mid, width: bw, height: yb(-d.ns) - mid, fill: '#f3b3b2'}, svg);
+    // لوحة الصافي
+    const nt = d.net, top2 = nt >= 0 ? yb(nt) : mid;
+    el('rect', {x: x - bw / 2, y: top2, width: bw, height: Math.max(1, Math.abs(yb(nt) - mid)), fill: nt >= 10 ? UP : nt > 0 ? '#9fc3ee' : '#f3b3b2'}, svg);
     let h = `<b>${d.d}</b><br>افتتاح ${d.o} · إغلاق ${d.c} (${SG(d.chg)}٪)<br>أدنى ${d.l} · أعلى ${d.h}`;
     if (d.bsh != null) h += `<br>الساعة الأولى: المشتري ${Math.round(d.bsh * 100)}٪` + (d.h1x != null ? ` · الكمية ${d.h1x.toFixed(1)}× الجلسة اللي قبلها` : '');
-    if (d.buy) h += `<br><b>إشارة مشتري</b>` + (d.cluster ? ` · ويوم إشارة على السوق${d.rank ? ' (ترتيبه ' + d.rank + ' لحد الساعة ١٢)' : ''}` : '');
-    if (d.sell) h += `<br><b>البياع مسيطر على الساعة الأولى</b>`;
-    if (d.limit) h += `<br><b>قفل بالحد الأقصى</b>` + (d.next_chg != null ? ` · الجلسة اللي بعدها ${SG(d.next_chg)}٪` : '');
-    h += `<br>السوق: ${d.nb} سهم مشتري · ${d.ns} سهم بياع` + (d.dd != null && d.dd < -0.5 ? ` · نازل ${(-d.dd).toFixed(1)}٪ من قمة ٢٠ جلسة` : '');
+    if (d.acts.length) h += `<br><b style="color:#7ee2b8">شراء</b>`;
+    h += `<br>السوق: ${d.nb} سهم مشتري − ${d.ns} سهم بياع = صافي ${d.net}`;
     if (!d.mh1) h += '<br><span style="color:#f3b3b2">بيانات الساعة الأولى مش موجودة للجلسة دي</span>';
     const hit = el('rect', {x: x - step / 2, y: PADT - 20, width: step, height: H - PADT - PB + 20, fill: 'transparent'}, svg);
     hover(hit, h);
@@ -209,25 +151,12 @@ function draw(){
   document.getElementById('cc-wrap').scrollLeft = 1e9;
 }
 function notes(D){
-  // الأحداث اللي في الفترة المعروضة بس، الأحدث فوق
   const box = document.getElementById('cv-notes');
-  const first = D.length ? D[0].d : '';
-  const tr = TRADES.filter(t => t.d >= first).reverse();
-  let th = tr.length ? '<h3 style="font-size:16px;margin:14px 0 6px">صفقات «شراء» في الفترة المعروضة (على الورق)</h3>' + tr.map(t =>
-    `<p class="t"><b>${DT(t.d)}</b> · <span class="kb k1">${t.weak ? 'شراء ضعيف' : 'شراء'}</span> بسعر الساعة ١٢: ${AR(t.entry)}` +
-    (t.weak ? ' (البياع خد الجلسة لآخرها، فبتتقفل تاني يوم الساعة ١٢)' : '') + ' → ' +
-    (t.xd ? `<span class="kb k2">خروج</span> ${DT(t.xd)} ${t.weak ? 'بسعر الساعة ١٢' : 'بإغلاق'} ${AR(t.exit)}: ` + (t.ret == null ? 'فيه تعديل في السعر في النص، مش محسوبة.' : `<b class="${t.ret >= 0 ? 'pos' : 'neg'}">${AR(SG(t.ret.toFixed(1)))}٪</b>`)
-          : `لسه مفتوحة، فاضل ${AR(t.left)} جلسة على الخروج${t.weak ? ' (الساعة ١٢)' : ''}. لحد دلوقتي ` + (t.cur == null ? '—' : `<b class="${t.cur >= 0 ? 'pos' : 'neg'}">${AR(SG(t.cur.toFixed(1)))}٪</b>`)) + '</p>').join('') : '';
-  const ev = D.filter(d => d.buy || d.limit).reverse();
-  box.innerHTML = th + (ev.length ? '<h3 style="font-size:16px;margin:14px 0 6px">كل الإشارات في الفترة المعروضة</h3>' + ev.map(d => {
-    const out = [];
-    if (d.buy) out.push(`<p class="${d.cluster ? 'c' : 'b'}"><b>${DT(d.d)}</b> · المشتري سيطر على ${AR(Math.round(d.bsh * 100))}٪ من كمية الساعة الأولى، والكمية ${AR(d.h1x.toFixed(1))} ضعف الجلسة اللي قبلها كلها` +
-      (d.cluster ? `. <b>ونفس اليوم إشارة على السوق</b> (${AR(d.nb)} سهم)${d.rank ? '، والسهم ترتيبه ' + AR(d.rank) + ' صعودًا لحد الساعة ١٢' : ''}${d.dd <= -4 ? '، وجت بعد نزول السوق ' + AR((-d.dd).toFixed(1)) + '٪' : ''}.` : '.') +
-      ` الإغلاق ${AR(d.c)} (${AR(SG(d.chg))}٪).</p>`);
-    if (d.limit) out.push(`<p class="l"><b>${DT(d.d)}</b> · قفل بالحد الأقصى (${AR(SG(d.chg))}٪).` +
-      (d.next_chg == null ? ' لسه مستنيين الجلسة اللي بعدها.' : ` الجلسة اللي بعدها ${AR(SG(d.next_chg))}٪` + (d.next_chg >= 10 ? '، <b>كمّل</b>.' : '، ما كمّلش (ده مش معناه إن السهم هينزل).')) + '</p>');
-    return out.join('');
-  }).join('') : '<p class="note">مافيش إشارات للسهم ده في الفترة المعروضة.</p>');
+  const ev = D.filter(d => d.acts && d.acts.length).reverse();
+  box.innerHTML = ev.length ? '<h3 style="font-size:16px;margin:14px 0 6px">أيام «شراء» في الفترة المعروضة</h3>' + ev.map(d =>
+    `<p class="c"><b>${DT(d.d)}</b> · صافي السوق ${AR(d.net)} (${AR(d.nb)} مشتري − ${AR(d.ns)} بياع). المشتري سيطر على ${AR(Math.round(d.bsh * 100))}٪ من كمية الساعة الأولى في السهم، والكمية ${AR(d.h1x.toFixed(1))} ضعف الجلسة اللي قبلها كلها.` +
+    (d.p12 ? ` سعر الساعة ١٢: ${AR(d.p12)}،` : '') + ` والإغلاق ${AR(d.c)} (${AR(SG(d.chg))}٪).</p>`).join('')
+    : '<p class="note">مافيش أيام «شراء» للسهم ده في الفترة المعروضة.</p>';
 }
 const px = document.getElementById('cv-px');
 let token = 0;

@@ -5,7 +5,7 @@
 - إشارة مشتري في سهم: كمية الساعة الأولى ≥ كمية الجلسة اللي قبلها كلها، والمشتري ≥ ٦٠٪ من كمية الساعة الأولى،
   وقيمة تداول السهم المعتادة (وسيط آخر ٢٠ جلسة) ≥ مليون جنيه.
 - إشارة بياع: نفس الشرط بس البياع ≥ ٦٠٪.
-- يوم إشارة على السوق: ١٠ أسهم أو أكتر فيها إشارة مشتري في نفس اليوم.
+- يوم شراء على السوق: (عدد أسهم المشتري − عدد أسهم البياع) ≥ ١٠ في نفس اليوم.
 - الحد الأقصى: السهم قفل طالع ١٩٫٥٪ أو أكتر.
 """
 from pathlib import Path
@@ -100,7 +100,8 @@ def _build(store, dates):
     m['ret'] = m['ret'].fillna(0)
     m['idx'] = (1 + m['ret']).cumprod() * 100
     m['dd'] = (m['idx'] / m['idx'].rolling(20, min_periods=1).max() - 1) * 100
-    m['cluster'] = m['nb'] >= MIN_STOCKS
+    m['net'] = m['nb'] - m['ns']
+    m['cluster'] = m['net'] >= MIN_STOCKS      # يوم شراء: (أسهم المشتري − أسهم البياع) ≥ ١٠
     # ترتيب السهم في يوم الإشارة (حسب الصعود لحد الساعة ١٢)
     t['cluster'] = t['date'].map(m['cluster']).fillna(False)
     rk = t[t['buy'] & t['cluster']].groupby('date')['g12'].rank(ascending=False, method='first')
@@ -121,7 +122,7 @@ def stock(store, sym):
             buy=bool(r.buy), sell=bool(r.sell), bsh=f(r.bsh), h1x=f(r.h1vol / r.pvol) if r.pvol and r.pvol > 0 and pd.notna(r.h1vol) else None,
             g12=f(r.g12), p12=f(r.p12), gap=f(r.gap), cluster=bool(r.cluster), rank=int(r.rank) if pd.notna(r.rank) else None,
             limit=bool(r.limit), next_chg=f(r.next_chg),
-            nb=int(m.at[r.date, 'nb']), ns=int(m.at[r.date, 'ns']), dd=f(m.at[r.date, 'dd']), mh1=bool(m.at[r.date, 'h1'])))
+            nb=int(m.at[r.date, 'nb']), ns=int(m.at[r.date, 'ns']), net=int(m.at[r.date, 'net']), dd=f(m.at[r.date, 'dd']), mh1=bool(m.at[r.date, 'h1'])))
     return out
 
 
@@ -130,7 +131,7 @@ def last_signals(store):
     t, m = table(store)
     if t.empty:
         return {}
-    b = t[t['buy']].groupby('sym')['date'].max()
+    b = t[t['buy'] & t['cluster']].groupby('sym')['date'].max()
     return b.to_dict()
 
 
