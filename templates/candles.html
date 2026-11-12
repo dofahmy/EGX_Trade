@@ -51,7 +51,7 @@ main{max-width:none}
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:8px 0">
       <label class="note" style="flex-direction:row;align-items:center;gap:6px">الفترة <select id="cc-n"><option value="30">آخر ٣٠ جلسة</option><option value="60" selected>آخر ٦٠ جلسة</option><option value="120">آخر ١٢٠ جلسة</option><option value="9999">كل الجلسات</option></select></label>
       <span class="note" style="display:flex;flex-wrap:wrap;gap:4px 14px">
-        <span class="lg"><span class="kb k1">شراء</span></span><span class="lg"><span class="kb k2">خروج</span></span><span class="lg"><span class="kb k3">راقب</span></span><span class="lg"><span class="kb k4">حذر</span></span><span class="lg"><span class="kb k5">كمّل / ضعيف</span></span>
+        <span class="lg"><span class="kb k1">شراء</span></span><span class="lg"><span class="kb k2">خروج</span></span><span class="lg"><span class="kb k3">راقب</span></span><span class="lg"><span class="kb k4">حذر</span></span><span class="lg"><span class="kb k5">حد</span></span><span class="lg"><span class="kb" style="background:#1baf7a">كمّل</span></span><span class="lg"><span class="kb" style="background:#888780">ما كمّلش</span></span>
         <span class="lg">معناها في الجدول اللي تحت الرسم</span>
       </span>
     </div>
@@ -63,7 +63,7 @@ main{max-width:none}
       <tr><td><span class="kb k2">٢</span></td><td><b>خروج</b> / <b>خروج ١٢</b></td><td>«خروج»: بعد ١٠ جلسات من الشراء، بسعر الإغلاق. «خروج ١٢»: تاني يوم الساعة ١٢ للشراء الضعيف. ومكتوب فوقها الصفقة عملت كام.</td><td>القاعدتين مع بعض: ٧٨ صفقة، المتوسط ‎+٨٪ بعد التكلفة، بدل ‎+٧٫٣٪ لو كله اتساب ١٠ جلسات. والخروج بالوقت كان أحسن من وقف الخسارة.</td></tr>
       <tr><td><span class="kb k3">٣</span></td><td><b>راقب</b></td><td>المشتري سيطر على الساعة الأولى في السهم، بس اليوم مش يوم إشارة على السوق، أو السهم مش من أعلى ٣.</td><td>مش إشارة شراء لوحدها. السهم بيعمل أحسن من المعتاد بشوية بس.</td></tr>
       <tr><td><span class="kb k4">٤</span></td><td><b>حذر</b></td><td>البياع سيطر على الساعة الأولى في السهم.</td><td>ما اتختبرتش لوحدها على السهم. على السوق كله، أيام البياع اتجمعت في نزول سبتمبر وأكتوبر.</td></tr>
-      <tr><td><span class="kb k5">٥</span></td><td><b>كمّل</b> / <b>ضعيف</b></td><td>قفل بالحد الأقصى، والجلسة اللي بعدها كمّلت ١٠٪ أو أكتر (كمّل) أو لأ (ضعيف).</td><td>معلومة، مش إشارة شراء: الأسهم اللي كمّلت، ٤٠٪ بس منها كانت أعلى بعد ٢٠ جلسة من تاني يوم.</td></tr>
+      <tr><td><span class="kb k5">٥</span></td><td><b>حد</b> ← <b>كمّل</b> / <b>ما كمّلش</b></td><td>«حد» على الشمعة اللي قفلت بالحد الأقصى. وعلى الجلسة اللي بعدها: «كمّل» لو طلعت ١٠٪ أو أكتر، و«ما كمّلش» لو لأ.</td><td>معلومة، مش إشارة شراء ولا بيع. لو ماسكة السهم: خليكي طول ما بيكمّل، وأول جلسة «ما كمّلش» بيعي الجلسة اللي بعدها الساعة ١٢ (٣٥ مرة: وسيط ‎+٢٫٦٪، و٥٧٪ كسبانة). لو مش ماسكاه: «ما كمّلش» مش معناها إن السهم هينزل.</td></tr>
     </table>
     <p class="note">الكلمات دي قواعد اتختبرت على الداتا اللي فاتت، مش توصية. لما الشمعة تبقى ضيقة بيظهر الرقم بدل الكلمة.
       اللوحة اللي تحت الشموع: عدد أسهم السوق كله اللي المشتري مسيطر فيها على الساعة الأولى (فوق) واللي البياع مسيطر فيها (تحت). الخط عند ١٠.</p>
@@ -120,7 +120,9 @@ function actions(A){
       trades.push(t);
     } else if (d.buy) d.acts.push({k: 3, w: 'راقب', up: true});
     if (d.sell) d.acts.push({k: 4, w: 'حذر', up: false});
-    if (d.limit) d.acts.push({k: 5, w: d.next_chg == null ? 'حد' : d.next_chg >= 10 ? 'كمّل' : 'ضعيف', up: true});
+    if (d.limit) d.acts.push({k: 5, w: 'حد', up: true});
+    // الجلسة اللي بعد الحد: كمّلت ١٠٪ أو أكتر ولا لأ (الكلمة على الشمعة نفسها اللي كمّلت أو ما كمّلتش)
+    if (i > 0 && A[i - 1].limit) d.acts.push({k: 5, w: d.chg >= 10 ? 'كمّل' : 'ما كمّلش', up: true});
   });
   return trades;
 }
@@ -177,7 +179,7 @@ function draw(){
     let ua = y(d.h) - (d.buy ? 2 * s + 20 : 8), da = y(d.l) + (d.sell ? 2 * s + 10 : 6);
     const wide = step >= 15;
     (d.acts || []).forEach(a => {
-      const col = a.k === 5 ? (a.w === 'كمّل' ? '#1baf7a' : a.w === 'ضعيف' ? '#e34948' : '#e8a317') : ACT[a.k][1];
+      const col = a.k === 5 ? (a.w === 'كمّل' ? '#1baf7a' : a.w === 'ما كمّلش' ? '#888780' : '#e8a317') : ACT[a.k][1];
       const txt = wide ? a.w : AR(a.k);
       const bw2 = wide ? Math.max(28, txt.length * 8 + 8) : 16, bh = 16;
       const by = a.up ? ua - bh : da;
@@ -223,7 +225,7 @@ function notes(D){
       (d.cluster ? `. <b>ونفس اليوم إشارة على السوق</b> (${AR(d.nb)} سهم)${d.rank ? '، والسهم ترتيبه ' + AR(d.rank) + ' صعودًا لحد الساعة ١٢' : ''}${d.dd <= -4 ? '، وجت بعد نزول السوق ' + AR((-d.dd).toFixed(1)) + '٪' : ''}.` : '.') +
       ` الإغلاق ${AR(d.c)} (${AR(SG(d.chg))}٪).</p>`);
     if (d.limit) out.push(`<p class="l"><b>${DT(d.d)}</b> · قفل بالحد الأقصى (${AR(SG(d.chg))}٪).` +
-      (d.next_chg == null ? ' لسه مستنيين الجلسة اللي بعدها.' : ` الجلسة اللي بعدها ${AR(SG(d.next_chg))}٪` + (d.next_chg >= 10 ? '، <b>وكمّل بقوة</b>.' : '، يعني ما كمّلش بقوة.')) + '</p>');
+      (d.next_chg == null ? ' لسه مستنيين الجلسة اللي بعدها.' : ` الجلسة اللي بعدها ${AR(SG(d.next_chg))}٪` + (d.next_chg >= 10 ? '، <b>كمّل</b>.' : '، ما كمّلش (ده مش معناه إن السهم هينزل).')) + '</p>');
     return out.join('');
   }).join('') : '<p class="note">مافيش إشارات للسهم ده في الفترة المعروضة.</p>');
 }
