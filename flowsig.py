@@ -56,12 +56,12 @@ def _build(store, dates):
             continue
         cols = ['name', 'open', 'hi', 'lo', 'last', 'prev', 'chg', 'vol', 'val_m', 'n']
         x = st[[c for c in cols if c in st]].copy()
-        for c in ('h1vol', 'h1b', 'h1s', 'p12', 'p11', 'h1val', 'p15', 'val15'):
+        for c in ('h1vol', 'h1b', 'h1s', 'p12', 'p11', 'h1val', 'p15', 'val15', 'pmb', 'pms'):
             x[c] = st[c] if c in st else np.nan
         if len(sd):
             try:
                 s = sd.loc[d]
-                for c in ('h1vol', 'h1b', 'h1s', 'p12', 'p11', 'h1val', 'p15', 'val15'):
+                for c in ('h1vol', 'h1b', 'h1s', 'p12', 'p11', 'h1val', 'p15', 'val15', 'pmb', 'pms'):
                     if c in s and x[c].isna().all():
                         x[c] = s[c].reindex(x.index)
             except KeyError:

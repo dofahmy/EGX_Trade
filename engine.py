@@ -267,6 +267,10 @@ def day_stats(df: pd.DataFrame, thr2: dict = None) -> pd.DataFrame:
         st['h1s'] = h[hs < 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
         st['p12'] = d[d['secs'] < 12 * 3600].groupby('sym')['price'].last().reindex(st.index)
         st['p11'] = h.groupby('sym')['price'].last().reindex(st.index)
+        pm = d[d['secs'] >= 13 * 3600]                  # بعد الضهر (لقاعدة قمة الانفجار)
+        ps = sd[pm.index]
+        st['pmb'] = pm[ps > 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
+        st['pms'] = pm[ps < 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
         q = d[d['secs'] < 10 * 3600 + 15 * 60]          # أول ربع ساعة
         st['p15'] = q.groupby('sym')['price'].last().reindex(st.index)
         st['val15'] = (q['price'] * q['vol']).groupby(q['sym']).sum().reindex(st.index).round(0)

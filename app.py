@@ -12,6 +12,7 @@ import candles
 import flowsig
 import groupsig
 import bigsell
+import rules
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -427,6 +428,19 @@ def m15_page():
         app.logger.exception('m15')
         days, summ = [], {}
     return render_template('m15.html', days=days[:n] if n else days, summ=summ, n=n)
+
+
+@app.route('/rules')
+@auth
+def rules_page():
+    try:
+        p = rules.page(STORES['egx'], request.args.get('d'))
+    except Exception:
+        app.logger.exception('rules')
+        p = {}
+    if not p:
+        p = dict(day='', dates=[], mret=None, panic_today=dict(n=0, strong=False, soft=False, has15=False), panic=[], sleep=[], zone=[], bigs=dict(rows=[]), dvol=[])
+    return render_template('rules.html', p=p)
 
 
 @app.route('/bigsell')
