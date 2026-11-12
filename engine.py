@@ -227,6 +227,17 @@ def process_sigma(store, jid: str, path: Path):
 
 # ---------- الحساب ----------
 
+_BIG = None
+
+
+def big_thr():
+    global _BIG
+    if _BIG is None:
+        f = Path(__file__).resolve().parent / 'big_thr.csv'
+        _BIG = pd.read_csv(f, index_col='sym')['thr'].to_dict() if f.exists() else {}
+    return _BIG
+
+
 def day_stats(df: pd.DataFrame) -> pd.DataFrame:
     g = df.groupby('sym', sort=False)
     first = g.first()
@@ -255,6 +266,19 @@ def day_stats(df: pd.DataFrame) -> pd.DataFrame:
         st['h1b'] = h[hs > 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
         st['h1s'] = h[hs < 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
         st['p12'] = d[d['secs'] < 12 * 3600].groupby('sym')['price'].last().reindex(st.index)
+    # الصفقات الكبيرة: قيمتها وشراها وبيعها (الحد لكل سهم من big_thr.csv، ولو سهم جديد: أعلى ١٠٪ من صفقاته في اليوم)
+    try:
+        d2 = df[['sym', 'price', 'val'] + (['seq'] if 'seq' in df else [])]
+        d2 = d2.sort_values('seq') if 'seq' in d2 else d2
+        sg = np.sign(d2.groupby('sym', sort=False)['price'].diff()).replace(0, np.nan).groupby(d2['sym']).ffill().fillna(0)
+        thr = d2['sym'].map(big_thr())
+        thr = thr.fillna(d2.groupby('sym')['val'].transform(lambda v: v.quantile(0.9)))
+        bg = d2[d2['val'] >= thr]
+        st['bigv'] = bg.groupby('sym')['val'].sum().reindex(st.index).fillna(0).round(0)
+        st['bigb'] = bg[sg[bg.index] > 0].groupby('sym')['val'].sum().reindex(st.index).fillna(0).round(0)
+        st['bigs'] = bg[sg[bg.index] < 0].groupby('sym')['val'].sum().reindex(st.index).fillna(0).round(0)
+    except Exception:
+        pass
     return st
 
 

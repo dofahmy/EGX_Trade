@@ -10,6 +10,7 @@ from engine import Store, process_upload, analyze, METHODS, same_day_trades, bou
 import us
 import candles
 import flowsig
+import groupsig
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -346,6 +347,18 @@ def chart(sym):
         abort(404)
     name = STORES[m].load(data[-1]['d'])[0].loc[sym, 'name']
     return render_template('chart.html', sym=sym, name=name, data=data)
+
+
+@app.route('/groups')
+@auth
+def groups_page():
+    m = market()
+    try:
+        gs, labels = groupsig.weekly(STORES[m])
+    except Exception:
+        app.logger.exception('groups')
+        gs, labels = [], []
+    return render_template('groups.html', groups=gs, labels=labels)
 
 
 @app.route('/candles')

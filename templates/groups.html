@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}المجموعات{% endblock %}
+{% block body %}
+<style>
+main{max-width:none}
+.gr{margin-bottom:16px}
+.gr h3{margin:0 0 6px;font-size:16px}
+.gt{border-collapse:collapse;width:100%;font-size:12px;font-variant-numeric:tabular-nums}
+.gt th,.gt td{border:1px solid var(--line);padding:3px 4px;text-align:center;white-space:nowrap}
+.gt th{background:#f3f5f9;font-weight:600}
+.gt td.s{text-align:right;font-weight:700}
+.gt td.s span{font-weight:400;color:var(--mute);font-size:11px}
+.gt td .r{font-size:10px;opacity:.75}
+.hot{display:inline-block;background:#e8a317;color:#fff;border-radius:6px;padding:0 6px;margin-inline-start:6px;font-size:12px}
+.lgd{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-bottom:10px}
+.lgd i{display:inline-block;width:14px;height:12px;border-radius:2px;vertical-align:middle;margin-inline-end:4px}
+</style>
+<div class="card">
+  <div class="lgd">
+    <span>الرقم = التداول كام ضعف المعتاد</span>
+    <span><i style="background:#1baf7a"></i>الكبار بيشتروا</span>
+    <span><i style="background:#e34948"></i>الكبار بيبيعوا</span>
+    <span>تحت الرقم: تغير السعر في الأسبوع</span>
+  </div>
+  {% for g in groups %}
+  <div class="gr">
+    <h3>{{ g.title or g.members|join(' · ') }}{% for h in g.hot %}<span class="hot">{{ h }}</span>{% endfor %}</h3>
+    <div style="overflow-x:auto"><table class="gt">
+      <tr><th style="text-align:right">السهم</th>{% for l in labels %}<th>{{ l }}</th>{% endfor %}</tr>
+      {% for r in g.rows %}
+      <tr><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
+        {% for c in r.cells %}
+          {% if c %}
+            {% set a = ([c.m, 12]|min) / 12 %}
+            {% if c.bn is none %}{% set bg = '#f3f5f9' %}
+            {% elif c.bn >= 5 %}{% set bg = 'rgba(27,175,122,' ~ (0.15 + 0.7 * a) ~ ')' %}
+            {% elif c.bn <= -5 %}{% set bg = 'rgba(227,73,72,' ~ (0.15 + 0.7 * a) ~ ')' %}
+            {% else %}{% set bg = 'rgba(136,135,128,' ~ (0.08 + 0.4 * a) ~ ')' %}{% endif %}
+            <td style="background:{{ bg }}" title="صافي الكبار {{ c.bn if c.bn is not none else '—' }}٪"><b>{{ c.m }}</b><div class="r">{% if c.r is not none %}{{ '%+.0f'|format(c.r) }}٪{% endif %}</div></td>
+          {% else %}<td></td>{% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
