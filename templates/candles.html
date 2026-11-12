@@ -31,29 +31,14 @@ main{max-width:none}
 </style>
 <div class="cv">
   <div class="cv-chart card">
-    {% if mk %}
-    <div class="mk{{ ' on' if mk.cluster }}">
-      <b>السوق في جلسة {{ mk.d }}:</b>
-      {% if not mk.h1 %}
-        بيانات الساعة الأولى مش موجودة للجلسة دي (اترفعت بنسخة قديمة). ارفعيها تاني.
-      {% else %}
-        المشتري مسيطر على الساعة الأولى في <b>{{ mk.nb }}</b> سهم، والبياع في <b>{{ mk.ns }}</b> سهم، والصافي <b>{{ mk.net }}</b>.
-        {% if mk.cluster %}✅ <b>يوم شراء</b> على الأسهم اللي المشتري مسيطر فيها.{% else %}مش يوم شراء (محتاج الصافي ١٠ أو أكتر).{% endif %}
-      {% endif %}
-    </div>
-    {% endif %}
     <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
       <h2 style="margin:0"><span id="cv-sym"></span> <span id="cv-name" class="mute" style="font-size:15px"></span></h2>
       <div class="big" id="cv-px"></div>
     </div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:8px 0">
       <label class="note" style="flex-direction:row;align-items:center;gap:6px">الفترة <select id="cc-n"><option value="30">آخر ٣٠ جلسة</option><option value="60" selected>آخر ٦٠ جلسة</option><option value="120">آخر ١٢٠ جلسة</option><option value="9999">كل الجلسات</option></select></label>
-      <span class="note lg"><svg width="12" height="12"><polygon points="6,1 11,11 1,11" fill="#1baf7a"/></svg><b style="color:#0d6b49">شراء</b>: يوم الصافي فيه ١٠ أو أكتر، والمشتري مسيطر على الساعة الأولى في السهم ده</span>
     </div>
     <div id="cc-wrap" style="overflow-x:auto;direction:ltr"><svg id="cc"></svg></div>
-    <p class="note"><b>القاعدة:</b> اللوحة اللي تحت الشموع هي الصافي كل جلسة: عدد أسهم السوق كله اللي المشتري مسيطر على ساعتها الأولى، ناقص عدد اللي البياع مسيطر عليها
-      (مسيطر = ٦٠٪ من كمية الساعة الأولى أو أكتر، والكمية أكبر من الجلسة اللي قبلها كلها). لما الصافي يعدّي ١٠ يبقى يوم شراء، و«شراء» بتظهر على الأسهم اللي المشتري مسيطر فيها اليوم ده.<br>
-      <b>في الاختبار (١٣ شهر):</b> ١٤ يوم شراء، و١٧٠ سهم اتعلّم عليهم. بعد ٢٠ جلسة: ٦٣٪ منهم كانوا أعلى، والمتوسط ‎+٧٫٨٪ (الوسيط ‎+٣٫٣٪)، مقابل ٥٣٪ و‎+٣٫٤٪ لأي سهم في أي يوم. ده تحليل للداتا اللي فاتت، مش توصية.</p>
     <div id="cv-notes" class="cv-notes"></div>
   </div>
   <div class="cv-side card">
@@ -62,7 +47,7 @@ main{max-width:none}
     <div class="cv-list" id="cv-list">
       {% for s in stocks %}
       <div class="cv-row{{ ' on' if s.sym == sel }}" data-sym="{{ s.sym }}" data-q="{{ (s.sym ~ ' ' ~ s.name)|lower }}">
-        <div style="min-width:0"><div class="s">{{ s.sym }}</div><div class="n">{{ s.name }}</div>{% if s.sig %}<div class="sg">شراء {{ s.sig[5:] }}</div>{% endif %}</div>
+        <div style="min-width:0"><div class="s">{{ s.sym }}</div><div class="n">{{ s.name }}</div></div>
         <div class="p">{{ s.last }}<div class="{{ 'pos' if s.chg and s.chg > 0 else 'neg' if s.chg and s.chg < 0 else 'mute' }}" style="font-size:12px">{% if s.chg is not none %}{{ '%+.2f'|format(s.chg) }}٪{% endif %}</div></div>
       </div>
       {% endfor %}
@@ -98,8 +83,8 @@ function draw(){
   notes(D);
   if (!D.length){ svg.setAttribute('height', 40); return; }
   const wrapW = document.getElementById('cc-wrap').clientWidth || 800;
-  const PADL = 60, PADT = 64, H1 = 360, GAP = 34, H2 = 120, PB = 26;
-  const H = PADT + H1 + 44 + GAP + H2 + PB;
+  const PADL = 92, PADT = 16, H1 = 380, GAP = 34, H2 = 110, H3 = 110, PB = 26;
+  const H = PADT + H1 + 10 + GAP + H2 + GAP + H3 + PB;
   const step = Math.max(5, Math.min(60, (wrapW - PADL - 20) / D.length));
   const W = PADL + step * D.length + 20;
   svg.setAttribute('width', W); svg.setAttribute('height', H);
@@ -107,7 +92,7 @@ function draw(){
   let lo = Math.min(...D.map(LO)), hi = Math.max(...D.map(HI));
   const pad = (hi - lo) * 0.06 || hi * 0.01; lo -= pad; hi += pad;
   const y = v => PADT + (hi - v) / (hi - lo) * H1;
-  const BOT = 44;   // مساحة تحت الشموع لكلمة «حذر»
+  const BOT = 10;   // مساحة تحت الشموع لكلمة «حذر»
   for (let i = 0; i <= 5; i++){
     const v = lo + (hi - lo) * i / 5, yy = y(v);
     el('line', {x1: PADL, x2: W - 10, y1: yy, y2: yy, stroke: '#eef0f4'}, svg);
@@ -120,7 +105,17 @@ function draw(){
   el('line', {x1: PADL, x2: W - 10, y1: mid, y2: mid, stroke: '#c9ccd4'}, svg);
   el('line', {x1: PADL, x2: W - 10, y1: yb(10), y2: yb(10), stroke: '#1baf7a', 'stroke-dasharray': '4 3'}, svg);
   el('text', {x: PADL - 6, y: yb(10) + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#0d6b49'}, svg).textContent = '١٠';
-  el('text', {x: PADL - 6, y: T2 - 2, 'text-anchor': 'end', 'font-size': 10, fill: '#6b7385'}, svg).textContent = 'الصافي';
+  el('text', {x: PADL - 6, y: T2 - 8, 'text-anchor': 'end', 'font-size': 11, 'font-weight': 700, fill: '#1d2433'}, svg).textContent = 'السوق';
+  el('text', {x: PADL - 6, y: T2 + 6, 'text-anchor': 'end', 'font-size': 10, fill: '#6b7385'}, svg).textContent = 'مشتري − بياع';
+  // لوحة السهم: كمية ساعته الأولى قصاد الجلسة اللي قبلها (فوق لو المشتري أكتر، تحت لو البياع أكتر)
+  const T3 = T2 + H2 + GAP, mid3 = T3 + H3 / 2, CAP = 3;
+  const y3 = v => mid3 - Math.max(-CAP, Math.min(CAP, v)) / CAP * (H3 / 2 - 4);
+  el('line', {x1: PADL, x2: W - 10, y1: mid3, y2: mid3, stroke: '#c9ccd4'}, svg);
+  [1, -1].forEach(v => el('line', {x1: PADL, x2: W - 10, y1: y3(v), y2: y3(v), stroke: v > 0 ? '#1baf7a' : '#e34948', 'stroke-dasharray': '4 3'}, svg));
+  el('text', {x: PADL - 6, y: y3(1) + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#0d6b49'}, svg).textContent = '١×';
+  el('text', {x: PADL - 6, y: y3(-1) + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#b3261e'}, svg).textContent = '١×';
+  el('text', {x: PADL - 6, y: T3 - 8, 'text-anchor': 'end', 'font-size': 11, 'font-weight': 700, fill: '#1d2433'}, svg).textContent = 'السهم';
+  el('text', {x: PADL - 6, y: T3 + 6, 'text-anchor': 'end', 'font-size': 10, fill: '#6b7385'}, svg).textContent = 'الساعة الأولى';
   
   const every = Math.ceil(40 / step), bw = Math.max(2, step * 0.6);
   D.forEach((d, i) => {
@@ -129,17 +124,18 @@ function draw(){
     el('line', {x1: x, x2: x, y1: y(HI(d)), y2: y(LO(d)), stroke: c, 'stroke-width': 1.3}, svg);
     const top = y(Math.max(d.o, d.c)), hh = Math.max(1.5, Math.abs(y(d.o) - y(d.c)));
     el('rect', {x: x - bw / 2, y: top, width: bw, height: hh, fill: c}, svg);
-    if (d.acts.length){
-      const s2 = Math.min(7, Math.max(4, step * 0.4)), ty = y(LO(d)) + 6;
-      el('polygon', {points: `${x},${ty} ${x + s2},${ty + 2 * s2} ${x - s2},${ty + 2 * s2}`, fill: UP}, svg);
-      el('text', {x: x, y: ty + 2 * s2 + 13, 'text-anchor': 'middle', 'font-size': step >= 14 ? 12 : 10, 'font-weight': 700, fill: '#0d6b49'}, svg).textContent = 'شراء';
-    }
     // لوحة الصافي
     const nt = d.net, top2 = nt >= 0 ? yb(nt) : mid;
     el('rect', {x: x - bw / 2, y: top2, width: bw, height: Math.max(1, Math.abs(yb(nt) - mid)), fill: nt >= 10 ? UP : nt > 0 ? '#9fc3ee' : '#f3b3b2'}, svg);
+    // لوحة السهم
+    if (d.h1x != null && d.bsh != null){
+      const up3 = d.bsh >= 0.5, v = up3 ? d.h1x : -d.h1x;
+      const fill3 = d.buy ? UP : d.sell ? DN : up3 ? '#bfe3d2' : '#f6c9c8';
+      const t3 = Math.min(y3(v), mid3);
+      el('rect', {x: x - bw / 2, y: t3, width: bw, height: Math.max(1, Math.abs(y3(v) - mid3)), fill: fill3}, svg);
+    }
     let h = `<b>${d.d}</b><br>افتتاح ${d.o} · إغلاق ${d.c} (${SG(d.chg)}٪)<br>أدنى ${d.l} · أعلى ${d.h}`;
     if (d.bsh != null) h += `<br>الساعة الأولى: المشتري ${Math.round(d.bsh * 100)}٪` + (d.h1x != null ? ` · الكمية ${d.h1x.toFixed(1)}× الجلسة اللي قبلها` : '');
-    if (d.acts.length) h += `<br><b style="color:#7ee2b8">شراء</b>`;
     h += `<br>السوق: ${d.nb} سهم مشتري − ${d.ns} سهم بياع = صافي ${d.net}`;
     if (!d.mh1) h += '<br><span style="color:#f3b3b2">بيانات الساعة الأولى مش موجودة للجلسة دي</span>';
     const hit = el('rect', {x: x - step / 2, y: PADT - 20, width: step, height: H - PADT - PB + 20, fill: 'transparent'}, svg);
@@ -150,14 +146,7 @@ function draw(){
   });
   document.getElementById('cc-wrap').scrollLeft = 1e9;
 }
-function notes(D){
-  const box = document.getElementById('cv-notes');
-  const ev = D.filter(d => d.acts && d.acts.length).reverse();
-  box.innerHTML = ev.length ? '<h3 style="font-size:16px;margin:14px 0 6px">أيام «شراء» في الفترة المعروضة</h3>' + ev.map(d =>
-    `<p class="c"><b>${DT(d.d)}</b> · صافي السوق ${AR(d.net)} (${AR(d.nb)} مشتري − ${AR(d.ns)} بياع). المشتري سيطر على ${AR(Math.round(d.bsh * 100))}٪ من كمية الساعة الأولى في السهم، والكمية ${AR(d.h1x.toFixed(1))} ضعف الجلسة اللي قبلها كلها.` +
-    (d.p12 ? ` سعر الساعة ١٢: ${AR(d.p12)}،` : '') + ` والإغلاق ${AR(d.c)} (${AR(SG(d.chg))}٪).</p>`).join('')
-    : '<p class="note">مافيش أيام «شراء» للسهم ده في الفترة المعروضة.</p>';
-}
+function notes(D){ document.getElementById('cv-notes').innerHTML = ''; }
 const px = document.getElementById('cv-px');
 let token = 0;
 async function load(sym, push){
