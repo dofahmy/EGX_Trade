@@ -10,6 +10,7 @@ main{max-width:none}
 .gt th{background:#f3f5f9;font-weight:600}
 .gt td.s{text-align:right;font-weight:700}
 .gt td.s span{font-weight:400;color:var(--mute);font-size:11px}
+.gt tr:target td{outline:2px solid #e8a317}
 .gt td .r{font-size:10px;opacity:.75}
 .hot{display:inline-block;background:#e8a317;color:#fff;border-radius:6px;padding:0 6px;margin-inline-start:6px;font-size:12px}
 .lgd{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-bottom:10px}
@@ -24,6 +25,10 @@ main{max-width:none}
     <label>لحد أسبوع <select name="to" onchange="this.form.submit()">
       {% for e in ends|reverse %}<option value="{{ e }}" {{ 'selected' if e == end }}>{{ e }}</option>{% endfor %}
     </select></label>
+    <label>روحي لسهم <select onchange="if(this.value)location.hash=this.value">
+      <option value=""></option>
+      {% for s in (groups|map(attribute='members')|sum(start=[]))|sort %}<option value="g-{{ s }}">{{ s }}</option>{% endfor %}
+    </select></label>
   </form>
   <div class="lgd">
     <span>الرقم = تداول السهم كام ضعف آخر ١٢ أسبوع ليه، بعد ما نشيل حركة السوق</span>
@@ -37,7 +42,7 @@ main{max-width:none}
     <div style="overflow-x:auto"><table class="gt">
       <tr><th style="text-align:right">السهم</th>{% for l in labels %}<th>{{ l }}</th>{% endfor %}</tr>
       {% for r in g.rows %}
-      <tr><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
+      <tr id="g-{{ r.sym }}"><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
         {% for c in r.cells %}
           {% if c %}
             {% set mv = c.m if c.m is not none else 0 %}

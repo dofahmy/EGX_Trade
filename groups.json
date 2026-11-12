@@ -1,1 +1,852 @@
-[{"members": ["AMES", "GTWL", "CAED", "NHPS", "KWIN", "DTPP", "NINH", "BIOC", "RUBX", "AALR"], "sim": 0.35, "title": "اللي بيتحركوا مع AMES"}, {"members": ["AALR", "EALR", "WKOL"], "sim": 0.66}, {"members": ["CEFM", "MILS", "SCFM"], "sim": 0.52}, {"members": ["ABUK", "ALCN", "AMOC", "MFPC", "SKPC", "VLMRA"], "sim": 0.43}, {"members": ["ARCC", "MBSC", "MCQE"], "sim": 0.39}, {"members": ["AFMC", "BIOC", "NIPH", "PHAR"], "sim": 0.39}, {"members": ["DGTZ", "HRHO", "IRON"], "sim": 0.39}, {"members": ["ADIB", "COMI", "EAST", "EGX30ETF", "TMGH"], "sim": 0.38}, {"members": ["AMES", "CAED", "KWIN", "NHPS"], "sim": 0.38}, {"members": ["CIRA", "TALM", "TANM"], "sim": 0.35}, {"members": ["FWRY", "ISPH", "PHDC"], "sim": 0.35}, {"members": ["ELWA", "IBCT", "RAYA"], "sim": 0.33}, {"members": ["EASB", "FNAR", "TYCN"], "sim": 0.31}]
+[
+{
+"members": [
+"CEFM",
+"MILS",
+"SCFM",
+"EDFM",
+"COPR"
+],
+"sim": 0.37,
+"fit": {
+"CEFM": 0.46,
+"MILS": 0.45,
+"SCFM": 0.34,
+"EDFM": 0.3,
+"COPR": 0.28
+},
+"title": "مجموعة ١: CEFM · MILS · SCFM و٢ كمان"
+},
+{
+"members": [
+"WKOL",
+"EALR",
+"AALR",
+"FERC",
+"IFAP"
+],
+"sim": 0.34,
+"fit": {
+"WKOL": 0.43,
+"EALR": 0.42,
+"AALR": 0.38,
+"FERC": 0.27,
+"IFAP": 0.21
+},
+"title": "مجموعة ٢: WKOL · EALR · AALR و٢ كمان"
+},
+{
+"members": [
+"MCQE",
+"EGAL",
+"ARCC",
+"GPIM"
+],
+"sim": 0.32,
+"fit": {
+"MCQE": 0.37,
+"EGAL": 0.37,
+"ARCC": 0.37,
+"GPIM": 0.16
+},
+"title": "مجموعة ٣: MCQE · EGAL · ARCC و١ كمان"
+},
+{
+"members": [
+"TYCN",
+"CCRS",
+"FNAR",
+"KWIN",
+"DCRC"
+],
+"sim": 0.32,
+"fit": {
+"TYCN": 0.38,
+"CCRS": 0.37,
+"FNAR": 0.35,
+"KWIN": 0.32,
+"DCRC": 0.18
+},
+"title": "مجموعة ٤: TYCN · CCRS · FNAR و٢ كمان"
+},
+{
+"members": [
+"MFPC",
+"SKPC",
+"ABUK",
+"AMOC",
+"VLMRA",
+"EGCH",
+"ETEL",
+"RMDA",
+"ORHD",
+"HDBK",
+"SNFC",
+"ORAS"
+],
+"sim": 0.3,
+"fit": {
+"MFPC": 0.42,
+"SKPC": 0.42,
+"ABUK": 0.41,
+"AMOC": 0.35,
+"VLMRA": 0.32,
+"EGCH": 0.31,
+"ETEL": 0.31,
+"RMDA": 0.28,
+"ORHD": 0.26,
+"HDBK": 0.2,
+"SNFC": 0.18,
+"ORAS": 0.15
+},
+"title": "مجموعة ٥: MFPC · SKPC · ABUK و٩ كمان"
+},
+{
+"members": [
+"MHOT",
+"AMII",
+"BONY",
+"RKAZ",
+"EGTS",
+"CRST"
+],
+"sim": 0.3,
+"fit": {
+"MHOT": 0.34,
+"AMII": 0.32,
+"BONY": 0.31,
+"RKAZ": 0.29,
+"EGTS": 0.28,
+"CRST": 0.28
+},
+"title": "مجموعة ٦: MHOT · AMII · BONY و٣ كمان"
+},
+{
+"members": [
+"FAIT",
+"EXPA",
+"RACC",
+"UBEE"
+],
+"sim": 0.29,
+"fit": {
+"FAIT": 0.35,
+"EXPA": 0.34,
+"RACC": 0.3,
+"UBEE": 0.18
+},
+"title": "مجموعة ٧: FAIT · EXPA · RACC و١ كمان"
+},
+{
+"members": [
+"FWRY",
+"TMGH",
+"GBCO",
+"ISPH",
+"BINV",
+"ALEX",
+"EGAS",
+"EOSB"
+],
+"sim": 0.28,
+"fit": {
+"FWRY": 0.41,
+"TMGH": 0.37,
+"GBCO": 0.35,
+"ISPH": 0.34,
+"BINV": 0.3,
+"ALEX": 0.15,
+"EGAS": 0.14,
+"EOSB": 0.13
+},
+"title": "مجموعة ٨: FWRY · TMGH · GBCO و٥ كمان"
+},
+{
+"members": [
+"IEEC",
+"LUTS",
+"GTEX",
+"CFGH"
+],
+"sim": 0.28,
+"fit": {
+"IEEC": 0.35,
+"LUTS": 0.3,
+"GTEX": 0.26,
+"CFGH": 0.2
+},
+"title": "مجموعة ٩: IEEC · LUTS · GTEX و١ كمان"
+},
+{
+"members": [
+"VERT",
+"ACAMD",
+"EGBE",
+"SPIN",
+"ESAC"
+],
+"sim": 0.27,
+"fit": {
+"VERT": 0.36,
+"ACAMD": 0.34,
+"EGBE": 0.31,
+"SPIN": 0.17,
+"ESAC": 0.17
+},
+"title": "مجموعة ١٠: VERT · ACAMD · EGBE و٢ كمان"
+},
+{
+"members": [
+"PRDC",
+"ELSH",
+"ACGC",
+"UNIT",
+"CIRA",
+"ELKA",
+"ADPC",
+"ICID"
+],
+"sim": 0.27,
+"fit": {
+"PRDC": 0.37,
+"ELSH": 0.3,
+"ACGC": 0.29,
+"UNIT": 0.27,
+"CIRA": 0.27,
+"ELKA": 0.25,
+"ADPC": 0.23,
+"ICID": 0.17
+},
+"title": "مجموعة ١١: PRDC · ELSH · ACGC و٥ كمان"
+},
+{
+"members": [
+"ADRI",
+"GTWL",
+"EGREF",
+"AMES",
+"KASABF",
+"RUBX",
+"MMAT",
+"MOIN",
+"CERA",
+"MPCI",
+"ACTF"
+],
+"sim": 0.27,
+"fit": {
+"ADRI": 0.37,
+"GTWL": 0.36,
+"EGREF": 0.34,
+"AMES": 0.31,
+"KASABF": 0.28,
+"RUBX": 0.28,
+"MMAT": 0.27,
+"MOIN": 0.23,
+"CERA": 0.22,
+"MPCI": 0.15,
+"ACTF": 0.09
+},
+"title": "مجموعة ١٢: ADRI · GTWL · EGREF و٨ كمان"
+},
+{
+"members": [
+"AFMC",
+"BIOC",
+"SCEM",
+"CAED",
+"CPME",
+"SMFR",
+"INFI",
+"UEFM",
+"NHPS"
+],
+"sim": 0.27,
+"fit": {
+"AFMC": 0.35,
+"BIOC": 0.34,
+"SCEM": 0.31,
+"CAED": 0.27,
+"CPME": 0.25,
+"SMFR": 0.25,
+"INFI": 0.24,
+"UEFM": 0.22,
+"NHPS": 0.19
+},
+"title": "مجموعة ١٣: AFMC · BIOC · SCEM و٦ كمان"
+},
+{
+"members": [
+"CPCI",
+"AXPH",
+"AMER"
+],
+"sim": 0.27,
+"fit": {
+"CPCI": 0.3,
+"AXPH": 0.29,
+"AMER": 0.22
+},
+"title": "مجموعة ١٤: CPCI · AXPH · AMER"
+},
+{
+"members": [
+"ASPI",
+"SPMD",
+"INEG",
+"KRDI",
+"NCCW"
+],
+"sim": 0.27,
+"fit": {
+"ASPI": 0.34,
+"SPMD": 0.32,
+"INEG": 0.27,
+"KRDI": 0.2,
+"NCCW": 0.2
+},
+"title": "مجموعة ١٥: ASPI · SPMD · INEG و٢ كمان"
+},
+{
+"members": [
+"AIHC",
+"AIDC",
+"TAQA",
+"MBSC",
+"PACH"
+],
+"sim": 0.26,
+"fit": {
+"AIHC": 0.34,
+"AIDC": 0.3,
+"TAQA": 0.28,
+"MBSC": 0.2,
+"PACH": 0.16
+},
+"title": "مجموعة ١٦: AIHC · AIDC · TAQA و٢ كمان"
+},
+{
+"members": [
+"FCMD",
+"AJWA",
+"MAAL",
+"TWSA",
+"BIDI",
+"EASB",
+"CLHO",
+"GRCA"
+],
+"sim": 0.26,
+"fit": {
+"FCMD": 0.33,
+"AJWA": 0.32,
+"MAAL": 0.3,
+"TWSA": 0.29,
+"BIDI": 0.26,
+"EASB": 0.2,
+"CLHO": 0.19,
+"GRCA": 0.18
+},
+"title": "مجموعة ١٧: FCMD · AJWA · MAAL و٥ كمان"
+},
+{
+"members": [
+"NIPH",
+"NARE",
+"MFSC",
+"CANA",
+"GOCO",
+"ENGC",
+"LCSW"
+],
+"sim": 0.26,
+"fit": {
+"NIPH": 0.37,
+"NARE": 0.35,
+"MFSC": 0.27,
+"CANA": 0.26,
+"GOCO": 0.25,
+"ENGC": 0.18,
+"LCSW": 0.13
+},
+"title": "مجموعة ١٨: NIPH · NARE · MFSC و٤ كمان"
+},
+{
+"members": [
+"MBEG",
+"SIPC",
+"RREI",
+"ELEC",
+"EBSC"
+],
+"sim": 0.26,
+"fit": {
+"MBEG": 0.31,
+"SIPC": 0.28,
+"RREI": 0.27,
+"ELEC": 0.22,
+"EBSC": 0.2
+},
+"title": "مجموعة ١٩: MBEG · SIPC · RREI و٢ كمان"
+},
+{
+"members": [
+"ISMQ",
+"SUCE",
+"ACRO",
+"ETRS",
+"ECAP",
+"AMPI",
+"AREH",
+"CNFN",
+"WATP"
+],
+"sim": 0.25,
+"fit": {
+"ISMQ": 0.36,
+"SUCE": 0.3,
+"ACRO": 0.29,
+"ETRS": 0.28,
+"ECAP": 0.28,
+"AMPI": 0.25,
+"AREH": 0.24,
+"CNFN": 0.16,
+"WATP": 0.13
+},
+"title": "مجموعة ٢٠: ISMQ · SUCE · ACRO و٦ كمان"
+},
+{
+"members": [
+"COMI",
+"ADIB",
+"SAUD",
+"KORA",
+"EAST",
+"QNBE",
+"CICH"
+],
+"sim": 0.25,
+"fit": {
+"COMI": 0.35,
+"ADIB": 0.32,
+"SAUD": 0.29,
+"KORA": 0.25,
+"EAST": 0.23,
+"QNBE": 0.2,
+"CICH": 0.11
+},
+"title": "مجموعة ٢١: COMI · ADIB · SAUD و٤ كمان"
+},
+{
+"members": [
+"CCAP",
+"ARAB",
+"BIGP",
+"SMPP",
+"EPPK"
+],
+"sim": 0.25,
+"fit": {
+"CCAP": 0.33,
+"ARAB": 0.33,
+"BIGP": 0.29,
+"SMPP": 0.17,
+"EPPK": 0.15
+},
+"title": "مجموعة ٢٢: CCAP · ARAB · BIGP و٢ كمان"
+},
+{
+"members": [
+"TANM",
+"MPCO",
+"ATQA",
+"TALM",
+"KABO",
+"SVCE"
+],
+"sim": 0.25,
+"fit": {
+"TANM": 0.34,
+"MPCO": 0.31,
+"ATQA": 0.27,
+"TALM": 0.26,
+"KABO": 0.18,
+"SVCE": 0.16
+},
+"title": "مجموعة ٢٣: TANM · MPCO · ATQA و٣ كمان"
+},
+{
+"members": [
+"BTFH",
+"ELNA",
+"PHGC",
+"HCFI",
+"MOIL",
+"ALUM",
+"UASG",
+"RTVC",
+"EGSA"
+],
+"sim": 0.25,
+"fit": {
+"BTFH": 0.36,
+"ELNA": 0.35,
+"PHGC": 0.31,
+"HCFI": 0.3,
+"MOIL": 0.24,
+"ALUM": 0.22,
+"UASG": 0.18,
+"RTVC": 0.14,
+"EGSA": 0.13
+},
+"title": "مجموعة ٢٤: BTFH · ELNA · PHGC و٦ كمان"
+},
+{
+"members": [
+"ELWA",
+"RAYA",
+"MKIT",
+"GGRN",
+"PRMH",
+"IBCT",
+"PHDC",
+"NEDA"
+],
+"sim": 0.25,
+"fit": {
+"ELWA": 0.33,
+"RAYA": 0.32,
+"MKIT": 0.32,
+"GGRN": 0.23,
+"PRMH": 0.23,
+"IBCT": 0.22,
+"PHDC": 0.19,
+"NEDA": 0.18
+},
+"title": "مجموعة ٢٥: ELWA · RAYA · MKIT و٥ كمان"
+},
+{
+"members": [
+"UTOP",
+"OCDI",
+"NINH",
+"MICH",
+"FIRE"
+],
+"sim": 0.25,
+"fit": {
+"UTOP": 0.32,
+"OCDI": 0.24,
+"NINH": 0.24,
+"MICH": 0.23,
+"FIRE": 0.19
+},
+"title": "مجموعة ٢٦: UTOP · OCDI · NINH و٢ كمان"
+},
+{
+"members": [
+"OBRI",
+"ZEOT",
+"GMCI",
+"ROTO",
+"EEII",
+"MPRC"
+],
+"sim": 0.25,
+"fit": {
+"OBRI": 0.41,
+"ZEOT": 0.31,
+"GMCI": 0.25,
+"ROTO": 0.21,
+"EEII": 0.19,
+"MPRC": 0.13
+},
+"title": "مجموعة ٢٧: OBRI · ZEOT · GMCI و٣ كمان"
+},
+{
+"members": [
+"GSSC",
+"OCPH",
+"MOSC",
+"SCTS",
+"AMIA",
+"FAITA"
+],
+"sim": 0.25,
+"fit": {
+"GSSC": 0.36,
+"OCPH": 0.35,
+"MOSC": 0.26,
+"SCTS": 0.24,
+"AMIA": 0.14,
+"FAITA": 0.14
+},
+"title": "مجموعة ٢٨: GSSC · OCPH · MOSC و٣ كمان"
+},
+{
+"members": [
+"UEGC",
+"ODIN",
+"AIFI",
+"EHDR",
+"UNIP",
+"GGCC",
+"GDWA"
+],
+"sim": 0.24,
+"fit": {
+"UEGC": 0.3,
+"ODIN": 0.28,
+"AIFI": 0.25,
+"EHDR": 0.24,
+"UNIP": 0.23,
+"GGCC": 0.21,
+"GDWA": 0.17
+},
+"title": "مجموعة ٢٩: UEGC · ODIN · AIFI و٤ كمان"
+},
+{
+"members": [
+"APSW",
+"DGTZ",
+"HRHO",
+"IRON",
+"TORA",
+"EFIH",
+"IRAX",
+"DIFC",
+"APPC",
+"MEPA",
+"POUL"
+],
+"sim": 0.24,
+"fit": {
+"APSW": 0.34,
+"DGTZ": 0.31,
+"HRHO": 0.3,
+"IRON": 0.29,
+"TORA": 0.28,
+"EFIH": 0.27,
+"IRAX": 0.19,
+"DIFC": 0.18,
+"APPC": 0.17,
+"MEPA": 0.16,
+"POUL": 0.16
+},
+"title": "مجموعة ٣٠: APSW · DGTZ · HRHO و٨ كمان"
+},
+{
+"members": [
+"CIEB",
+"SNFI",
+"CSAG",
+"SDTI",
+"NBKE",
+"NCGC"
+],
+"sim": 0.24,
+"fit": {
+"CIEB": 0.35,
+"SNFI": 0.28,
+"CSAG": 0.26,
+"SDTI": 0.21,
+"NBKE": 0.21,
+"NCGC": 0.15
+},
+"title": "مجموعة ٣١: CIEB · SNFI · CSAG و٣ كمان"
+},
+{
+"members": [
+"MENA",
+"PHTV",
+"SEIG",
+"ZMID"
+],
+"sim": 0.24,
+"fit": {
+"MENA": 0.29,
+"PHTV": 0.25,
+"SEIG": 0.24,
+"ZMID": 0.17
+},
+"title": "مجموعة ٣٢: MENA · PHTV · SEIG و١ كمان"
+},
+{
+"members": [
+"UPMS",
+"COSG",
+"PRCL",
+"ADCI",
+"ISMA",
+"EFID"
+],
+"sim": 0.23,
+"fit": {
+"UPMS": 0.34,
+"COSG": 0.27,
+"PRCL": 0.26,
+"ADCI": 0.23,
+"ISMA": 0.16,
+"EFID": 0.14
+},
+"title": "مجموعة ٣٣: UPMS · COSG · PRCL و٣ كمان"
+},
+{
+"members": [
+"HELI",
+"FTNS",
+"GOUR",
+"ALCN",
+"EPCO",
+"VLMR",
+"NAHO"
+],
+"sim": 0.23,
+"fit": {
+"HELI": 0.28,
+"FTNS": 0.25,
+"GOUR": 0.23,
+"ALCN": 0.23,
+"EPCO": 0.22,
+"VLMR": 0.2,
+"NAHO": 0.17
+},
+"title": "مجموعة ٣٤: HELI · FTNS · GOUR و٤ كمان"
+},
+{
+"members": [
+"DTPP",
+"NAPR",
+"GIHD",
+"ESRS"
+],
+"sim": 0.23,
+"fit": {
+"DTPP": 0.3,
+"NAPR": 0.29,
+"GIHD": 0.2,
+"ESRS": 0.11
+},
+"title": "مجموعة ٣٥: DTPP · NAPR · GIHD و١ كمان"
+},
+{
+"members": [
+"RAKT",
+"JUFO",
+"OIH",
+"DSCW",
+"ATLC",
+"EITP"
+],
+"sim": 0.22,
+"fit": {
+"RAKT": 0.26,
+"JUFO": 0.26,
+"OIH": 0.25,
+"DSCW": 0.24,
+"ATLC": 0.21,
+"EITP": 0.11
+},
+"title": "مجموعة ٣٦: RAKT · JUFO · OIH و٣ كمان"
+},
+{
+"members": [
+"HBCO",
+"EGX30ETF",
+"MASR",
+"MIPH",
+"MCRO",
+"VALU",
+"OLFI"
+],
+"sim": 0.22,
+"fit": {
+"HBCO": 0.31,
+"EGX30ETF": 0.31,
+"MASR": 0.24,
+"MIPH": 0.21,
+"MCRO": 0.18,
+"VALU": 0.16,
+"OLFI": 0.15
+},
+"title": "مجموعة ٣٧: HBCO · EGX30ETF · MASR و٤ كمان"
+},
+{
+"members": [
+"PHAR",
+"SWDY",
+"ORWE",
+"SUGR",
+"MTIE",
+"ICFC"
+],
+"sim": 0.22,
+"fit": {
+"PHAR": 0.32,
+"SWDY": 0.32,
+"ORWE": 0.22,
+"SUGR": 0.18,
+"MTIE": 0.15,
+"ICFC": 0.14
+},
+"title": "مجموعة ٣٨: PHAR · SWDY · ORWE و٣ كمان"
+},
+{
+"members": [
+"AFDI",
+"EMFD",
+"ASCM",
+"IDRE",
+"ACAP",
+"DOMT"
+],
+"sim": 0.21,
+"fit": {
+"AFDI": 0.26,
+"EMFD": 0.24,
+"ASCM": 0.23,
+"IDRE": 0.2,
+"ACAP": 0.17,
+"DOMT": 0.14
+},
+"title": "مجموعة ٣٩: AFDI · EMFD · ASCM و٣ كمان"
+},
+{
+"members": [
+"EFIC",
+"WCDF",
+"TRTO",
+"KZPC",
+"MOED",
+"DAPH",
+"OFH",
+"GTHE"
+],
+"sim": 0.21,
+"fit": {
+"EFIC": 0.28,
+"WCDF": 0.25,
+"TRTO": 0.25,
+"KZPC": 0.25,
+"MOED": 0.24,
+"DAPH": 0.16,
+"OFH": 0.16,
+"GTHE": 0.14
+},
+"title": "مجموعة ٤٠: EFIC · WCDF · TRTO و٥ كمان"
+},
+{
+"members": [
+"BQDC",
+"DEIN",
+"GPPL",
+"ICLE",
+"MISR",
+"SAIB",
+"SPHT"
+],
+"sim": null,
+"title": "داتا قليلة، لسه مش متجمعين",
+"fit": {}
+}
+]
