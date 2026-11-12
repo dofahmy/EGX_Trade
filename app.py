@@ -353,12 +353,15 @@ def chart(sym):
 @auth
 def groups_page():
     m = market()
+    weeks = request.args.get('w', '12')
+    weeks = int(weeks) if weeks.isdigit() else 0
+    end = request.args.get('to') or None
     try:
-        gs, labels = groupsig.weekly(STORES[m])
+        gs, labels, ends = groupsig.weekly(STORES[m], weeks, end)
     except Exception:
         app.logger.exception('groups')
-        gs, labels = [], []
-    return render_template('groups.html', groups=gs, labels=labels)
+        gs, labels, ends = [], [], []
+    return render_template('groups.html', groups=gs, labels=labels, ends=ends, weeks=weeks, end=end or (ends[-1] if ends else ''))
 
 
 @app.route('/candles')

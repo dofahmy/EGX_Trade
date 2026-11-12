@@ -61,10 +61,10 @@ def daily(store):
     return t
 
 
-def weekly(store, weeks=12):
+def weekly(store, weeks=12, end=None):
     t = daily(store)
     if t.empty:
-        return [], []
+        return [], [], []
     t = t.copy()
     t['wk'] = pd.to_datetime(t['date']).dt.to_period('W-THU')
     t['bign'] = t['bigb'] - t['bigs']
@@ -74,7 +74,10 @@ def weekly(store, weeks=12):
     w['mult'] = w['vday'] / w.groupby('sym')['vday'].transform('median')
     w['bn'] = np.where(w['bigok'], w['bign'] / w['val'], np.nan)
     w['ret'] = w.groupby('sym')['c'].pct_change()
-    wks = sorted(w['wk'].unique())[-weeks:]
+    allw = sorted(w['wk'].unique())
+    if end:
+        allw = [k for k in allw if str(k.end_time.date()) <= end] or allw
+    wks = allw[-weeks:] if weeks else allw
     names = t.drop_duplicates('sym', keep='last').set_index('sym')['name'].to_dict()
     out = []
     for g in groups():
@@ -94,5 +97,6 @@ def weekly(store, weeks=12):
         last = [(r['cells'][-1] or {}).get('m', 0) for r in rows]
         hot = [rows[i]['sym'] for i in np.argsort(last)[::-1] if last[i] >= 5][:3]
         out.append(dict(members=g['members'], sim=g.get('sim'), title=g.get('title'), rows=rows, hot=hot))
-    labels = [str(k.end_time.date())[5:] for k in wks]
-    return out, labels
+    labels = [str(k.end_time.date())[2:] for k in wks]
+    ends = [str(k.end_time.date()) for k in sorted(w['wk'].unique())]
+    return out, labels, ends

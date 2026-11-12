@@ -16,6 +16,15 @@ main{max-width:none}
 .lgd i{display:inline-block;width:14px;height:12px;border-radius:2px;vertical-align:middle;margin-inline-end:4px}
 </style>
 <div class="card">
+  <form method="get" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:14px">
+    <input type="hidden" name="m" value="{{ mkt }}">
+    <label>المدة <select name="w" onchange="this.form.submit()">
+      {% for v,t in [(4,'٤ أسابيع'),(12,'١٢ أسبوع'),(26,'٦ شهور'),(52,'سنة'),(0,'كل الفترة')] %}<option value="{{ v }}" {{ 'selected' if weeks == v }}>{{ t }}</option>{% endfor %}
+    </select></label>
+    <label>لحد أسبوع <select name="to" onchange="this.form.submit()">
+      {% for e in ends|reverse %}<option value="{{ e }}" {{ 'selected' if e == end }}>{{ e }}</option>{% endfor %}
+    </select></label>
+  </form>
   <div class="lgd">
     <span>الرقم = التداول كام ضعف المعتاد</span>
     <span><i style="background:#1baf7a"></i>الكبار بيشتروا</span>
