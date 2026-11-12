@@ -151,7 +151,7 @@ SELL_X = 1.5
 
 
 def _pick(t):
-    ok = (~t['thin']) & (t['pvol'] > 0) & (t['med'] >= MIN_VAL) & (t['gap'] <= 0.2) & t['bsh'].notna()
+    ok = (~t['thin']) & t['p11'].notna() & (t['h1val'] > 0) & (t['pvol'] > 0) & (t['med'] >= MIN_VAL) & (t['gap'] <= 0.2) & t['bsh'].notna()
     x = t['h1vol'] / t['pvol']
     b = t[ok & (x >= BUY_X) & (t['bsh'] >= BUY_SHARE)].copy()
     s = t[ok & (x >= SELL_X) & (t['bsh'] <= 1 - BUY_SHARE)].copy()

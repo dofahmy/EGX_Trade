@@ -11,6 +11,7 @@ import us
 import candles
 import flowsig
 import groupsig
+import bigsell
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -397,6 +398,19 @@ def upload_noon():
         st = engine.day_stats(df)
     st.reset_index()[['sym', 'name', 'open', 'h1vol', 'h1b', 'h1s', 'p11', 'h1val']].to_csv(out / f'{date}.csv', index=False)
     return 'تمام', 200
+
+
+@app.route('/bigsell')
+@auth
+def bigsell_page():
+    n = request.args.get('n', '8')
+    n = int(n) if n.isdigit() else 0
+    try:
+        weeks, summ = bigsell.page(STORES['egx'], n)
+    except Exception:
+        app.logger.exception('bigsell')
+        weeks, summ = [], {}
+    return render_template('bigsell.html', weeks=weeks, summ=summ, n=n)
 
 
 @app.route('/groups')

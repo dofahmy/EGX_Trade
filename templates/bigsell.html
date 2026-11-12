@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}الكبار بيبيعوا{% endblock %}
+{% block body %}
+<style>
+.wk{margin-bottom:16px;border-top:1px solid var(--line);padding-top:10px}
+.wk h3{margin:0 0 6px;font-size:16px}
+.wk h3 span{font-size:13px;font-weight:400;color:var(--mute)}
+.bt{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.bt th,.bt td{border:1px solid var(--line);padding:3px 6px;text-align:center;white-space:nowrap}
+.bt th{background:#f3f5f9;font-weight:600}
+.bt td.s{text-align:right;font-weight:700}
+.bt td.s span{font-weight:400;color:var(--mute);font-size:11px}
+.up{color:#138a5e;font-weight:700}.dn{color:#c53030;font-weight:700}
+.sm{background:#f6f8fb;border-radius:8px;padding:8px 12px;font-size:14px;margin-bottom:10px;line-height:1.8}
+.none{color:var(--mute);font-size:13px}
+</style>
+{% macro pct(v) %}{% if v is none %}—{% else %}<span class="{{ 'up' if v > 0 else ('dn' if v < 0 else '') }}">{{ '%+.1f'|format(v) }}٪</span>{% endif %}{% endmacro %}
+<div class="card">
+  <form method="get" style="margin-bottom:10px;font-size:14px">
+    <label>المدة <select style="width:auto" name="n" onchange="this.form.submit()">
+      {% for v,t in [(4,'آخر ٤ أسابيع'),(8,'آخر ٨ أسابيع'),(26,'آخر ٦ شهور'),(0,'كل الفترة')] %}<option value="{{ v }}" {{ 'selected' if n == v }}>{{ t }}</option>{% endfor %}
+    </select></label>
+  </form>
+  <div class="sm">
+    الأسبوع اللي تداول السهم فيه ٣ أضعاف معتاده أو أكتر (بعد ما نشيل حركة السوق)، والصفقات الكبيرة صافي بيع ٥٪ أو أكتر من تداوله.<br>
+    {% if summ.w1 and summ.w1.n %}من سبتمبر ٢٠٢٥: {{ summ.w1.n }} مرة · اتأخر عن السوق الأسبوع اللي بعده في {{ summ.w1.under }}٪ منهم (الفرق الوسيط {{ pct(summ.w1.med) }})
+    {% if summ.w4.n %}· وبعد ٤ أسابيع اتأخر في {{ summ.w4.under }}٪ (الفرق الوسيط {{ pct(summ.w4.med) }}){% endif %}{% endif %}
+  </div>
+  {% for k in weeks %}
+  <div class="wk">
+    <h3>{{ k.start }} لـ {{ k.end }} <span>{{ k.days }} جلسة{% if loop.first and k.days < 5 %} · الأسبوع لسه ماخلصش{% endif %}</span></h3>
+    {% if k.rows %}
+    <table class="bt">
+      <tr><th style="text-align:right">السهم</th><th>التداول كام ضعف</th><th>صافي الكبار</th><th>تغير السعر في الأسبوع</th><th>تداول الأسبوع (مليون)</th><th>فرقه عن السوق الأسبوع اللي بعده</th><th>فرقه بعد ٤ أسابيع</th></tr>
+      {% for r in k.rows %}
+      <tr><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
+        <td>{{ r.mult }}×</td><td>{{ pct(r.bnr) }}</td><td>{{ pct(r.ret) }}</td><td>{{ r.val|int }}</td><td>{{ pct(r.x1) }}</td><td>{{ pct(r.x4) }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<div class="none">مفيش</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

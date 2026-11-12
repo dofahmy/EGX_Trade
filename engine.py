@@ -207,7 +207,7 @@ def process_sigma(store, jid: str, path: Path):
                 if before:
                     prev = store.load(before[-1])[0]['last'].to_dict()
                 df = read_sigma(csv, prev, names)
-                st, lv = day_stats(df), levels(df)
+                st, lv = day_stats(df, trail_thr(store, date)), levels(df)
                 meta = {'date': date, 'trades': int(len(df)), 'stocks': int(len(st)), 'source': 'sigma',
                         'uploaded_at': dt.datetime.now().isoformat(timespec='seconds'),
                         'chain': [f'من سيجما، الإقفال السابق محسوب من آخر صفقة في {before[-1]}' if before else 'أول جلسة، مفيش إقفال سابق']}
@@ -238,7 +238,7 @@ def big_thr():
     return _BIG
 
 
-def day_stats(df: pd.DataFrame) -> pd.DataFrame:
+def day_stats(df: pd.DataFrame, thr2: dict = None) -> pd.DataFrame:
     g = df.groupby('sym', sort=False)
     first = g.first()
     st = pd.DataFrame({
@@ -279,9 +279,53 @@ def day_stats(df: pd.DataFrame) -> pd.DataFrame:
         st['bigv'] = bg.groupby('sym')['val'].sum().reindex(st.index).fillna(0).round(0)
         st['bigb'] = bg[sg[bg.index] > 0].groupby('sym')['val'].sum().reindex(st.index).fillna(0).round(0)
         st['bigs'] = bg[sg[bg.index] < 0].groupby('sym')['val'].sum().reindex(st.index).fillna(0).round(0)
+        # أعلى ١٠٪ من قيم الصفقات في اليوم ده، عشان حد الصفقة الكبيرة المتحرك (وسيط آخر ٦٠ جلسة)
+        st['p90'] = d2.groupby('sym')['val'].quantile(0.9).reindex(st.index).round(2)
+        if thr2 is not None:
+            th = d2['sym'].map(thr2)
+            th = th.fillna(d2['sym'].map(st['p90']))
+            b2 = d2[d2['val'] >= th]
+            st['bigb2'] = b2[sg[b2.index] > 0].groupby('sym')['val'].sum().reindex(st.index).fillna(0).round(0)
+            st['bigs2'] = b2[sg[b2.index] < 0].groupby('sym')['val'].sum().reindex(st.index).fillna(0).round(0)
     except Exception:
         pass
     return st
+
+
+_SEED2 = None
+
+
+def seed2():
+    """الصفقات الكبيرة بالحد المتحرك للجلسات القديمة (محسوبة من ملفات سيجما)."""
+    global _SEED2
+    if _SEED2 is None:
+        f = Path(__file__).resolve().parent / 'big2_seed.csv.gz'
+        _SEED2 = pd.read_csv(f, dtype={'sym': str}) if f.exists() else pd.DataFrame(columns=['date', 'sym', 'p90', 'bigb2', 'bigs2'])
+    return _SEED2
+
+
+def trail_thr(store, date):
+    """حد الصفقة الكبيرة لكل سهم يوم date: وسيط أعلى ١٠٪ من الصفقات في آخر ٦٠ جلسة قبله."""
+    days = [d for d in store.dates() if d < date][-60:]
+    sd = seed2()
+    parts = []
+    for d in days:
+        x = None
+        try:
+            st = pd.read_csv(store.sdir(d) / 'stats.csv', dtype={'sym': str}, usecols=lambda c: c in ('sym', 'p90'))
+            if 'p90' in st and st['p90'].notna().any():
+                x = st[['sym', 'p90']]
+        except Exception:
+            pass
+        if x is None:
+            x = sd.loc[sd['date'] == d, ['sym', 'p90']]
+        parts.append(x)
+    if not parts:
+        return {}
+    a = pd.concat(parts)
+    g = a.groupby('sym')['p90']
+    m = g.median()[g.count() >= 10]
+    return m.to_dict()
 
 
 def levels(df: pd.DataFrame) -> pd.DataFrame:
