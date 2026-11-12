@@ -150,6 +150,8 @@ def read_sigma(csv: Path, prev_close: dict, names: dict) -> pd.DataFrame:
         sym = csv.name.split('_')[0]
         d['Symbol'] = sym
     d['Symbol'] = d['Symbol'].str.strip().replace(SIGMA_RENAME)
+    # بعض الملفات فيها نفس الصفقة متكررة (لو اليوم اتنزل أكتر من مرة في نفس الملف)، فبنشيل المتكرر برقم التذكرة
+    d = d.drop_duplicates(subset=['Symbol', 'Ticket No.'])
     t = pd.to_datetime(d['Time'].str.strip(), format='%I:%M:%S %p')
     d['secs'] = t.dt.hour * 3600 + t.dt.minute * 60 + t.dt.second
     d['seq'] = d['Ticket No.'].astype(str).str.split('-').str[-1].astype('int64')
@@ -241,6 +243,18 @@ def day_stats(df: pd.DataFrame) -> pd.DataFrame:
         'vol': g['vol'].sum(),
     })
     st['chg'] = ((st['last'] / st['prev'] - 1) * 100).round(2)
+    # الساعة الأولى (١٠ لـ ١١): الكمية، والشراء والبيع منها، وسعر الساعة ١٢ (لإشارة الساعة الأولى).
+    # الشراء والبيع هنا من حركة السعر جوه اليوم بس (أول صفقة محايدة)، بنفس طريقة الاختبار.
+    if 'secs' in df:
+        d = df[['sym', 'secs', 'price', 'vol', 'seq']].sort_values('seq') if 'seq' in df else df[['sym', 'secs', 'price', 'vol']]
+        sd = d.groupby('sym', sort=False)['price'].diff()
+        sd = np.sign(sd).replace(0, np.nan).groupby(d['sym']).ffill().fillna(0)
+        h = d[d['secs'] < 11 * 3600]
+        hs = sd[h.index]
+        st['h1vol'] = h.groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
+        st['h1b'] = h[hs > 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
+        st['h1s'] = h[hs < 0].groupby('sym')['vol'].sum().reindex(st.index).fillna(0).astype('int64')
+        st['p12'] = d[d['secs'] < 12 * 3600].groupby('sym')['price'].last().reindex(st.index)
     return st
 
 

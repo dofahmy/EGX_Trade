@@ -9,6 +9,7 @@ from flask import jsonify, Flask, request, redirect, url_for, render_template, R
 from engine import Store, process_upload, analyze, METHODS, same_day_trades, bounce_days
 import us
 import candles
+import flowsig
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -350,28 +351,45 @@ def chart(sym):
 @app.route('/candles')
 @auth
 def candles_page():
-    """الشموع: قايمة كل الأسهم على اليمين، والسهم اللي تدوسي عليه بيترسم على الشمال بشموعنا."""
+    """الشموع: قايمة كل الأسهم على اليمين، والسهم اللي تدوسي عليه بيترسم على الشمال مع إشارة الساعة الأولى."""
     m = market()
-    st_all = STORES[m]
-    dates = st_all.dates()
-    stocks = []
+    store = STORES[m]
+    dates = store.dates()
+    stocks, mk = [], None
     if dates:
-        st = st_all.load(dates[-1])[0]
+        st = store.load(dates[-1])[0]
+        try:
+            last_sig = flowsig.last_signals(store)
+            mt = flowsig.market(store)
+        except Exception:
+            app.logger.exception('flowsig')
+            last_sig, mt = {}, None
+        recent = set(dates[-10:])
         for sym, r in st.sort_values('val_m', ascending=False).iterrows():
+            ls = last_sig.get(sym)
             stocks.append(dict(sym=sym, name=str(r['name']), last=float(r['last']),
-                               chg=round(float(r['chg']), 2) if pd.notna(r['chg']) else None))
+                               chg=round(float(r['chg']), 2) if pd.notna(r['chg']) else None,
+                               sig=ls if ls in recent else None))
+        if mt is not None and len(mt):
+            d = mt.index[-1]
+            row = mt.loc[d]
+            top = []
+            if bool(row['cluster']):
+                t = flowsig.table(store)[0]
+                top = t[(t['date'] == d) & t['buy']].sort_values('g12', ascending=False)['sym'].head(3).tolist()
+            mk = dict(d=d, nb=int(row['nb']), ns=int(row['ns']), dd=round(float(row['dd']), 1),
+                      cluster=bool(row['cluster']), top=top, h1=bool(row['h1']))
     sel = (request.args.get('sym') or (stocks[0]['sym'] if stocks else '')).upper()
-    return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None)
+    return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None, mk=mk)
 
 
 @app.route('/candles/data/<sym>')
 @auth
 def candles_data(sym):
     m = market()
-    p = params(m)
     sym = sym.upper()
     try:
-        data = candles.series(STORES[m], sym, **p)
+        data = flowsig.stock(STORES[m], sym)
     except Exception as e:
         app.logger.exception('candles_data %s', sym)
         return jsonify(sym=sym, data=None, error=str(e)[:200]), 500
