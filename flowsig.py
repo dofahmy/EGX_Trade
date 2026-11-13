@@ -74,6 +74,7 @@ def _build(store, dates):
         return pd.DataFrame(), pd.DataFrame()
     t = pd.concat(parts, ignore_index=True).sort_values(['sym', 'date']).reset_index(drop=True)
     # الأسعار متعدلة بالإجراءات على الأسهم (أسهم مجانية وتجزئة)، زي تريدنج فيو
+    t = adjust.drop_bad(t, getattr(store, 'root', None))
     acts = adjust.detect(t, getattr(store, 'root', None))
     t = adjust.apply(t, acts)
     ACTS[str(getattr(store, 'root', ''))] = acts

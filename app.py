@@ -14,6 +14,7 @@ import groupsig
 import bigsell
 import rules
 import atrsig
+import adjust
 import brksig
 import xbadger
 import tvdaily
@@ -149,7 +150,7 @@ def actions_page():
     flowsig.table(store)
     a = flowsig.ACTS.get(str(store.root))
     rows = [] if a is None else [dict(sym=r.sym, date=r.date, factor=round(float(r.factor), 4)) for r in a.sort_values('date', ascending=False).itertuples()]
-    return render_template('actions.html', rows=rows)
+    return render_template('actions.html', rows=rows, bad=adjust.BAD.get(str(store.root), []))
 
 
 @app.route('/bottoms')

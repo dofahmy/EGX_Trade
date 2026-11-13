@@ -32,6 +32,42 @@ def manual(root):
     return out
 
 
+BAD_N = 10
+BAD = {}
+
+
+def bad_days(t):
+    """أيام داتا غلط: ١٠ أسهم أو أكتر إقفالها بعيد عن الجلسة اللي قبلها بـ٢١٪ أو أكتر، وفي الجلسة اللي بعدها بيرجع
+    قريب من الجلسة اللي قبلها (يعني الملف ده فيه أسعار يوم تاني، مش إجراءات حقيقية)."""
+    if t.empty or 'last' not in t:
+        return []
+    s = t[['sym', 'date', 'last']].sort_values(['sym', 'date']).copy()
+    g = s.groupby('sym')['last']
+    p0, p1 = g.shift(1), g.shift(-1)
+    jump = (s['last'] / p0 - 1).abs() >= GAP
+    back = (p1 / p0 - 1).abs() < STAY
+    n = s[jump & back].groupby('date').size()
+    return sorted(n[n >= BAD_N].index)
+
+
+def drop_bad(t, root=None):
+    """يشيل أيام الداتا الغلط من الجدول، ويحسب إقفال امبارح من جديد لليوم اللي بعدها."""
+    bad = bad_days(t)
+    BAD[str(root)] = bad
+    if not bad:
+        return t
+    t = t[~t['date'].isin(bad)].sort_values(['sym', 'date']).reset_index(drop=True).copy()
+    if 'prev' in t:
+        dates = sorted(t['date'].unique())
+        after = {next((d for d in dates if d > b), None) for b in bad} - {None}
+        pl = t.groupby('sym')['last'].shift(1)
+        hit = t['date'].isin(after) & pl.notna()
+        t.loc[hit, 'prev'] = pl[hit]
+        if 'chg' in t:
+            t.loc[hit, 'chg'] = (t.loc[hit, 'last'] / t.loc[hit, 'prev'] - 1) * 100
+    return t
+
+
 def detect(t, root=None):
     """يرجّع جدول: sym, date, factor."""
     if t.empty or 'open' not in t or 'prev' not in t:
