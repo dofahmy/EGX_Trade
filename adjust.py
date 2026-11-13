@@ -82,6 +82,13 @@ def detect(t, root=None):
     a = s[(dn | up) & (s['prev'] > 0)].copy()
     a['factor'] = a['open'] / a['prev']
     a = a[['sym', 'date', 'factor']]
+    # ١٠ إجراءات أو أكتر في نفس اليوم = داتا غلط (إقفال امبارح في الملف غلط)، مش إجراءات حقيقية
+    n = a.groupby('date').size()
+    mass = sorted(n[n >= BAD_N].index)
+    if mass:
+        a = a[~a['date'].isin(mass)]
+        k = str(root)
+        BAD[k] = sorted(set(BAD.get(k, [])) | set(mass))
     for sym, days in manual(root).items():
         for d, fac in days.items():
             a = a[~((a['sym'] == sym) & (a['date'] == d))]
