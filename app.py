@@ -14,6 +14,7 @@ import groupsig
 import bigsell
 import rules
 import atrsig
+import brksig
 import tvdaily
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
@@ -169,21 +170,21 @@ def bottoms_page():
         except Exception:
             pass
         rows.append(dict(date=d['date'], main=a and b, idx=idx))
-    # الأسهم اللي شرط المؤشر اتحقق عندها من يوم الإشارة لحد ١٠ جلسات بعده (أو لحد الإشارة اللي بعدها)
+    # أسهم "كسر بعد تجميع طويل" من يوم الإشارة لحد الإشارة اللي بعدها (بحد أقصى ٤٠ جلسة)
     try:
-        sig = atrsig.signals(store)
+        sig = brksig.signals(store)
     except Exception:
-        app.logger.exception('atrsig')
+        app.logger.exception('brksig')
         sig = None
     alld = [d['date'] for d in days]
     nxt = None
     for r in rows:                                   # الأحدث الأول
         i = alld.index(r['date'])
-        end = alld[min(i + 9, len(alld) - 1)]
+        end = alld[min(i + 39, len(alld) - 1)]
         if nxt and nxt <= end:
             end = alld[alld.index(nxt) - 1]
         z = sig[(sig['date'] >= r['date']) & (sig['date'] <= end)] if sig is not None and len(sig) else []
-        r['stocks'] = [dict(sym=q.sym, date=q.date) for q in z.sort_values('date').drop_duplicates('sym').itertuples()] if len(z) else []
+        r['stocks'] = [dict(sym=q.sym, date=q.date, held=q.held) for q in z.sort_values('date').drop_duplicates('sym').itertuples()] if len(z) else []
         nxt = r['date']
     return render_template('bottoms.html', rows=rows)
 
