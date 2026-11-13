@@ -216,8 +216,10 @@ def xbadger_page():
     try:
         xb = xbadger.signals(store)
         if len(xb):
-            z = xb[xb['brk'].notna()].sort_values(['brk', 'bchg'], ascending=[False, False])
-            xb_ok = [dict(sym=q.sym, date=q.date, close=q.close, brk=q.brk, bchg=round(q.bchg, 1), bvx=round(q.bvx, 1))
+            z = xb[xb['brk'].notna()].sort_values('date').drop_duplicates(['sym', 'brk']).sort_values(['brk', 'sym'], ascending=[False, True])
+            xb_ok = [dict(sym=q.sym, date=q.date, brk=q.brk, bclose=q.bclose,
+                          mx=round(q.mx) if q.mx is not None and q.mx == q.mx else None, mxn=int(q.mxn) if q.mxn == q.mxn and q.mxn is not None else None, days=int(q.days),
+                          now=round(q.now) if q.now is not None and q.now == q.now else None)
                      for q in z.itertuples()]
             w = xb[xb['brk'].isna() & (xb['left'] > 0)].sort_values('date', ascending=False).drop_duplicates('sym')
             xb_watch = [dict(sym=q.sym, date=q.date, close=q.close, left=int(q.left)) for q in w.itertuples()]

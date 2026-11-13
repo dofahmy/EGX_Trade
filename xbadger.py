@@ -20,7 +20,7 @@ CHG = 8.0
 VX = 5.0
 MIN_VAL = 5e5
 _CACHE = {}
-COLS = ['sym', 'date', 'close', 'cci', 'm', 'brk', 'bchg', 'bvx', 'left']
+COLS = ['sym', 'date', 'close', 'cci', 'm', 'brk', 'bchg', 'bvx', 'left', 'bclose', 'mx', 'mxn', 'days', 'now']
 
 
 def _mad(v):
@@ -71,11 +71,23 @@ def signals(store):
                 if chg[j] >= CHG and vx[j] >= VX:
                     b = j
                     break
+            bclose = mx = mxn = now = None
+            days = 0
+            if b is not None:
+                bclose = cc[b]
+                f = cc[b + 1:b + 61]
+                days = len(f)
+                if days:
+                    k = int(np.nanargmax(f))
+                    mx = (f[k] / bclose - 1) * 100
+                    mxn = k + 1
+                    now = (cc[-1] / bclose - 1) * 100
             out.append(dict(sym=sym, date=dates[i], close=cc[i], cci=cci[i], m=m[i],
                             brk=dates[b] if b is not None else None,
                             bchg=chg[b] if b is not None else None,
                             bvx=vx[b] if b is not None else None,
-                            left=max(0, WAIT - (n - 1 - i))))
+                            left=max(0, WAIT - (n - 1 - i)),
+                            bclose=bclose, mx=mx, mxn=mxn, days=days, now=now))
     r = pd.DataFrame(out, columns=COLS)
     _CACHE.clear()
     _CACHE[key] = r
