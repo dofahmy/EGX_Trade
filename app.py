@@ -211,22 +211,27 @@ def eye_page():
 @app.route('/xbadger')
 @auth
 def xbadger_page():
-    """أسهم-أكس-باجر: تحت المتابعة واللي اتأكدت."""
+    """أسهم-أكس-باجر: إشارات القاع المزدوج على CCI، والملوّن عمل طلعة بكمية كبيرة مع الإشارة."""
     store = STORES['egx']
-    xb_ok, xb_watch = [], []
+    months = request.args.get('months', '3')
+    rows = []
     try:
         xb = xbadger.signals(store)
         if len(xb):
-            z = xb[xb['brk'].notna()].sort_values('date').drop_duplicates(['sym', 'brk']).sort_values(['brk', 'sym'], ascending=[False, True])
-            xb_ok = [dict(sym=q.sym, date=q.date, brk=q.brk, bclose=q.bclose,
-                          mx=round(q.mx) if q.mx is not None and q.mx == q.mx else None, mxn=int(q.mxn) if q.mxn == q.mxn and q.mxn is not None else None, days=int(q.days),
-                          now=round(q.now) if q.now is not None and q.now == q.now else None)
-                     for q in z.itertuples()]
-            w = xb[xb['brk'].isna() & (xb['left'] > 0)].sort_values('date', ascending=False).drop_duplicates('sym')
-            xb_watch = [dict(sym=q.sym, date=q.date, close=q.close, left=int(q.left)) for q in w.itertuples()]
+            z = xb.sort_values(['date', 'sym'], ascending=[False, True])
+            if months != 'all':
+                last = pd.Timestamp(z['date'].max())
+                z = z[pd.to_datetime(z['date']) > last - pd.DateOffset(months=int(months))]
+            for q in z.itertuples():
+                rows.append(dict(sym=q.sym, date=q.date, close=q.close, t1=q.t1, t2=q.t2, big=q.big if isinstance(q.big, str) else None,
+                                 bigchg=None if q.bigchg is None or q.bigchg != q.bigchg else round(q.bigchg, 1),
+                                 mx=None if q.mx is None or q.mx != q.mx else round(q.mx),
+                                 mxn=None if q.mxn is None or q.mxn != q.mxn else int(q.mxn),
+                                 days=int(q.days), now=round(q.now)))
     except Exception:
         app.logger.exception('xbadger')
-    return render_template('xbadger.html', xb_ok=xb_ok, xb_watch=xb_watch)
+    nbig = sum(1 for r in rows if r['big'])
+    return render_template('xbadger.html', rows=rows, months=months, nbig=nbig)
 
 
 @app.route('/')

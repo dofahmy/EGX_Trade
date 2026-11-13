@@ -1,93 +1,114 @@
 # -*- coding: utf-8 -*-
-"""أسهم-أكس-باجر.
-الإشارة (السهم نايم وبيبدأ يصحى)، على مؤشر CCI طول ٢٠ على (أعلى + أوطى + إقفال) ÷ ٣، ومتوسطه البسيط ١٤:
-  - المتوسط (الخط الأصفر) يلف لفوق وهو بين −١١٠ و−٥٠، وCCI (الأزرق) فوقه.
-  - الإقفال قريب من متوسط آخر ٢٠ جلسة: الفرق ٥٪ أو أقل.
-  - تجميع: أعلى إقفال في آخر ٦٠ جلسة مش أكتر من أوطى إقفال بـ٤٠٪.
-  - قيمة التداول يوم الإشارة المعتاد أو أقل (وسيط آخر ٦٠ جلسة).
-التأكيد: في خلال ١٠ جلسات بعد الإشارة السهم يطلع ٨٪ أو أكتر بقيمة تداول ٥ أضعاف المعتاد أو أكتر.
-الأسعار من سيجما متعدلة (نفس الداتا اللي القاعدة اتختبرت عليها). والمدى بيحسب إقفال امبارح جواه زي تريدنج فيو.
+"""أسهم-أكس-باجر: قاع مزدوج على مؤشر CCI (طول ٢٠ على (أعلى + أوطى + إقفال) ÷ ٣، والأصفر = متوسطه البسيط ١٤).
+  ١. العد بيبدأ من جديد كل ما الأزرق يوصل +١٠٠ (تشبع شرائي).
+  ٢. القاع الأول: الأزرق تحت −١٠٠.
+  ٣. القاع التاني بعده بـ٤ لـ٣٥ جلسة والأزرق تحت −٥٠، وبين القاعين الأزرق ارتد (٤٠ نقطة أو أكتر) بس ماوصلش +١٠٠،
+     وماعملش قاع أوطى من الأول.
+  ٤. السعر عند القاع التاني مش أوطى من الأول بأكتر من ١٥٪ (ولا أعلى بأكتر من ٢٥٪).
+  ٥. الإشارة: أول يوم (في خلال ١٢ جلسة من القاع التاني) الأزرق فيه فوق الأصفر وفوق −١٠٠ وطالع.
+  ٦. إشارة واحدة بس لحد ما الأزرق يوصل +١٠٠ تاني، إلا لو عمل قاع أوطى من قاع الإشارة (الإشارة فشلت، نعد من الأول).
+السهم بيتلوّن لو عمل طلعة بكمية كبيرة مع الإشارة: يوم من يوم الإشارة لحد ١٠ جلسات بعدها طلع فيه ٨٪ أو أكتر
+بقيمة تداول ٥ أضعاف المعتاد (وسيط آخر ٦٠ جلسة) أو أكتر.
+الأسعار من سيجما متعدلة، والمدى بيحسب إقفال امبارح جواه زي تريدنج فيو.
 """
 import numpy as np
 import pandas as pd
 import flowsig
 
-M_LO, M_HI = -110.0, -50.0
-NEAR = 5.0
-RNG = 40.0
+OS, OB = -100.0, 100.0
+W = 2
+NEAR = 12
+GAPMIN, GAPMAX = 4, 35
+BOUNCE = 40.0
+PLO, PHI = 0.85, 1.25
+T2MAX = -50.0
 WAIT = 10
 CHG = 8.0
 VX = 5.0
 MIN_VAL = 5e5
 _CACHE = {}
-COLS = ['sym', 'date', 'close', 'cci', 'm', 'brk', 'bchg', 'bvx', 'left', 'bclose', 'mx', 'mxn', 'days', 'now']
+COLS = ['sym', 'date', 'close', 't1', 't2', 'big', 'bigchg', 'bigvx', 'mx', 'mxn', 'days', 'now']
 
 
 def _mad(v):
     return np.mean(np.abs(v - v.mean()))
 
 
+def _one(dates, hi, lo, cc, val):
+    n = len(cc)
+    pc = np.r_[np.nan, cc[:-1]]
+    h = np.fmax(hi, pc)
+    l = np.fmin(lo, pc)
+    src = pd.Series((h + l + cc) / 3)
+    dev = src.rolling(20).apply(_mad, raw=True).replace(0, np.nan)
+    c = ((src - src.rolling(20).mean()) / (0.015 * dev)).to_numpy()
+    m = pd.Series(c).rolling(14).mean().to_numpy()
+    vs = pd.Series(val)
+    med = vs.shift(1).rolling(60, min_periods=20).median().to_numpy()
+    vm = vs.rolling(60, min_periods=20).median().to_numpy()
+    with np.errstate(divide='ignore', invalid='ignore'):
+        vx = val / med
+        chg = (cc / pc - 1) * 100
+    loc = [k for k in range(W, n - 1) if np.isfinite(c[k]) and c[k] <= T2MAX and c[k] == np.nanmin(c[k - W:k + W + 1])]
+    cand = {}
+    for k2 in loc:
+        best = None
+        for k1 in [k for k in loc if k2 - GAPMAX <= k <= k2 - GAPMIN and c[k] <= OS]:
+            mid = c[k1 + 1:k2]
+            bmax = np.nanmax(mid)
+            pr = cc[k2] / cc[k1]
+            if bmax - c[k1] >= BOUNCE and bmax - c[k2] >= BOUNCE / 2 and bmax < OB and PLO <= pr <= PHI and np.nanmin(mid) >= c[k1]:
+                best = k1
+        if best is None:
+            continue
+        for i in range(k2 + 1, min(n, k2 + 1 + NEAR)):
+            if np.isfinite(m[i]) and c[i] > m[i] and c[i] > OS and c[i] > c[i - 1]:
+                cand.setdefault(i, (best, k2))
+                break
+    out = []
+    armed, floor = True, None
+    for i in range(n):
+        if np.isfinite(c[i]) and c[i] >= OB:
+            armed = True
+        if not armed and floor is not None and np.isfinite(c[i]) and c[i] < floor:
+            armed = True
+        if i in cand and armed:
+            k1, k2 = cand[i]
+            armed, floor = False, min(c[k1], c[k2])
+            if not (vm[i] >= MIN_VAL):
+                continue
+            b = None
+            for j in range(i, min(n, i + 1 + WAIT)):
+                if chg[j] >= CHG and vx[j] >= VX:
+                    b = j
+                    break
+            f = cc[i + 1:i + 61]
+            mx = mxn = None
+            if len(f):
+                k = int(np.nanargmax(f))
+                mx, mxn = (f[k] / cc[i] - 1) * 100, k + 1
+            out.append(dict(date=dates[i], close=cc[i], t1=dates[k1], t2=dates[k2],
+                            big=dates[b] if b is not None else None,
+                            bigchg=chg[b] if b is not None else None, bigvx=vx[b] if b is not None else None,
+                            mx=mx, mxn=mxn, days=len(f), now=(cc[-1] / cc[i] - 1) * 100))
+    return out
+
+
 def signals(store):
-    """كل إشارات أكس-باجر: brk = يوم التأكيد (أو None)، left = الجلسات الباقية في فترة المتابعة."""
     t, _ = flowsig.table(store)
     if t.empty:
         return pd.DataFrame(columns=COLS)
     key = (str(getattr(store, 'root', '')), len(t), t['date'].max())
     if key in _CACHE:
         return _CACHE[key]
-    t = t[['sym', 'date', 'hi', 'lo', 'last', 'val_m']].copy()
     out = []
     for sym, x in t.sort_values(['sym', 'date']).groupby('sym'):
         if len(x) < 60:
             continue
-        c = x['last'].astype(float).reset_index(drop=True)
-        pc = c.shift(1)
-        hi = np.fmax(x['hi'].astype(float).to_numpy(), pc.to_numpy())
-        lo = np.fmin(x['lo'].astype(float).to_numpy(), pc.to_numpy())
-        src = pd.Series((hi + lo + c.to_numpy()) / 3)
-        dev = src.rolling(20).apply(_mad, raw=True).replace(0, np.nan)
-        cci = ((src - src.rolling(20).mean()) / (0.015 * dev)).to_numpy()
-        m = pd.Series(cci).rolling(14).mean().to_numpy()
-        cc = c.to_numpy()
-        s20 = (cc / c.rolling(20).mean().to_numpy() - 1) * 100
-        rng = (c.rolling(60, min_periods=40).max() / c.rolling(60, min_periods=40).min() - 1).to_numpy() * 100
-        val = pd.Series(x['val_m'].astype(float).to_numpy() * 1e6)
-        med = val.shift(1).rolling(60, min_periods=20).median().to_numpy()
-        vm20 = val.rolling(60, min_periods=20).median().to_numpy()
-        with np.errstate(divide="ignore", invalid="ignore"):
-            vx = val.to_numpy() / med
-        chg = (cc / pc.to_numpy() - 1) * 100
-        dates = x['date'].to_numpy()
-        n = len(cc)
-        for i in range(2, n):
-            if not (np.isfinite(m[i]) and np.isfinite(m[i - 2]) and np.isfinite(cci[i])):
-                continue
-            if not (m[i] > m[i - 1] and m[i - 1] <= m[i - 2] and M_LO <= m[i] <= M_HI and cci[i] > m[i]):
-                continue
-            if not (abs(s20[i]) <= NEAR and rng[i] <= RNG and vx[i] <= 1 and vm20[i] >= MIN_VAL):
-                continue
-            b = None
-            for j in range(i + 1, min(i + 1 + WAIT, n)):
-                if chg[j] >= CHG and vx[j] >= VX:
-                    b = j
-                    break
-            bclose = mx = mxn = now = None
-            days = 0
-            if b is not None:
-                bclose = cc[b]
-                f = cc[b + 1:b + 61]
-                days = len(f)
-                if days:
-                    k = int(np.nanargmax(f))
-                    mx = (f[k] / bclose - 1) * 100
-                    mxn = k + 1
-                    now = (cc[-1] / bclose - 1) * 100
-            out.append(dict(sym=sym, date=dates[i], close=cc[i], cci=cci[i], m=m[i],
-                            brk=dates[b] if b is not None else None,
-                            bchg=chg[b] if b is not None else None,
-                            bvx=vx[b] if b is not None else None,
-                            left=max(0, WAIT - (n - 1 - i)),
-                            bclose=bclose, mx=mx, mxn=mxn, days=days, now=now))
+        for r in _one(x['date'].to_numpy(), x['hi'].astype(float).to_numpy(), x['lo'].astype(float).to_numpy(),
+                      x['last'].astype(float).to_numpy(), x['val_m'].astype(float).to_numpy() * 1e6):
+            r['sym'] = sym
+            out.append(r)
     r = pd.DataFrame(out, columns=COLS)
     _CACHE.clear()
     _CACHE[key] = r

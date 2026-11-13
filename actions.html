@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}تعديل الأسعار{% endblock %}
+{% block body %}
+{% if bad %}<div class="card" style="border:2px solid #c0392b">
+  <h2 style="margin-top:0;color:#c0392b">أيام داتا غلط اتشالت من الحساب أو اتجاهلت</h2>
+  <p class="note">في الأيام دي ١٠ أسهم أو أكتر سعرهم بعيد عن الجلسة اللي قبلها بـ٢١٪ أو أكتر، ورجعوا تاني يوم. أو ١٠ أسهم أو أكتر بان عليهم "إجراء" في نفس اليوم. يعني الملف فيه أسعار يوم تاني أو إقفال امبارح فيه غلط، فاليوم ده مش بيتحسب عليه أي تعديل. ارفعي ملف اليوم ده (واليوم اللي قبله) من سيجما تاني.</p>
+  <p style="font-size:17px;font-weight:700">{{ bad|join(' · ') }}</p>
+</div>{% endif %}
+<div class="card">
+  <h2 style="margin-top:0">الإجراءات على الأسهم ({{ rows|length }})</h2>
+  <p class="note">اليوم اللي الفتح فيه بعيد عن إقفال امبارح بـ٢١٪ أو أكتر، والسعر فضل بعيد يومين. كل الأسعار اللي قبله اتضربت في النسبة، والكميات اتقسمت عليها، زي تريدنج فيو.</p>
+  <table style="border-collapse:collapse;font-variant-numeric:tabular-nums">
+    <tr><th style="padding:6px 12px;text-align:right">التاريخ</th><th style="padding:6px 12px;text-align:right">السهم</th><th style="padding:6px 12px;text-align:right">نسبة التعديل</th></tr>
+    {% for r in rows %}<tr><td style="padding:4px 12px;border-top:1px solid var(--line)">{{ r.date }}</td><td style="padding:4px 12px;border-top:1px solid var(--line)"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a></td><td style="padding:4px 12px;border-top:1px solid var(--line)">{{ r.factor }}</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}
