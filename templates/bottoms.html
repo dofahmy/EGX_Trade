@@ -12,9 +12,10 @@
   <h2 style="margin-top:0">إشارات قيعان السوق المصري</h2>
   {% if rows %}
   <table class="bt">
-    <tr><th>التاريخ</th><th>الإشارة</th><th>صندوق EGX30</th></tr>
+    <tr><th>التاريخ</th><th>الإشارة</th><th>صندوق EGX30</th><th>أسهم شرط المؤشر</th></tr>
     {% for r in rows %}
-    <tr><td>{{ r.date }}</td><td class="{{ 'main' if r.main else 'short' }}">{{ 'قاع رئيسي' if r.main else 'ارتداد قصير الأجل' }}</td><td>{{ r.idx if r.idx is not none else '—' }}</td></tr>
+    <tr><td>{{ r.date }}</td><td class="{{ 'main' if r.main else 'short' }}">{{ 'قاع رئيسي' if r.main else 'ارتداد قصير الأجل' }}</td><td>{{ r.idx if r.idx is not none else '—' }}</td>
+      <td>{% for q in r.stocks %}<a href="{{ murl('candles_page', sym=q.sym) }}">{{ q.sym }}</a>{% if q.date != r.date %} <span class="mute" style="font-size:12px">({{ q.date[5:] }})</span>{% endif %}{% if not loop.last %} · {% endif %}{% else %}<span class="mute">—</span>{% endfor %}</td></tr>
     {% endfor %}
   </table>
   {% else %}<p class="note">مفيش إشارات لسه.</p>{% endif %}

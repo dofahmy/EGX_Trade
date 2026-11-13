@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 # unar عشان نفك ملفات rar
-RUN apt-get update && apt-get install -y --no-install-recommends unar && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends unar git && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY requirements.txt .

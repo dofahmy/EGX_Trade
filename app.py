@@ -13,6 +13,8 @@ import flowsig
 import groupsig
 import bigsell
 import rules
+import atrsig
+import tvdaily
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -128,6 +130,15 @@ def helpers():
     return dict(murl=murl, mkt=m, markets=MARKETS, mtitle=MARKETS[m]['title'], mwin=MARKETS[m]['windows'])
 
 
+@app.route('/tv')
+@auth
+def tv_status():
+    """حالة شموع تريدنج فيو. /tv?refresh=1 بيبدأ تحديث."""
+    if request.args.get('refresh'):
+        threading.Thread(target=tvdaily.refresh, args=(STORES['egx'],), daemon=True).start()
+    return jsonify(tvdaily.status)
+
+
 @app.route('/actions')
 @auth
 def actions_page():
@@ -158,6 +169,22 @@ def bottoms_page():
         except Exception:
             pass
         rows.append(dict(date=d['date'], main=a and b, idx=idx))
+    # الأسهم اللي شرط المؤشر اتحقق عندها من يوم الإشارة لحد ١٠ جلسات بعده (أو لحد الإشارة اللي بعدها)
+    try:
+        sig = atrsig.signals(store)
+    except Exception:
+        app.logger.exception('atrsig')
+        sig = None
+    alld = [d['date'] for d in days]
+    nxt = None
+    for r in rows:                                   # الأحدث الأول
+        i = alld.index(r['date'])
+        end = alld[min(i + 9, len(alld) - 1)]
+        if nxt and nxt <= end:
+            end = alld[alld.index(nxt) - 1]
+        z = sig[(sig['date'] >= r['date']) & (sig['date'] <= end)] if sig is not None and len(sig) else []
+        r['stocks'] = [dict(sym=q.sym, date=q.date) for q in z.sort_values('date').drop_duplicates('sym').itertuples()] if len(z) else []
+        nxt = r['date']
     return render_template('bottoms.html', rows=rows)
 
 
@@ -708,6 +735,14 @@ def export():
 @app.route('/health')
 def health():
     return 'ok'
+
+
+# شموع تريدنج فيو اليومية بتتحدث في الخلفية (TV_FETCH=0 يوقفها)
+if os.environ.get('TV_FETCH', '1') == '1':
+    try:
+        tvdaily.start(STORES['egx'], lambda m: print(m, flush=True))
+    except Exception as e:
+        print('[تريدنج فيو] ماقدرش يبدأ:', e, flush=True)
 
 
 if __name__ == '__main__':
