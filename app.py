@@ -230,7 +230,14 @@ def xbadger_page():
     except Exception:
         app.logger.exception('xbadger')
     nbig = sum(1 for r in rows if r['big'])
-    return render_template('xbadger.html', rows=rows, months=months, nbig=nbig)
+    days = []
+    for r in rows:   # الأحدث الأول
+        if not days or days[-1]['date'] != r['date']:
+            days.append(dict(date=r['date'], n=0, big=[]))
+        days[-1]['n'] += 1
+        if r['big']:
+            days[-1]['big'].append(r)
+    return render_template('xbadger.html', rows=rows, months=months, nbig=nbig, days=days)
 
 
 @app.route('/')

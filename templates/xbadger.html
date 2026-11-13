@@ -19,6 +19,17 @@ a.s{font-weight:700}
     {% endfor %}
     <span class="mute"> · {{ rows|length }} إشارة، منهم {{ nbig }} ملوّن</span>
   </p>
+  {% if days %}
+  <h3 style="margin-bottom:6px">الإشارات بالأيام</h3>
+  <table class="bt" style="margin-bottom:22px">
+    <tr><th>اليوم</th><th>عدد الإشارات</th><th>الملوّن</th></tr>
+    {% for d in days %}
+    <tr class="{{ 'big' if d.big }}"><td>{{ d.date }}</td><td>{{ d.n }}</td>
+      <td class="stk">{% for q in d.big %}<a class="s" href="{{ murl('candles_page', sym=q.sym, bare=1, mark=q.date) }}" style="color:#b7791f;font-weight:800">{{ q.sym }}</a>{% if not loop.last %} · {% endif %}{% else %}<span class="mute">—</span>{% endfor %}</td></tr>
+    {% endfor %}
+  </table>
+  <h3 style="margin-bottom:6px">كل الإشارات</h3>
+  {% endif %}
   {% if rows %}
   <table class="bt">
     <tr><th>يوم الإشارة</th><th>السهم</th><th>سعر الإشارة</th><th>القاعين</th><th>يوم الطلعة بالكمية</th><th>أعلى طلوع خلال ٦٠ جلسة</th></tr>
