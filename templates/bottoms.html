@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}إشارات قيعان السوق المصري{% endblock %}
+{% block body %}
+<style>
+.bt{border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums;min-width:420px}
+.bt th,.bt td{border-bottom:1px solid var(--line);padding:8px 14px;text-align:right}
+.bt th{font-weight:600;color:var(--mute);font-size:13px}
+.main{color:#138a5e;font-weight:800}
+.short{color:#b7791f;font-weight:700}
+</style>
+<div class="card">
+  <h2 style="margin-top:0">إشارات قيعان السوق المصري</h2>
+  {% if rows %}
+  <table class="bt">
+    <tr><th>التاريخ</th><th>الإشارة</th><th>صندوق EGX30</th></tr>
+    {% for r in rows %}
+    <tr><td>{{ r.date }}</td><td class="{{ 'main' if r.main else 'short' }}">{{ 'قاع رئيسي' if r.main else 'ارتداد قصير الأجل' }}</td><td>{{ r.idx if r.idx is not none else '—' }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="note">مفيش إشارات لسه.</p>{% endif %}
+</div>
+{% endblock %}

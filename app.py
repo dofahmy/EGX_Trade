@@ -128,6 +128,28 @@ def helpers():
     return dict(murl=murl, mkt=m, markets=MARKETS, mtitle=MARKETS[m]['title'], mwin=MARKETS[m]['windows'])
 
 
+@app.route('/bottoms')
+@auth
+def bottoms_page():
+    """إشارات قيعان السوق المصري: الطريقتين = قاع رئيسي، واحدة بس = ارتداد قصير الأجل."""
+    store = STORES['egx']
+    days, _, _, _ = analyze(store, **params('egx'))
+    rows = []
+    for d in reversed(days):
+        a, b = d['trig']['dip'], d['trig']['double']
+        if not (a or b):
+            continue
+        idx = None
+        try:
+            s_ = store.load(d['date'])[0]
+            if 'EGX30ETF' in s_.index:
+                idx = round(float(s_.at['EGX30ETF', 'last']), 2)
+        except Exception:
+            pass
+        rows.append(dict(date=d['date'], main=a and b, idx=idx))
+    return render_template('bottoms.html', rows=rows)
+
+
 @app.route('/')
 @auth
 def index():
