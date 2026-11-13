@@ -27,6 +27,11 @@ main{max-width:none}
 .k1{background:#1baf7a}.k2{background:#14213d}.k3{background:#2a78d6}.k4{background:#e34948}.k5{background:#e8a317}
 #cv-key td,#cv-key th{padding:5px 7px;vertical-align:top;white-space:normal;word-wrap:break-word;border-bottom:1px solid var(--line);text-align:right}
 #cv-key th{background:#f3f5f9}
+{% if bare %}
+main{padding:6px!important;margin:0!important}
+.cv-side,#cv-notes,#cc-n,label.note{display:none!important}
+.cv-chart.card{box-shadow:none;border:0;margin:0}
+{% endif %}
 @media (max-width:800px){.cv{flex-direction:column}.cv-side{width:100%;position:static}.cv-list{max-height:300px}}
 </style>
 <div class="cv">

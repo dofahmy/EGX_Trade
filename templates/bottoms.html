@@ -21,7 +21,7 @@ a.lost{color:#c0392b;text-decoration:line-through}
     <tr><th>التاريخ</th><th>الإشارة</th><th>صندوق EGX30</th><th>إشارات الشراء (من جلستين قبل لجلستين بعد)</th></tr>
     {% for r in rows %}
     <tr><td>{{ r.date }}</td><td class="{{ 'main' if r.main else 'short' }}">{{ 'قاع رئيسي' if r.main else 'ارتداد قصير الأجل' }}</td><td>{{ r.idx if r.idx is not none else '—' }}</td>
-      <td class="stk">{% for q in r.stocks %}<span class="q{{ ' big' if q.big }}"><a href="{{ murl('candles_page', sym=q.sym) }}">{{ q.sym }}</a>{% if q.date != r.date %} <span class="mute" style="font-size:12px">({{ q.date[5:] }})</span>{% endif %}</span>{% if not loop.last %} · {% endif %}{% else %}<span class="mute">—</span>{% endfor %}</td></tr>
+      <td class="stk">{% for q in r.stocks %}<span class="q{{ ' big' if q.big }}"><a target="_blank" href="{{ murl('candles_page', sym=q.sym, bare=1) }}">{{ q.sym }}</a>{% if q.date != r.date %} <span class="mute" style="font-size:12px">({{ q.date[5:] }})</span>{% endif %}</span>{% if not loop.last %} · {% endif %}{% else %}<span class="mute">—</span>{% endfor %}</td></tr>
     {% endfor %}
   </table>
   <p class="note" style="margin-top:14px"><span style="background:#fff4d6;color:#b7791f;font-weight:800;padding:0 6px;border-radius:4px">ملوّن</span> = السهم طالع بفوليوم كبير جدا</p>

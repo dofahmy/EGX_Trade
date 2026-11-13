@@ -608,7 +608,8 @@ def candles_page():
             mk = dict(d=d, nb=int(row['nb']), ns=int(row['ns']), net=int(row['net']), dd=round(float(row['dd']), 1),
                       cluster=bool(row['cluster']), top=top, h1=bool(row['h1']))
     sel = (request.args.get('sym') or (stocks[0]['sym'] if stocks else '')).upper()
-    return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None, mk=mk)
+    bare = request.args.get('bare') == '1'
+    return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None, mk=mk, bare=bare)
 
 
 @app.route('/candles/data/<sym>')

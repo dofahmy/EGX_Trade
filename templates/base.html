@@ -42,13 +42,13 @@ a{color:var(--blue)}
 </style>
 </head>
 <body>
-<header>
+{% if not bare %}<header>
   <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
     <a href="{{ url_for('bottoms_page', m='egx') }}" style="background:#138a5e;color:#fff;padding:4px 12px;border-radius:6px">إشارات قيعان السوق المصري</a>
     <a href="{{ url_for('xbadger_page', m='egx') }}" style="background:#6b46c1;color:#fff;padding:4px 12px;border-radius:6px">إشارات الشراء</a>
   </div>
   <span class="mute" style="color:#c9d1e6;font-size:13px">قراءة لشكل التداول، مش توصية بشراء أو بيع</span>
-</header>
+</header>{% endif %}
 <main>{% block body %}{% endblock %}</main>
 </body>
 </html>

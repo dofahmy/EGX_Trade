@@ -18,7 +18,7 @@
 .new{background:#c53030;color:#fff;border-radius:4px;padding:0 5px;font-size:11px;margin-inline-start:4px}
 </style>
 {% macro pct(v) %}{% if v is none %}—{% else %}<span class="{{ 'up' if v > 0 else ('dn' if v < 0 else '') }}">{{ '%+.1f'|format(v) }}٪</span>{% endif %}{% endmacro %}
-{% macro sym(r) %}<td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>{% endmacro %}
+{% macro sym(r) %}<td class="s"><a target="_blank" href="{{ murl('candles_page', sym=r.sym, bare=1) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>{% endmacro %}
 <div class="card">
   <form method="get" style="margin-bottom:10px;font-size:14px">
     <label>اليوم <select style="width:auto" name="d" onchange="this.form.submit()">

@@ -42,7 +42,7 @@ main{max-width:none}
     <div style="overflow-x:auto"><table class="gt">
       <tr><th style="text-align:right">السهم</th>{% for l in labels %}<th>{{ l }}</th>{% endfor %}</tr>
       {% for r in g.rows %}
-      <tr id="g-{{ r.sym }}"><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
+      <tr id="g-{{ r.sym }}"><td class="s"><a target="_blank" href="{{ murl('candles_page', sym=r.sym, bare=1) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
         {% for c in r.cells %}
           {% if c %}
             {% set mv = c.m if c.m is not none else 0 %}

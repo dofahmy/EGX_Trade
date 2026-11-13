@@ -33,7 +33,7 @@
     <table class="bt">
       <tr><th style="text-align:right">السهم</th><th>التداول كام ضعف</th><th>صافي الكبار</th><th>تغير السعر في الأسبوع</th><th>تداول الأسبوع (مليون)</th><th>فرقه عن السوق الأسبوع اللي بعده</th><th>فرقه بعد ٤ أسابيع</th></tr>
       {% for r in k.rows %}
-      <tr><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
+      <tr><td class="s"><a target="_blank" href="{{ murl('candles_page', sym=r.sym, bare=1) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
         <td>{{ r.mult }}×</td><td>{{ pct(r.bnr) }}</td><td>{{ pct(r.ret) }}</td><td>{{ r.val|int }}</td><td>{{ pct(r.x1) }}</td><td>{{ pct(r.x4) }}</td></tr>
       {% endfor %}
     </table>

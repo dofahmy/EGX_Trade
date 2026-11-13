@@ -20,7 +20,7 @@ a.lost{color:#c0392b;text-decoration:line-through}
     <tr><th>التاريخ</th><th>الأسهم</th></tr>
     {% for r in rows %}
     <tr><td>{{ r.date }}</td>
-      <td class="stk">{% for q in r.stocks %}<span class="q{{ ' sh' if q.kind == 'short' }}"><a href="{{ murl('candles_page', sym=q.sym) }}" class="{{ 'held' if q.held else ('lost' if q.held == false else '') }}">{{ q.sym }}</a> <span class="mute" style="font-size:12px">(+{{ q.chg }}٪)</span></span>{% if not loop.last %} · {% endif %}{% endfor %}</td></tr>
+      <td class="stk">{% for q in r.stocks %}<span class="q{{ ' sh' if q.kind == 'short' }}"><a target="_blank" href="{{ murl('candles_page', sym=q.sym, bare=1) }}" class="{{ 'held' if q.held else ('lost' if q.held == false else '') }}">{{ q.sym }}</a> <span class="mute" style="font-size:12px">(+{{ q.chg }}٪)</span></span>{% if not loop.last %} · {% endif %}{% endfor %}</td></tr>
     {% endfor %}
   </table>
   {% else %}<p class="note">مفيش أسهم لسه.</p>{% endif %}
