@@ -26,7 +26,7 @@ main{max-width:none}
   {% if rows %}
   <tr><th style="text-align:right">السهم</th><th>فلوس أول ربع ساعة (مليون)</th><th>سعر ١٠:١٥</th><th>لحد ١٠:١٥</th>{% if not live %}<th>الإقفال</th><th>من ١٠:١٥ للإقفال</th><th>إقفال بكره</th><th>من ١٠:١٥ لإقفال بكره</th>{% endif %}</tr>
   {% for r in rows %}
-  <tr><td class="s"><a target="_blank" href="{{ murl('candles_page', sym=r.sym, bare=1) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
+  <tr><td class="s"><a href="{{ murl('candles_page', sym=r.sym, bare=1) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
     <td>{{ r.val }}</td><td>{{ r.p15 }}</td><td>{{ pct(r.g15) }}</td>
     {% if not live %}<td>{{ r.c }}</td><td>{{ pct(r.rest) }}</td><td>{{ r.nc if r.nc is not none else '—' }}</td><td>{{ pct(r.hold) }}</td>{% endif %}</tr>
   {% endfor %}

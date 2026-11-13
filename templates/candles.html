@@ -82,8 +82,11 @@ function actions(A){
   return [];
 }
 let TRADES = [];
+const MARK = {{ (mark or '')|tojson }};
 function draw(){
-  const n = +document.getElementById('cc-n').value, D = ALL.slice(-n);
+  let n = +document.getElementById('cc-n').value;
+  if (MARK){ const k = ALL.findIndex(d => d.d === MARK); if (k >= 0 && ALL.length - k > n - 10) n = Math.min(ALL.length, ALL.length - k + 30); }
+  const D = ALL.slice(-n);
   const svg = document.getElementById('cc'); svg.innerHTML = '';
   notes(D);
   if (!D.length){ svg.setAttribute('height', 40); return; }
@@ -142,6 +145,15 @@ function draw(){
     let h = `<b>${d.d}</b><br>افتتاح ${d.o} · إغلاق ${d.c} (${SG(d.chg)}٪)<br>أدنى ${d.l} · أعلى ${d.h}`;
     if (d.bsh != null) h += `<br>الساعة الأولى: المشتري ${Math.round(d.bsh * 100)}٪` + (d.h1x != null ? ` · الكمية ${d.h1x.toFixed(1)}× الجلسة اللي قبلها` : '');
     if (!d.mh1) h += '<br><span style="color:#f3b3b2">بيانات الساعة الأولى مش موجودة للجلسة دي</span>';
+    if (MARK && d.d === MARK){
+      el('line', {x1: x, x2: x, y1: PADT - 4, y2: H - PB, stroke: '#6b46c1', 'stroke-width': 2, 'stroke-dasharray': '6 4'}, svg);
+      const yl = Math.min(y(LO(d)) + 14, PADT + H1 - 4);
+      el('path', {d: `M${x} ${yl} l-8 14 h16 z`, fill: '#6b46c1'}, svg);
+      const anc = x > W - 90 ? 'end' : x < PADL + 60 ? 'start' : 'middle';
+      const lb = el('text', {x: anc === 'end' ? x + 6 : x, y: Math.min(yl + 30, PADT + H1 + 8), 'text-anchor': anc, 'font-size': 13, 'font-weight': 800, fill: '#6b46c1'}, svg);
+      lb.textContent = 'إشارة شراء ' + d.d.slice(5);
+      h += '<br><b style="color:#c9b6f2">آخر إشارة شراء</b>';
+    }
     const hit = el('rect', {x: x - step / 2, y: PADT - 20, width: step, height: H - PADT - PB + 20, fill: 'transparent'}, svg);
     hover(hit, h);
     const lastLbl = D.length - 1;

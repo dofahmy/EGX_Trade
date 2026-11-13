@@ -11,7 +11,7 @@
   <p class="note">اليوم اللي الفتح فيه بعيد عن إقفال امبارح بـ٢١٪ أو أكتر، والسعر فضل بعيد يومين. كل الأسعار اللي قبله اتضربت في النسبة، والكميات اتقسمت عليها، زي تريدنج فيو.</p>
   <table style="border-collapse:collapse;font-variant-numeric:tabular-nums">
     <tr><th style="padding:6px 12px;text-align:right">التاريخ</th><th style="padding:6px 12px;text-align:right">السهم</th><th style="padding:6px 12px;text-align:right">نسبة التعديل</th></tr>
-    {% for r in rows %}<tr><td style="padding:4px 12px;border-top:1px solid var(--line)">{{ r.date }}</td><td style="padding:4px 12px;border-top:1px solid var(--line)"><a target="_blank" href="{{ murl('candles_page', sym=r.sym, bare=1) }}">{{ r.sym }}</a></td><td style="padding:4px 12px;border-top:1px solid var(--line)">{{ r.factor }}</td></tr>{% endfor %}
+    {% for r in rows %}<tr><td style="padding:4px 12px;border-top:1px solid var(--line)">{{ r.date }}</td><td style="padding:4px 12px;border-top:1px solid var(--line)"><a href="{{ murl('candles_page', sym=r.sym, bare=1) }}">{{ r.sym }}</a></td><td style="padding:4px 12px;border-top:1px solid var(--line)">{{ r.factor }}</td></tr>{% endfor %}
   </table>
 </div>
 {% endblock %}

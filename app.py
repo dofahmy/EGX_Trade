@@ -609,7 +609,16 @@ def candles_page():
                       cluster=bool(row['cluster']), top=top, h1=bool(row['h1']))
     sel = (request.args.get('sym') or (stocks[0]['sym'] if stocks else '')).upper()
     bare = request.args.get('bare') == '1'
-    return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None, mk=mk, bare=bare)
+    mark = request.args.get('mark')
+    if bare and not mark and m == 'egx':
+        try:
+            xb = xbadger.signals(store)
+            z = xb[xb['sym'] == sel]
+            if len(z):
+                mark = str(z['date'].max())
+        except Exception:
+            app.logger.exception('xbadger mark')
+    return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None, mk=mk, bare=bare, mark=mark)
 
 
 @app.route('/candles/data/<sym>')

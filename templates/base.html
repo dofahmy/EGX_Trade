@@ -50,5 +50,27 @@ a{color:var(--blue)}
   <span class="mute" style="color:#c9d1e6;font-size:13px">قراءة لشكل التداول، مش توصية بشراء أو بيع</span>
 </header>{% endif %}
 <main>{% block body %}{% endblock %}</main>
+{% if not bare %}
+<div id="cm-bg" style="display:none;position:fixed;inset:0;background:rgba(20,33,61,.55);z-index:50;align-items:center;justify-content:center">
+  <div style="position:relative;width:min(1200px,94vw);height:min(820px,90vh);background:#fff;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.35);overflow:hidden">
+    <button id="cm-x" aria-label="قفل" style="position:absolute;top:6px;left:8px;z-index:2;border:0;background:#14213d;color:#fff;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer">×</button>
+    <iframe id="cm-f" style="width:100%;height:100%;border:0"></iframe>
+  </div>
+</div>
+<script>
+(function(){
+  const bg = document.getElementById('cm-bg'), f = document.getElementById('cm-f');
+  function close(){ bg.style.display = 'none'; f.src = 'about:blank'; }
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href*="bare=1"]');
+    if (!a || e.ctrlKey || e.metaKey) return;
+    e.preventDefault(); f.src = a.href; bg.style.display = 'flex';
+  });
+  document.getElementById('cm-x').onclick = close;
+  bg.addEventListener('click', e => { if (e.target === bg) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
+</script>
+{% endif %}
 </body>
 </html>
