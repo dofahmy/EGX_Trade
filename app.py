@@ -189,6 +189,23 @@ def bottoms_page():
     return render_template('bottoms.html', rows=rows)
 
 
+@app.route('/eye')
+@auth
+def eye_page():
+    """عين ع السوق: كل الأيام اللي فيها أسهم كسرت بعد تجميع طويل."""
+    store = STORES['egx']
+    try:
+        sig = brksig.signals(store)
+    except Exception:
+        app.logger.exception('brksig')
+        sig = None
+    rows = []
+    if sig is not None and len(sig):
+        for d, z in sig.sort_values(['date', 'chg'], ascending=[False, False]).groupby('date', sort=False):
+            rows.append(dict(date=d, stocks=[dict(sym=q.sym, chg=round(q.chg, 1), held=q.held) for q in z.itertuples()]))
+    return render_template('eye.html', rows=rows)
+
+
 @app.route('/')
 @auth
 def index():

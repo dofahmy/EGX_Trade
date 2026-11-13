@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}عين ع السوق{% endblock %}
+{% block body %}
+<style>
+.bt{border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.bt th,.bt td{border-bottom:1px solid var(--line);padding:8px 14px;text-align:right}
+.bt th{font-weight:600;color:var(--mute);font-size:13px}
+.bt td.stk{white-space:normal;line-height:2;width:100%}
+.bt td.stk .q{white-space:nowrap;display:inline-block}
+a.held{color:#138a5e;font-weight:700}
+a.lost{color:#c0392b;text-decoration:line-through}
+</style>
+<div class="card">
+  <h2 style="margin-top:0">عين ع السوق</h2>
+  <p class="note">أسهم كسرت بعد تجميع طويل: كانت في مدى ضيق ١٢٠ جلسة (أعلى إقفال مش أكتر من أوطى إقفال بـ٤٠٪)، وطلعت ٨٪ أو أكتر بقيمة تداول ٥ أضعاف المعتاد، وقفلت فوق أعلى المدى. الرقم جنب السهم تغير يوم الكسر.<br>
+  <span style="color:#138a5e;font-weight:700">أخضر</span> = بعد ٥ جلسات لسه فوق مستوى الكسر · <span style="color:#c0392b;text-decoration:line-through">أحمر مشطوب</span> = رجع تحته · أزرق = لسه ماعدّاش ٥ جلسات.</p>
+  {% if rows %}
+  <table class="bt">
+    <tr><th>التاريخ</th><th>الأسهم</th></tr>
+    {% for r in rows %}
+    <tr><td>{{ r.date }}</td>
+      <td class="stk">{% for q in r.stocks %}<span class="q"><a href="{{ murl('candles_page', sym=q.sym) }}" class="{{ 'held' if q.held else ('lost' if q.held == false else '') }}">{{ q.sym }}</a> <span class="mute" style="font-size:12px">(+{{ q.chg }}٪)</span></span>{% if not loop.last %} · {% endif %}{% endfor %}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="note">مفيش أسهم لسه.</p>{% endif %}
+</div>
+{% endblock %}

@@ -4,6 +4,8 @@
 <style>
 .bt{border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums;min-width:420px}
 .bt th,.bt td{border-bottom:1px solid var(--line);padding:8px 14px;text-align:right}
+.bt td.stk{white-space:normal;line-height:2;width:100%}
+.bt td.stk .q{white-space:nowrap;display:inline-block}
 .bt th{font-weight:600;color:var(--mute);font-size:13px}
 .main{color:#138a5e;font-weight:800}
 .short{color:#b7791f;font-weight:700}
@@ -17,7 +19,7 @@ a.lost{color:#c0392b;text-decoration:line-through}
     <tr><th>التاريخ</th><th>الإشارة</th><th>صندوق EGX30</th><th>أسهم كسر بعد تجميع</th></tr>
     {% for r in rows %}
     <tr><td>{{ r.date }}</td><td class="{{ 'main' if r.main else 'short' }}">{{ 'قاع رئيسي' if r.main else 'ارتداد قصير الأجل' }}</td><td>{{ r.idx if r.idx is not none else '—' }}</td>
-      <td>{% for q in r.stocks %}<a href="{{ murl('candles_page', sym=q.sym) }}" class="{{ 'held' if q.held else ('lost' if q.held == false else '') }}">{{ q.sym }}</a>{% if q.date != r.date %} <span class="mute" style="font-size:12px">({{ q.date[5:] }})</span>{% endif %}{% if not loop.last %} · {% endif %}{% else %}<span class="mute">—</span>{% endfor %}</td></tr>
+      <td class="stk">{% for q in r.stocks %}<span class="q"><a href="{{ murl('candles_page', sym=q.sym) }}" class="{{ 'held' if q.held else ('lost' if q.held == false else '') }}">{{ q.sym }}</a>{% if q.date != r.date %} <span class="mute" style="font-size:12px">({{ q.date[5:] }})</span>{% endif %}</span>{% if not loop.last %} · {% endif %}{% else %}<span class="mute">—</span>{% endfor %}</td></tr>
     {% endfor %}
   </table>
   <p class="note" style="margin-top:14px">أسهم كسر بعد تجميع: السهم كان في مدى ضيق ١٢٠ جلسة (أعلى إقفال مش أكتر من أوطى إقفال بـ٤٠٪)، وطلع ٨٪ أو أكتر بقيمة تداول ٥ أضعاف المعتاد، وقفل فوق أعلى المدى. بتظهر من يوم الإشارة لحد الإشارة اللي بعدها (بحد أقصى ٤٠ جلسة)، والتاريخ بين القوسين يوم الكسر.<br>
