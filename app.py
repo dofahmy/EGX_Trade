@@ -172,22 +172,21 @@ def bottoms_page():
         except Exception:
             pass
         rows.append(dict(date=d['date'], main=a and b, idx=idx))
-    # أسهم "كسر بعد تجميع طويل" من يوم الإشارة لحد الإشارة اللي بعدها (بحد أقصى ٤٠ جلسة)
+    # إشارات الشراء (القاع المزدوج على CCI) من جلستين قبل الإشارة لحد جلستين بعدها
     try:
-        sig = brksig.signals(store)
+        sig = xbadger.signals(store)
     except Exception:
-        app.logger.exception('brksig')
+        app.logger.exception('xbadger')
         sig = None
-    alld = [d['date'] for d in days]
-    nxt = None
-    for r in rows:                                   # الأحدث الأول
-        i = alld.index(r['date'])
-        end = alld[min(i + 39, len(alld) - 1)]
-        if nxt and nxt <= end:
-            end = alld[alld.index(nxt) - 1]
-        z = sig[(sig['date'] >= r['date']) & (sig['date'] <= end)] if sig is not None and len(sig) else []
-        r['stocks'] = [dict(sym=q.sym, date=q.date, held=q.held, kind=q.kind) for q in z.sort_values('date').drop_duplicates('sym').itertuples()] if len(z) else []
-        nxt = r['date']
+    alld = sorted(set(d['date'] for d in days) | (set(sig['date']) if sig is not None and len(sig) else set()))
+    for r in rows:
+        i = alld.index(r['date']) if r['date'] in alld else None
+        r['stocks'] = []
+        if i is None or sig is None or not len(sig):
+            continue
+        lo, hi = alld[max(0, i - 2)], alld[min(len(alld) - 1, i + 2)]
+        z = sig[(sig['date'] >= lo) & (sig['date'] <= hi)].sort_values(['date', 'sym'])
+        r['stocks'] = [dict(sym=q.sym, date=q.date, big=isinstance(q.big, str)) for q in z.itertuples()]
     return render_template('bottoms.html', rows=rows)
 
 
