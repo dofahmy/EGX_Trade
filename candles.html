@@ -1,79 +1,189 @@
 {% extends 'base.html' %}
 {% block title %}الشموع{% endblock %}
 {% block body %}
-{% set titles = {'gold': ('الشموع الدهبية', 'تجميع: حيطة تخينة، والفتح والإقفال الاتنين أعلى من الشمعة اللي قبلها'),
-                 'black': ('الشموع السودا', 'خطر بيع: حيطة تخينة، والفتح والإقفال الاتنين أقل من الشمعة اللي قبلها'),
-                 'neutral': ('الشموع المحايدة', 'حيطة تخينة، وواحد بس من الفتح والإقفال أعلى من الشمعة اللي قبلها')} %}
-<div class="card" id="chart">
-  {% if sel and data %}
-  <h2>{{ sel_name }} <span class="mute">{{ sel }}</span> · <a href="{{ murl('chart', sym=sel) }}" style="font-size:14px">افتح الرسم لوحده</a></h2>
-  {% include '_candles_chart.html' %}
-  {% else %}
-  <h2>الشموع</h2><p class="mute">دوسي على أي سهم في الجداول تحت عشان يترسم هنا.</p>
-  {% endif %}
-  <details class="note"><summary>الشمعة الدهبية يعني إيه؟</summary>
-    حيطة اتلم عندها {% if p.c_share_max is not none %}من {{ p.c_share|num }}٪ لـ {{ p.c_share_max|num }}٪{% else %}{{ p.c_share|num }}٪ أو أكتر{% endif %} من تداول اليوم{% if p.c_zone %} (الأسعار اللي في حدود {{ p.c_zone|num }}٪ من بعض بتتحسب حيطة واحدة){% endif %}، وأتخن من عادة السهم {% if p.c_ratio_max is not none %}من {{ p.c_ratio|num }} لـ {{ p.c_ratio_max|num }} مرات{% else %}بـ{{ p.c_ratio|num }} مرات أو أكتر{% endif %}، والسهم قفل عليها أو فوقها بـ{{ p.c_near|num }}٪ أو أقل.
-    لو الفتح أعلى من فتح الشمعة اللي قبلها والإقفال أعلى من إقفالها = دهبية. لو الاتنين أقل = سودا. لو واحد بس = محايدة.
-    من غير أيام الحد الأدنى والأقصى، ووثائق الصناديق، والأسهم المستبعدة، والأسهم اللي تداولها أقل من {{ p.c_val|num }} مليون. الأرقام دي بتتغير من الإعدادات.
-    والنتايج محسوبة من إقفال يوم الشمعة.
-    <br><b>اتعمل عندها:</b> قيمة التداول اللي اتعمل عند سعر الحيطة يوم الشمعة.
-    <b>السرعة:</b> أكتر نص ساعة في اليوم خد كام في المية من القيمة دي. أقل من ٤٠٪ = هادي (تجميع على مهله طول اليوم)، من ٤٠ لـ٥٠ = متوسط، ٥٠٪ أو أكتر = مستعجل.
-    ولو دقيقة واحدة فيها ١٠ صفقات أو أقل خدت ٣٠٪ أو أكتر من القيمة، بيظهر تنبيه "صفقة كبيرة"، لأنها غالبًا صفقة متفق عليها مش تجميع من السوق.
-    والعلامة (—) معناها إن الجلسة اترفعت قبل التحديث ده، ولازم ترفعيها تاني عشان تتحسب.
-  </details>
-</div>
-
-{% if why.all %}
-<div class="card">
-  <h2>الأسهم وقعت فين؟</h2>
-  <p class="note">كل سهم في كل جلسة كان عنده حيطة، والشروط بالترتيب. السهم بيتحسب عند أول شرط وقع فيه.</p>
-  <div class="tablewrap"><table>
-    <tr><th>الشرط</th><th>عدد اللي وقعوا</th></tr>
-    <tr><td>كل الأسهم اللي عندها حيطة</td><td class="num">{{ why.all }}</td></tr>
-    <tr><td>يوم حد أدنى أو أقصى، أو وثيقة صندوق، أو تداول أقل من {{ p.c_val|num }} مليون</td><td class="num">{{ why.val or 0 }}</td></tr>
-    <tr><td>الحيطة اتلم عندها {% if p.c_share_max is not none %}برة {{ p.c_share|num }}٪ لـ {{ p.c_share_max|num }}٪{% else %}أقل من {{ p.c_share|num }}٪{% endif %}</td><td class="num">{{ why.share or 0 }}</td></tr>
-    <tr><td>الإقفال مش على الحيطة أو فوقها بـ{{ p.c_near|num }}٪ بالكتير</td><td class="num">{{ why.near or 0 }}</td></tr>
-    <tr><td>{% if p.c_ratio_max is not none %}الحيطة أتخن من عادة السهم برة {{ p.c_ratio|num }} لـ {{ p.c_ratio_max|num }} مرات{% else %}الحيطة مش أتخن من عادة السهم بـ{{ p.c_ratio|num }} مرات{% endif %}</td><td class="num">{{ why.ratio or 0 }}</td></tr>
-    <tr><td><b>عدوا كل الشروط (دهبية وسودا ومحايدة)</b></td><td class="num"><b>{{ why.ok or 0 }}</b></td></tr>
-  </table></div>
-  <p class="note">لو الأغلبية واقعة عند شرط واحد، يبقى هو اللي خانق النتايج. تقدري تغيريه من الإعدادات، أو تجربيه من غير حفظ بإنك تزودي في الرابط مثلًا <span dir="ltr">&c_share=3</span>.</p>
-</div>
-{% endif %}
-
-{% for k in ['gold', 'black', 'neutral'] %}{% set g = groups[k] %}
-<div class="card">
-  <h2>{{ titles[k][0] }} <span class="mute">({{ g.rows|length }})</span></h2>
-  <p class="note">{{ titles[k][1] }}</p>
-  {% if g.sm.r1 %}
-  <p class="mute">المتوسط:
-    {% for key, t in [('r1', 'بعد يوم'), ('r2', 'بعد يومين'), ('r3', 'بعد ٣ جلسات'), ('now', 'لحد آخر جلسة')] %}{% if g.sm[key] %}
-    {{ t }} <b class="{{ 'pos' if g.sm[key][0] > 0 else 'neg' if g.sm[key][0] < 0 else '' }}">{{ '%+.2f'|format(g.sm[key][0]) }}٪</b> <span class="note">({{ g.sm[key][1] }})</span>{{ ' · ' if not loop.last }}
-    {% endif %}{% endfor %}</p>
-  {% endif %}
-  {% if g.rows %}
-  <div class="tablewrap"><table>
-    <tr><th>اليوم</th><th>السهم</th><th>الحيطة</th><th>اتلم عندها</th><th>أتخن من عادته</th><th>اتعمل عندها</th><th>السرعة</th><th>الإقفال</th><th>بعد يوم</th><th>بعد يومين</th><th>بعد ٣ جلسات</th><th>لحد آخر جلسة</th></tr>
-    {% for r in g.rows %}
-    <tr{% if r.sym == sel %} style="background:var(--amberbg)"{% endif %}>
-      <td>{{ r.date }}</td>
-      <td><a href="{{ murl('candles_page', sym=r.sym) }}#chart"><b>{{ r.sym }}</b></a> <span class="note">{{ r.name }}</span></td>
-      <td class="num">{{ r.wall }}</td>
-      <td class="num">{{ '%.0f'|format(r.share) }}٪</td>
-      <td class="num">{{ r.ratio }} مرة</td>
-      <td class="num">{% if r.f_val is defined and r.f_val is not none %}{{ r.f_val }} مليون{% else %}<span class="mute">—</span>{% endif %}</td>
-      <td>{% if r.f_speed is defined and r.f_speed %}
-        {% set sp = {'slow': ('هادي', 'pos'), 'mid': ('متوسط', ''), 'fast': ('مستعجل', 'neg')}[r.f_speed] %}
-        <b class="{{ sp[1] }}">{{ sp[0] }}</b> <span class="note">{{ r.f_best }}٪ في نص ساعة</span>
-        {% if r.f_block %}<div class="neg" style="font-size:12px">صفقة كبيرة: {{ r.f_block.val }} مليون في دقيقة واحدة الساعة {{ r.f_block.t }} ({{ r.f_block.pct }}٪)</div>{% endif %}
-      {% else %}<span class="mute">—</span>{% endif %}</td>
-      <td class="num">{{ r.close }} <span class="note {{ 'pos' if r.chg > 0 else 'neg' if r.chg < 0 else '' }}">{{ '%+.2f'|format(r.chg) }}٪</span></td>
-      {% for key in ['r1', 'r2', 'r3', 'now'] %}
-      <td class="num {{ 'pos' if r[key] is not none and r[key] > 0 else 'neg' if r[key] is not none and r[key] < 0 else '' }}">{% if r[key] is not none %}{{ '%+.1f'|format(r[key]) }}٪{% else %}<span class="mute">لسه</span>{% endif %}</td>
+<style>
+main{max-width:none}
+.cv{display:flex;flex-direction:row-reverse;gap:14px;align-items:flex-start}
+.cv-chart{flex:1;min-width:0}
+.cv-side{width:300px;flex-shrink:0;position:sticky;top:10px}
+.cv-list{max-height:calc(100vh - 150px);overflow-y:auto;border-top:1px solid var(--line)}
+.cv-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;border-bottom:1px solid var(--line);cursor:pointer}
+.cv-row:hover{background:#f3f5f9}
+.cv-row.on{background:#e8eefb;outline:1px solid var(--blue)}
+.cv-row .s{font-weight:700;font-size:14px}
+.cv-row .n{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.cv-row .p{text-align:left;font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap}
+.cv-row .sg{display:inline-block;font-size:10px;background:#e3edfb;color:#1f5fbf;border-radius:4px;padding:0 4px;margin-top:2px}
+#cv-q{width:100%;margin-bottom:8px}
+.lg{display:inline-flex;align-items:center;gap:5px}
+.mk{border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:14px;border:1px solid var(--line);background:#f7f8fb}
+.mk.on{background:#e6f4ea;border-color:#9ccfa8}
+.cv-notes p{margin:6px 0;padding:8px 10px;border-radius:8px;font-size:14px;background:#f7f8fb;border:1px solid var(--line)}
+.cv-notes p.b{background:#e8f0fd;border-color:#b5cdf3}
+.cv-notes p.c{background:#e6f4ea;border-color:#9ccfa8}
+.cv-notes p.l{background:#fff5e0;border-color:#f0cf87}
+.cv-notes p.t{background:#e6f4ea;border-color:#9ccfa8}
+.kb{display:inline-block;min-width:20px;text-align:center;border-radius:10px;color:#fff;font-weight:700;font-size:12px;padding:1px 6px}
+.k1{background:#1baf7a}.k2{background:#14213d}.k3{background:#2a78d6}.k4{background:#e34948}.k5{background:#e8a317}
+#cv-key td,#cv-key th{padding:5px 7px;vertical-align:top;white-space:normal;word-wrap:break-word;border-bottom:1px solid var(--line);text-align:right}
+#cv-key th{background:#f3f5f9}
+@media (max-width:800px){.cv{flex-direction:column}.cv-side{width:100%;position:static}.cv-list{max-height:300px}}
+</style>
+<div class="cv">
+  <div class="cv-chart card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0"><span id="cv-sym"></span> <span id="cv-name" class="mute" style="font-size:15px"></span></h2>
+      <div class="big" id="cv-px"></div>
+    </div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:8px 0">
+      <label class="note" style="flex-direction:row;align-items:center;gap:6px">الفترة <select id="cc-n"><option value="30">آخر ٣٠ جلسة</option><option value="60" selected>آخر ٦٠ جلسة</option><option value="120">آخر ١٢٠ جلسة</option><option value="9999">كل الجلسات</option></select></label>
+    </div>
+    <div id="cc-wrap" style="overflow-x:auto;direction:ltr"><svg id="cc"></svg></div>
+    <div id="cv-notes" class="cv-notes"></div>
+  </div>
+  <div class="cv-side card">
+    <input id="cv-q" type="search" placeholder="ابحث بالرمز أو اسم الشركة">
+    <div class="note" style="margin-bottom:4px">{{ stocks|length }} سهم · جلسة {{ last_date }}</div>
+    <div class="cv-list" id="cv-list">
+      {% for s in stocks %}
+      <div class="cv-row{{ ' on' if s.sym == sel }}" data-sym="{{ s.sym }}" data-q="{{ (s.sym ~ ' ' ~ s.name)|lower }}">
+        <div style="min-width:0"><div class="s">{{ s.sym }}</div><div class="n">{{ s.name }}</div></div>
+        <div class="p">{{ s.last }}<div class="{{ 'pos' if s.chg and s.chg > 0 else 'neg' if s.chg and s.chg < 0 else 'mute' }}" style="font-size:12px">{% if s.chg is not none %}{{ '%+.2f'|format(s.chg) }}٪{% endif %}</div></div>
+      </div>
       {% endfor %}
-    </tr>
-    {% endfor %}
-  </table></div>
-  {% else %}<p class="mute">مفيش لحد دلوقتي.</p>{% endif %}
+    </div>
+  </div>
 </div>
-{% endfor %}
+<div id="cc-tip" style="position:fixed;display:none;background:#14213d;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;pointer-events:none;z-index:9;direction:rtl"></div>
+<script>
+(function(){
+const NAMES = {}; document.querySelectorAll('.cv-row').forEach(r => NAMES[r.dataset.sym] = r.querySelector('.n').textContent);
+const UP = '#1baf7a', DN = '#e34948', BLUE = '#2a78d6', GOLD = '#e8a317';
+const NS = 'http://www.w3.org/2000/svg';
+const AR = s => String(s).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g, '٫');
+const SG = v => (v > 0 ? '+' : '') + v;
+const DT = d => `${AR(d.slice(8))}/${AR(d.slice(5, 7))}/${AR(d.slice(0, 4))}`;
+function el(t, a, p){ const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p && p.appendChild(e); return e; }
+const tip = document.getElementById('cc-tip');
+function hover(e, html){
+  e.addEventListener('mousemove', ev => { tip.innerHTML = html; tip.style.display = 'block'; tip.style.left = (ev.clientX + 14) + 'px'; tip.style.top = (ev.clientY + 12) + 'px'; });
+  e.addEventListener('mouseleave', () => tip.style.display = 'none');
+}
+let ALL = [];
+const HOLD = 10;
+const ACT = {1: ['شراء', '#1baf7a'], 2: ['خروج', '#14213d'], 3: ['راقب', '#2a78d6'], 4: ['حذر', '#e34948'], 5: ['حد', '#e8a317'], 6: ['كمّل', '#0d6b49'], 7: ['ما كمّلش', '#888780']};
+function actions(A){
+  A.forEach(d => { d.acts = (d.buy && d.cluster) ? [{k: 1}] : []; });
+  return [];
+}
+let TRADES = [];
+function draw(){
+  const n = +document.getElementById('cc-n').value, D = ALL.slice(-n);
+  const svg = document.getElementById('cc'); svg.innerHTML = '';
+  notes(D);
+  if (!D.length){ svg.setAttribute('height', 40); return; }
+  const wrapW = document.getElementById('cc-wrap').clientWidth || 800;
+  const PADL = 92, PADT = 16, H1 = 380, GAP = 34, H2 = 110, H3 = 110, PB = 26;
+  const H = PADT + H1 + 10 + GAP + H2 + GAP + H3 + PB;
+  const step = Math.max(5, Math.min(60, (wrapW - PADL - 20) / D.length));
+  const W = PADL + step * D.length + 20;
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  const LO = d => Math.max(d.l, Math.min(d.o, d.c) * 0.8), HI = d => Math.min(d.h, Math.max(d.o, d.c) * 1.25);
+  let lo = Math.min(...D.map(LO)), hi = Math.max(...D.map(HI));
+  const pad = (hi - lo) * 0.06 || hi * 0.01; lo -= pad; hi += pad;
+  const y = v => PADT + (hi - v) / (hi - lo) * H1;
+  const BOT = 10;   // مساحة تحت الشموع لكلمة «حذر»
+  for (let i = 0; i <= 5; i++){
+    const v = lo + (hi - lo) * i / 5, yy = y(v);
+    el('line', {x1: PADL, x2: W - 10, y1: yy, y2: yy, stroke: '#eef0f4'}, svg);
+    el('text', {x: PADL - 6, y: yy + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#6b7385'}, svg).textContent = +v.toPrecision(4);
+  }
+  // لوحة السوق
+  const T2 = PADT + H1 + BOT + GAP, mid = T2 + H2 / 2;
+  const mx = Math.max(12, ...D.map(d => Math.abs(d.net)));
+  const yb = v => mid - v / mx * (H2 / 2 - 4);
+  el('line', {x1: PADL, x2: W - 10, y1: mid, y2: mid, stroke: '#c9ccd4'}, svg);
+  el('line', {x1: PADL, x2: W - 10, y1: yb(10), y2: yb(10), stroke: '#1baf7a', 'stroke-dasharray': '4 3'}, svg);
+  el('text', {x: PADL - 6, y: yb(10) + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#0d6b49'}, svg).textContent = '١٠';
+  el('text', {x: PADL - 6, y: T2 - 8, 'text-anchor': 'end', 'font-size': 11, 'font-weight': 700, fill: '#1d2433'}, svg).textContent = 'السوق';
+  el('text', {x: PADL - 6, y: T2 + 6, 'text-anchor': 'end', 'font-size': 10, fill: '#6b7385'}, svg).textContent = 'مشتري − بياع';
+  // لوحة السهم: كمية ساعته الأولى قصاد الجلسة اللي قبلها (فوق لو المشتري أكتر، تحت لو البياع أكتر)
+  const T3 = T2 + H2 + GAP, mid3 = T3 + H3 / 2, CAP = 3;
+  const y3 = v => mid3 - Math.max(-CAP, Math.min(CAP, v)) / CAP * (H3 / 2 - 4);
+  el('line', {x1: PADL, x2: W - 10, y1: mid3, y2: mid3, stroke: '#c9ccd4'}, svg);
+  [1, -1].forEach(v => el('line', {x1: PADL, x2: W - 10, y1: y3(v), y2: y3(v), stroke: v > 0 ? '#1baf7a' : '#e34948', 'stroke-dasharray': '4 3'}, svg));
+  el('text', {x: PADL - 6, y: y3(1) + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#0d6b49'}, svg).textContent = '١×';
+  el('text', {x: PADL - 6, y: y3(-1) + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#b3261e'}, svg).textContent = '١×';
+  el('text', {x: PADL - 6, y: T3 - 8, 'text-anchor': 'end', 'font-size': 11, 'font-weight': 700, fill: '#1d2433'}, svg).textContent = 'السهم';
+  el('text', {x: PADL - 6, y: T3 + 6, 'text-anchor': 'end', 'font-size': 10, fill: '#6b7385'}, svg).textContent = 'الساعة الأولى';
+  
+  const every = Math.ceil(40 / step), bw = Math.max(2, step * 0.6);
+  D.forEach((d, i) => {
+    const x = PADL + step * i + step / 2;
+    const up = d.c >= d.o, c = up ? UP : DN;
+    el('line', {x1: x, x2: x, y1: y(HI(d)), y2: y(LO(d)), stroke: c, 'stroke-width': 1.3}, svg);
+    const top = y(Math.max(d.o, d.c)), hh = Math.max(1.5, Math.abs(y(d.o) - y(d.c)));
+    el('rect', {x: x - bw / 2, y: top, width: bw, height: hh, fill: c}, svg);
+    // لوحة الصافي
+    const nt = d.net, top2 = nt >= 0 ? yb(nt) : mid;
+    el('rect', {x: x - bw / 2, y: top2, width: bw, height: Math.max(1, Math.abs(yb(nt) - mid)), fill: nt >= 10 ? UP : nt > 0 ? '#9fc3ee' : '#f3b3b2'}, svg);
+    // لوحة السهم
+    if (d.h1x != null && d.bsh != null){
+      const up3 = d.bsh >= 0.5, v = up3 ? d.h1x : -d.h1x;
+      const fill3 = d.buy ? UP : d.sell ? DN : up3 ? '#bfe3d2' : '#f6c9c8';
+      const t3 = Math.min(y3(v), mid3);
+      el('rect', {x: x - bw / 2, y: t3, width: bw, height: Math.max(1, Math.abs(y3(v) - mid3)), fill: fill3}, svg);
+    }
+    let h = `<b>${d.d}</b><br>افتتاح ${d.o} · إغلاق ${d.c} (${SG(d.chg)}٪)<br>أدنى ${d.l} · أعلى ${d.h}`;
+    if (d.bsh != null) h += `<br>الساعة الأولى: المشتري ${Math.round(d.bsh * 100)}٪` + (d.h1x != null ? ` · الكمية ${d.h1x.toFixed(1)}× الجلسة اللي قبلها` : '');
+    if (!d.mh1) h += '<br><span style="color:#f3b3b2">بيانات الساعة الأولى مش موجودة للجلسة دي</span>';
+    const hit = el('rect', {x: x - step / 2, y: PADT - 20, width: step, height: H - PADT - PB + 20, fill: 'transparent'}, svg);
+    hover(hit, h);
+    const lastLbl = D.length - 1;
+    if (i === lastLbl || (i % every === 0 && lastLbl - i >= every))
+      el('text', {x: x, y: H - 8, 'text-anchor': 'middle', 'font-size': 11, fill: '#1d2433'}, svg).textContent = d.d.slice(5);
+  });
+  document.getElementById('cc-wrap').scrollLeft = 1e9;
+}
+function notes(D){ document.getElementById('cv-notes').innerHTML = ''; }
+const px = document.getElementById('cv-px');
+let token = 0;
+async function load(sym, push){
+  const my = ++token;
+  document.getElementById('cv-sym').textContent = sym;
+  document.getElementById('cv-name').textContent = NAMES[sym] || '';
+  document.querySelectorAll('.cv-row').forEach(r => r.classList.toggle('on', r.dataset.sym === sym));
+  px.innerHTML = '<span class="mute" style="font-size:14px">جاري التحميل…</span>';
+  document.getElementById('cc-wrap').style.opacity = .35;
+  if (push){ const u = new URL(location); u.searchParams.set('sym', sym); history.replaceState(null, '', u); }
+  const m = new URLSearchParams(location.search).get('m') || 'egx';
+  let data = null, err = '';
+  try {
+    const res = await fetch(`{{ url_for('candles_data', sym='__S__') }}`.replace('__S__', encodeURIComponent(sym)) + '?m=' + m, {credentials: 'same-origin'});
+    if (!res.ok) throw new Error('السيرفر رد بخطأ ' + res.status);
+    data = (await res.json()).data || [];
+  } catch (e) { err = e.message || String(e); }
+  if (my !== token) return;
+  document.getElementById('cc-wrap').style.opacity = 1;
+  if (data === null){
+    ALL = []; TRADES = []; draw();
+    px.innerHTML = `<span class="neg" style="font-size:14px">تعذر تحميل الرسم: ${err}</span>`;
+    return;
+  }
+  ALL = data; TRADES = actions(ALL);
+  const L = ALL[ALL.length - 1];
+  px.innerHTML = L ? `${L.c} <span class="${L.chg > 0 ? 'pos' : L.chg < 0 ? 'neg' : 'mute'}" style="font-size:14px">${SG(L.chg)}٪</span>` : '<span class="mute" style="font-size:14px">لا توجد بيانات</span>';
+  draw();
+}
+document.getElementById('cv-list').addEventListener('click', e => { const r = e.target.closest('.cv-row'); if (r) load(r.dataset.sym, true); });
+document.getElementById('cv-q').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('.cv-row').forEach(r => r.style.display = !q || r.dataset.q.includes(q) ? '' : 'none');
+});
+document.getElementById('cc-n').addEventListener('change', draw);
+window.addEventListener('resize', draw);
+{% if sel %}load({{ sel|tojson }}, false);{% endif %}
+const on = document.querySelector('.cv-row.on'); if (on) on.scrollIntoView({block: 'center'});
+})();
+</script>
 {% endblock %}

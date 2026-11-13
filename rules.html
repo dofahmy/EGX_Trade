@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}القواعد{% endblock %}
+{% block body %}
+<style>
+.sec{margin-bottom:18px;border-top:1px solid var(--line);padding-top:10px}
+.sec h3{margin:0 0 4px;font-size:17px}
+.sec .why{font-size:13px;color:var(--mute);margin-bottom:8px;line-height:1.7}
+.rt{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.rt th,.rt td{border:1px solid var(--line);padding:3px 6px;text-align:center;white-space:nowrap}
+.rt th{background:#f3f5f9;font-weight:600}
+.rt td.s{text-align:right;font-weight:700}
+.rt td.s span{font-weight:400;color:var(--mute);font-size:11px}
+.up{color:#138a5e;font-weight:700}.dn{color:#c53030;font-weight:700}
+.none{color:var(--mute);font-size:13px}
+.rbuy h3{color:#138a5e}.rtop h3{color:#c53030}.rwarn h3{color:#b7791f}
+.big{font-size:22px;font-weight:800}
+.flag{display:inline-block;border-radius:6px;padding:2px 10px;color:#fff;font-weight:700}
+.new{background:#c53030;color:#fff;border-radius:4px;padding:0 5px;font-size:11px;margin-inline-start:4px}
+</style>
+{% macro pct(v) %}{% if v is none %}—{% else %}<span class="{{ 'up' if v > 0 else ('dn' if v < 0 else '') }}">{{ '%+.1f'|format(v) }}٪</span>{% endif %}{% endmacro %}
+{% macro sym(r) %}<td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>{% endmacro %}
+<div class="card">
+  <form method="get" style="margin-bottom:10px;font-size:14px">
+    <label>اليوم <select style="width:auto" name="d" onchange="this.form.submit()">
+      {% for x in p.dates %}<option value="{{ x }}" {{ 'selected' if x == p.day }}>{{ x }}</option>{% endfor %}
+    </select></label>
+    {% if p.mret is not none %}<span style="margin-inline-start:14px">السوق قفل {{ pct(p.mret) }}</span>{% endif %}
+  </form>
+
+  <div class="sec rbuy">
+    <h3>١. ذعر الصبح (قاع السوق)</h3>
+    <div class="why">لما ٤٠ سهم أو أكتر ينزلوا ٢٪ لحد ١٠:١٥، السوق كان أعلى بعد ٥ أيام في ٧ مرات من ٩، والأسهم النازلة كسبت ٦٣٪ من المرات لحد إقفال بكره. ١٠ أيام بس، والذعر الأول ممكن يفشل.</div>
+    {% set q = p.panic_today %}
+    <div>النهارده: <span class="big">{{ q.n }}</span> سهم نازلين ٢٪ لحد ١٠:١٥
+      {% if q.strong %}<span class="flag" style="background:#138a5e">يوم ذعر</span>{% elif q.soft %}<span class="flag" style="background:#b7791f">ذعر خفيف</span>{% endif %}
+      {% if not q.has15 %}<span class="none"> · سعر ١٠:١٥ مش متحسب لليوم ده</span>{% endif %}
+    </div>
+    {% if p.panic %}
+    <table class="rt" style="margin-top:8px;width:auto">
+      <tr><th>آخر أيام ذعر (٢٠ سهم أو أكتر)</th><th>عدد الأسهم</th><th>السوق قفل</th><th>السوق بعد ٥ أيام</th></tr>
+      {% for r in p.panic %}<tr><td>{{ r.date }}{% if r.strong %} ●{% endif %}</td><td>{{ r.n }}</td><td>{{ pct(r.mret) }}</td><td>{{ pct(r.n5) }}</td></tr>{% endfor %}
+    </table>
+    {% endif %}
+  </div>
+
+  <div class="sec rbuy">
+    <h3>٢. السهم النايم القريب من قمته ({{ p.sleep|length }})</h3>
+    <div class="why">آخر ١٠ جلسات: الكمية ٨٠٪ من المعتاد أو أقل، والسعر ماتحركش أكتر من ٥٪، والسهم أقل من أعلى إقفال في ٦٠ جلسة بـ٦٪ أو أقل. بيسبق السوق بحوالي ٢٪ في ٢٠ جلسة، و٥٨٪ من المرات.</div>
+    {% if p.sleep %}
+    <table class="rt">
+      <tr><th style="text-align:right">السهم</th><th>السعر</th><th>تحت القمة</th><th>الكمية / المعتاد</th><th>حركة آخر ١٠ جلسات</th></tr>
+      {% for r in p.sleep %}<tr>{{ sym(r) }}<td>{{ r.c }}</td><td>{{ pct(r.dd) }}</td><td>{{ r.dry }}×</td><td>{{ pct(r.r10) }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<div class="none">مفيش</div>{% endif %}
+  </div>
+
+  <div class="sec rtop">
+    <h3>٣. قمة الانفجار ومنطقة الخطر ({{ p.zone|length }})</h3>
+    <div class="why">السهم طالع ٢٠٪ أو أكتر في ٢٠ جلسة، وجاله يوم كمية وصفقات ٣ أضعاف معتاده، لمس ‎+٥٪ وقفل في النص اللي تحت من الشمعة، والبياعين غالبين بعد الضهر. أوحش من السوق بحوالي ٥٪ في ٢٠ جلسة. السهم بيفضل هنا لحد ما يقفل فوق أعلى سعر يوم الانفجار (آخر ٢٠ جلسة).</div>
+    {% if p.zone %}
+    <table class="rt">
+      <tr><th style="text-align:right">السهم</th><th>يوم الانفجار</th><th>طلوعه قبلها (٢٠ جلسة)</th><th>الكمية</th><th>أعلى سعر يومها</th><th>السعر دلوقتي</th><th>تحت أعلى سعر</th><th>جلسات من ساعتها</th></tr>
+      {% for r in p.zone %}<tr>{{ sym(r) }}<td>{{ r.date }}{% if r.today %}<span class="new">جديد</span>{% endif %}</td><td>{{ pct(r.r20) }}</td><td>{{ r.x }}×</td><td>{{ r.hi }}</td><td>{{ r.c }}</td><td>{{ pct(r.below) }}</td><td>{{ r.days }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<div class="none">مفيش</div>{% endif %}
+  </div>
+
+  <div class="sec rwarn">
+    <h3>٤. الكبار بيبيعوا ({{ p.bigs.rows|length }})</h3>
+    <div class="why">أسبوع تداول السهم فيه ٣ أضعاف معتاده أو أكتر، والصفقات الكبيرة صافي بيع ٥٪ أو أكتر. ٥٧٪ اتأخروا عن السوق الأسبوع اللي بعده، وأوحش منه بحوالي ٢٫٤٪ بعد ٤ أسابيع. {% if p.bigs.start %}الأسبوع: {{ p.bigs.start }} لـ {{ p.bigs.end }}{% endif %}</div>
+    {% if p.bigs.rows %}
+    <table class="rt">
+      <tr><th style="text-align:right">السهم</th><th>التداول كام ضعف</th><th>صافي الكبار</th><th>تغير السعر في الأسبوع</th></tr>
+      {% for r in p.bigs.rows %}<tr>{{ sym(r) }}<td>{{ r.mult }}×</td><td>{{ pct(r.bnr) }}</td><td>{{ pct(r.ret) }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<div class="none">مفيش</div>{% endif %}
+  </div>
+
+  <div class="sec rwarn">
+    <h3>٥. سهم نازل وجاله يوم كمية ضخمة (آخر ٥ جلسات: {{ p.dvol|length }})</h3>
+    <div class="why">السهم نازل ١٠٪ أو أكتر في ٢٠ جلسة، وقفل نازل في يوم كمية وصفقات ٣ أضعاف معتاده، والسوق نفسه ماوقعش ٢٪. ٢٠٪ بس من الحالات سبقت السوق، وأوحش منه بحوالي ٩٪ في الشهر. الكمية الضخمة هنا خروج، مش قاع.</div>
+    {% if p.dvol %}
+    <table class="rt">
+      <tr><th style="text-align:right">السهم</th><th>اليوم</th><th>نزوله قبلها (٢٠ جلسة)</th><th>الكمية</th><th>الصفقات</th><th>تغير اليوم</th></tr>
+      {% for r in p.dvol %}<tr>{{ sym(r) }}<td>{{ r.date }}</td><td>{{ pct(r.r20) }}</td><td>{{ r.x }}×</td><td>{{ r.xn }}×</td><td>{{ pct(r.chg) }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<div class="none">مفيش</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

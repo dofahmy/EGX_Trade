@@ -537,18 +537,18 @@ def signals_for(st, lv, min_win, min_prices, max_win=None, min_share=0, max_shar
 
 
 METHODS = {
-    'dip': 'الطريقة الأولى: العدد ينزل تحت الحد ويرجع فوقه',
+    'dip': 'الطريقة الأولى: اليوم اللي قبله العدد قليل، ويوم الإشارة العدد في مدى محدد',
     'double': 'الطريقة التانية: العدد يبقى ضعف اليوم اللي قبله أو أكتر',
 }
 
 
-def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2.0, gap=3.0,
+def analyze(store: Store, min_win=20, min_prices=7, threshold=10, dip_prev=5, dip_lo=9, dip_hi=10, hold=2, mult=2.0, gap=3.0,
             max_win=None, gap_max=None, day_win=20, min_share=10.0, warn_share=2.0, **_):
     """
     hold = عدد الجلسات اللي السهم بيتشال فيها، والجلسة اللي اتشرى فيها محسوبة.
     hold=2 (الافتراضي): إشارة التلات، الشراء مع فتح الأربعاء، والبيع مع آخر سعر يوم الخميس.
 
-    الطريقة الأولى (dip): العدد ينزل تحت threshold، وأول يوم يرجع فيه threshold أو أكتر = إشارة.
+    الطريقة الأولى (dip): عدد اليوم اللي قبله أقل من dip_prev، وعدد يوم الإشارة من dip_lo لـ dip_hi بالظبط.
     الطريقة التانية (double): عدد اليوم >= mult × عدد اليوم اللي قبله = إشارة.
     day_win = عدد مرات المستوى اللي بيتحسب بيه عدد إشارات اليوم (اللي بيحدد اليوم إشارة ولا لأ).
     min_win / max_win = مدى عدد مرات المستوى لاختيار الأسهم اللي هتتشترى من يوم الإشارة
@@ -577,11 +577,8 @@ def analyze(store: Store, min_win=20, min_prices=7, threshold=10, hold=2, mult=2
         allsig = allsig.assign(status=['warn' if w else 'buy' if b else 'out' for w, b in zip(is_warn, is_buy)])
         sig = allsig[is_buy.values].reset_index(drop=True)      # الأسهم اللي هتتشترى
         warn = allsig[is_warn.values].reset_index(drop=True)    # التحذيرات
-        t_dip = armed and n >= threshold
-        if n < threshold:
-            armed = True
-        elif t_dip:
-            armed = False
+        t_dip = prev_n is not None and prev_n < dip_prev and dip_lo <= n <= dip_hi
+        armed = n < dip_prev          # لو بكره العدد جه في المدى يبقى إشارة
         t_double = prev_n is not None and n > 0 and n >= mult * max(prev_n, 1)
         days.append(dict(date=d, count=n, prev=prev_n, trig={'dip': t_dip, 'double': t_double},
                          armed_after=armed, meta=meta, sig=sig, warn=warn, allsig=allsig))

@@ -41,9 +41,9 @@ fieldset .inline{gap:14px}
     {% set st = state['dip'] %}
     <div class="banner {{ st }}" style="background:{{ 'var(--greenbg)' if st=='buy' else 'var(--amberbg)' if st=='armed' else '#fff' }}">
       <b>الطريقة الأولى</b><br>
-      {% if st == 'buy' %}✅ إشارة شراء: العدد رجع {{ p.threshold }} أو أكتر بعد ما كان تحته.
-      {% elif st == 'armed' %}⏳ مستنية: العدد تحت {{ p.threshold }}. أول جلسة يرجع فيها {{ p.threshold }} أو أكتر هتبقى إشارة.
-      {% else %}مفيش إشارة. محتاجة الأول يوم العدد فيه ينزل تحت {{ p.threshold }}.{% endif %}
+      {% if st == 'buy' %}✅ إشارة شراء: العدد {{ latest.count }} (من {{ p.dip_lo }} لـ {{ p.dip_hi }})، واليوم اللي قبله كان {{ latest.prev }} (أقل من {{ p.dip_prev }}).
+      {% elif st == 'armed' %}⏳ مستنية: العدد النهارده أقل من {{ p.dip_prev }}. لو الجلسة الجاية العدد فيها من {{ p.dip_lo }} لـ {{ p.dip_hi }} هتبقى إشارة.
+      {% else %}مفيش إشارة. محتاجة يوم العدد فيه أقل من {{ p.dip_prev }}، وبعده يوم العدد فيه من {{ p.dip_lo }} لـ {{ p.dip_hi }}.{% endif %}
     </div>
     {% set st2 = state['double'] %}
     <div class="banner {{ st2 }}" style="background:{{ 'var(--greenbg)' if st2=='buy' else '#fff' }}">
@@ -232,7 +232,7 @@ fieldset .inline{gap:14px}
         <td class="num"><b>{{ d.count }}</b>{% if d.prev is not none %} <span class="mute">(قبلها {{ d.prev }})</span>{% endif %}</td>
         <td class="num">{{ d.sig|length }}</td>
         <td class="num">{{ d.warn|length or '—' }}</td>
-        <td>{% if d.trig.dip %}<span class="pill buy">إشارة شراء</span>{% elif d.count < p.threshold %}<span class="pill armed">تحت {{ p.threshold }}</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
+        <td>{% if d.trig.dip %}<span class="pill buy">إشارة شراء</span>{% elif d.count < p.dip_prev %}<span class="pill armed">تحت {{ p.dip_prev }}</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
         <td>{% if d.trig.double %}<span class="pill buy">إشارة شراء</span>{% else %}<span class="pill idle">—</span>{% endif %}</td>
         <td class="num mute">{{ d.meta.get('trades','') }}</td>
         <td><form method="post" action="{{ murl('delete', date=d.date) }}" onsubmit="return confirm('امسح جلسة {{ d.date }}؟')"><button class="danger">مسح</button></form></td>
@@ -253,10 +253,12 @@ fieldset .inline{gap:14px}
         <div class="inline" style="display:flex;flex-wrap:wrap;gap:14px">
           <label>عدد مرات المستوى اللي بيتحسب بيه عدد الإشارات<input type="number" name="day_win" value="{{ p.day_win }}" min="10" max="{{ mwin }}"></label>
           <label>أقل عدد أسعار اتداول عليها السهم في اليوم<input type="number" name="min_prices" value="{{ p.min_prices }}" min="1"></label>
-          <label>الطريقة الأولى: الحد<input type="number" name="threshold" value="{{ p.threshold }}" min="1"></label>
+          <label>الطريقة الأولى: اليوم اللي قبله أقل من<input type="number" name="dip_prev" value="{{ p.dip_prev }}" min="1"></label>
+          <label>الطريقة الأولى: يوم الإشارة من<input type="number" name="dip_lo" value="{{ p.dip_lo }}" min="1"></label>
+          <label>لـ<input type="number" name="dip_hi" value="{{ p.dip_hi }}" min="1"></label>
           <label>الطريقة التانية: المضاعف<input type="number" name="mult" value="{{ p.mult }}" min="1" step="any"></label>
         </div>
-        <p class="note">الطريقة الأولى: العدد ينزل تحت الحد، وأول يوم يرجع فيه الحد أو أكتر يبقى إشارة. الطريقة التانية: عدد اليوم يبقى المضاعف ده أو أكتر من عدد اليوم اللي قبله.</p>
+        <p class="note">الطريقة الأولى: اليوم اللي قبله عدد الإشارات أقل من الرقم الأول، ويوم الإشارة العدد من الرقم التاني لـ التالت بالظبط. الطريقة التانية: عدد اليوم يبقى المضاعف ده أو أكتر من عدد اليوم اللي قبله.</p>
       </fieldset>
       <fieldset><legend>٢. اختيار الأسهم من يوم الإشارة</legend>
         <div style="display:flex;flex-wrap:wrap;gap:14px">

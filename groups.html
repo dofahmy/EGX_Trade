@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}المجموعات{% endblock %}
+{% block body %}
+<style>
+main{max-width:none}
+.gr{margin-bottom:16px}
+.gr h3{margin:0 0 6px;font-size:16px}
+.gt{border-collapse:collapse;width:100%;font-size:12px;font-variant-numeric:tabular-nums}
+.gt th,.gt td{border:1px solid var(--line);padding:3px 4px;text-align:center;white-space:nowrap}
+.gt th{background:#f3f5f9;font-weight:600}
+.gt td.s{text-align:right;font-weight:700}
+.gt td.s span{font-weight:400;color:var(--mute);font-size:11px}
+.gt tr:target td{outline:2px solid #e8a317}
+.gt td .r{font-size:10px;opacity:.75}
+.hot{display:inline-block;background:#e8a317;color:#fff;border-radius:6px;padding:0 6px;margin-inline-start:6px;font-size:12px}
+.lgd{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-bottom:10px}
+.lgd i{display:inline-block;width:14px;height:12px;border-radius:2px;vertical-align:middle;margin-inline-end:4px}
+</style>
+<div class="card">
+  <form method="get" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:14px">
+    <input type="hidden" name="m" value="{{ mkt }}">
+    <label>المدة <select name="w" onchange="this.form.submit()">
+      {% for v,t in [(4,'٤ أسابيع'),(12,'١٢ أسبوع'),(26,'٦ شهور'),(52,'سنة'),(0,'كل الفترة')] %}<option value="{{ v }}" {{ 'selected' if weeks == v }}>{{ t }}</option>{% endfor %}
+    </select></label>
+    <label>لحد أسبوع <select name="to" onchange="this.form.submit()">
+      {% for e in ends|reverse %}<option value="{{ e }}" {{ 'selected' if e == end }}>{{ e }}</option>{% endfor %}
+    </select></label>
+    <label>روحي لسهم <select onchange="if(this.value)location.hash=this.value">
+      <option value=""></option>
+      {% for s in (groups|map(attribute='members')|sum(start=[]))|sort %}<option value="g-{{ s }}">{{ s }}</option>{% endfor %}
+    </select></label>
+  </form>
+  <div class="lgd">
+    <span>الرقم = تداول السهم كام ضعف آخر ١٢ أسبوع ليه، بعد ما نشيل حركة السوق</span>
+    <span><i style="background:#e34948"></i>٣ أضعاف أو أكتر والكبار بيبيعوا</span>
+    <span><i style="background:#9fdcc3"></i>٣ أضعاف أو أكتر والكبار بيشتروا</span>
+    <span>تحت الرقم: تغير السعر في الأسبوع</span>
+  </div>
+  {% for g in groups %}
+  <div class="gr">
+    <h3>{{ g.title or g.members|join(' · ') }}{% for h in g.hot %}<span class="hot">{{ h }}</span>{% endfor %}</h3>
+    <div style="overflow-x:auto"><table class="gt">
+      <tr><th style="text-align:right">السهم</th>{% for l in labels %}<th>{{ l }}</th>{% endfor %}</tr>
+      {% for r in g.rows %}
+      <tr id="g-{{ r.sym }}"><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
+        {% for c in r.cells %}
+          {% if c %}
+            {% set mv = c.m if c.m is not none else 0 %}
+            {% if mv >= 3 and c.bn is not none and c.bn <= -5 %}{% set bg = '#e34948' %}{% set fg = '#fff' %}
+            {% elif mv >= 3 and c.bn is not none and c.bn >= 5 %}{% set bg = '#9fdcc3' %}{% set fg = '' %}
+            {% else %}{% set bg = 'rgba(136,135,128,' ~ (0.04 + 0.3 * ([mv, 3]|min) / 3) ~ ')' %}{% set fg = '' %}{% endif %}
+            <td style="background:{{ bg }};color:{{ fg }}" title="صافي الكبار {{ c.bn if c.bn is not none else '—' }}٪"><b>{{ c.m if c.m is not none else '' }}</b><div class="r">{% if c.r is not none %}{{ '%+.0f'|format(c.r) }}٪{% endif %}</div></td>
+          {% else %}<td></td>{% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

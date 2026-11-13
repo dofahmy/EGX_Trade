@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}الساعة ١١{% endblock %}
+{% block body %}
+<style>
+main{max-width:none}
+.dy{margin-bottom:18px;border-top:1px solid var(--line);padding-top:10px}
+.dy h3{margin:0 0 8px;font-size:16px;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.dy h3 .m{font-size:14px;font-weight:600}
+.two{display:grid;align-items:start;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:1000px){.two{grid-template-columns:1fr}}
+.ht{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.ht th,.ht td{border:1px solid var(--line);padding:3px 6px;text-align:center;white-space:nowrap}
+.ht th{background:#f3f5f9;font-weight:600}
+.ht td.s{text-align:right;font-weight:700}
+.ht td.s span{font-weight:400;color:var(--mute);font-size:11px}
+.ht caption{text-align:right;font-weight:700;padding:4px 0}
+.up{color:#138a5e;font-weight:700}.dn{color:#c53030;font-weight:700}
+.live{background:#e8a317;color:#fff;border-radius:6px;padding:0 8px;font-size:12px}
+.sm{display:flex;gap:24px;flex-wrap:wrap;font-size:14px;margin-bottom:12px}
+.sm div{background:#f6f8fb;border-radius:8px;padding:8px 12px}
+.none{color:var(--mute);font-size:13px;padding:4px 0}
+</style>
+{% macro pct(v) %}{% if v is none %}—{% else %}<span class="{{ 'up' if v > 0 else ('dn' if v < 0 else '') }}">{{ '%+.1f'|format(v) }}٪</span>{% endif %}{% endmacro %}
+{% macro tbl(rows, title, live) %}
+<table class="ht">
+  <caption>{{ title }} ({{ rows|length }})</caption>
+  {% if rows %}
+  <tr><th style="text-align:right">السهم</th><th>فلوس الساعة الأولى (مليون)</th><th>الكمية × امبارح</th><th>المشتري</th><th>سعر ١١</th><th>لحد ١١</th>{% if not live %}<th>الإقفال</th><th>من ١١ للإقفال</th>{% endif %}</tr>
+  {% for r in rows %}
+  <tr><td class="s"><a href="{{ murl('candles_page', sym=r.sym) }}">{{ r.sym }}</a> <span>{{ r.name[:18] }}</span></td>
+    <td>{{ r.val }}</td><td>{{ r.x }}×</td><td>{{ r.bsh|int }}٪</td><td>{{ r.p11 }}</td><td>{{ pct(r.g11) }}</td>
+    {% if not live %}<td>{{ r.c }}</td><td>{{ pct(r.p11c) }}</td>{% endif %}</tr>
+  {% endfor %}
+  {% else %}<tr><td class="none" style="border:none">مفيش</td></tr>{% endif %}
+</table>
+{% endmacro %}
+<div class="card">
+  <form method="get" style="margin-bottom:10px;font-size:14px">
+    <label>المدة <select style="width:auto" name="n" onchange="this.form.submit()">
+      {% for v,t in [(20,'آخر ٢٠ جلسة'),(60,'آخر ٦٠ جلسة'),(120,'آخر ١٢٠ جلسة'),(0,'كل الفترة')] %}<option value="{{ v }}" {{ 'selected' if n == v }}>{{ t }}</option>{% endfor %}
+    </select></label>
+  </form>
+  {% if summ.buy or summ.sell %}
+  <div class="sm">
+    {% for k,t in [('buy','أسهم المشتري'),('sell','أسهم البياع')] %}{% set z = summ[k] %}{% if z %}
+    <div><b>{{ t }} من سبتمبر ٢٠٢٥:</b> {{ z.n }} مرة · قفل فوق سعر ١١ في {{ z.up }}٪ منهم وتحته في {{ z.dn }}٪ · متوسط من ١١ للإقفال {{ pct(z.avg) }} · الوسيط {{ pct(z.med) }}{% if z.nxt is not none %} · متوسط اليوم اللي بعده {{ pct(z.nxt) }}{% endif %}</div>
+    {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+  {% for d in days %}
+  <div class="dy">
+    <h3>{{ d.date }}
+      {% if d.live %}<span class="live">الجلسة لسه شغالة</span>
+      {% elif d.mret is not none %}<span class="m">السوق قفل {{ pct(d.mret) }}</span>{% endif %}
+    </h3>
+    <div class="two">{{ tbl(d.buy, 'المشتري مسيطر', d.live) }}{{ tbl(d.sell, 'البياع مسيطر', d.live) }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

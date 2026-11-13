@@ -13,11 +13,6 @@
 {% set last = allrows[-1] if allrows else none %}
 <div class="card">
   <h2>التريدة — {{ mtitle }}</h2>
-  <p class="mute"><b>القاع</b> = يوم مفيش فيه ولا سهم من قايمة الإشارات إقفاله موجب، يعني السوق بيعمل قاع.
-    <b>الأسهم المنتقاه</b> = الأسهم اللي السستم يرشحها في أول يوم بعد القاع، وبس. بعد كده مفيش تريدة لحد ما ييجي قاع تاني.
-    <b>أعلى عائد</b> = أعلى سعر وصله السهم من يوم الشراء لحد آخر جلسة، مقارنة بسعر الشراء. <b>العائد حتى اليوم</b> = إقفال آخر جلسة مقارنة بسعر الشراء.
-    الاختيار نفسه زي ما هو: أكبر {{ p.picks }} في النسبة اللي اتلمت عند المستوى وإقفالهم موجب، والشراء مع الفتح في الجلسة اللي بعدها، والبيع مع الهدف {{ p.tp }}٪ أو الإقفال.
-    <span class="note">· {{ n_bottom }} قاع · {{ n_sel }} مرة اتنقت أسهم</span></p>
   {% if state == 'bottom' %}
   <div class="banner idle"><b>السوق عامل قاع</b> (آخر قاع {{ last_bottom }}). أول أسهم السستم يرشحها في جلسة جاية هي اللي هتتنقي.</div>
   {% elif state == 'buy' %}
@@ -25,17 +20,6 @@
     {% for it in last.stocks %}<b>{{ it.pick.name }}</b> <span class="mute">{{ it.pick.sym }}</span>{{ '، ' if not loop.last }}{% endfor %} مع الفتح.</div>
   {% elif state == 'wait' %}
   <div class="banner idle">مفيش تريدة دلوقتي: مستنيين القاع الجاي.{% if last_bottom %} آخر قاع كان {{ last_bottom }}.{% endif %}</div>
-  {% endif %}
-  {% if p.exclude %}<p class="note">مستبعد: <span dir="ltr">{{ p.exclude }}</span> · <a href="{{ murl('index', tab='settings') }}">تعديل</a></p>{% endif %}
-  {% if sm %}
-  <div style="display:flex;flex-wrap:wrap;gap:30px;margin-top:6px">
-    {% for key, title in [('res', 'مع الهدف ' ~ p.tp ~ '٪ أو الإقفال'), ('oc', 'من الفتح للإقفال'), ('max_ret', 'أعلى عائد وصله'), ('now_ret', 'العائد لحد آخر جلسة')] if sm[key] is defined %}{% set s = sm[key] %}
-    <div><div class="mute">{{ title }}</div>
-      <div class="big"><span class="{{ 'pos' if s.avg>0 else 'neg' if s.avg<0 else '' }}">{{ '%+.2f'|format(s.avg) }}٪</span> متوسط
-        · مجموع <span class="{{ 'pos' if s.total>0 else 'neg' if s.total<0 else '' }}">{{ '%+.2f'|format(s.total) }}٪</span></div>
-      <div class="note">{{ s.n }} تريدة · كسبانة {{ s.wins }} · خسرانة {{ s.losses }}{% if s.tp is defined %} · وصلت الهدف {{ s.tp }}{% endif %}</div></div>
-    {% endfor %}
-  </div>
   {% endif %}
 </div>
 
