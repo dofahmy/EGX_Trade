@@ -44,17 +44,8 @@ a{color:var(--blue)}
 <body>
 <header>
   <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-    <a href="{{ murl('index') }}">إشارات المستويات</a>
-    {% for k, v in markets.items() %}
-      <a href="{{ url_for('index', m=k) }}" style="font-weight:{{ 700 if k==mkt else 400 }};opacity:{{ 1 if k==mkt else 0.65 }};padding:4px 10px;border-radius:6px;{{ 'background:rgba(255,255,255,.14);' if k==mkt }}">{{ v.title }}</a>
-    {% endfor %}
-    <a href="{{ murl('trade') }}" style="background:#f2b705;color:#14213d;padding:4px 12px;border-radius:6px">التريدة</a>
-    <a href="{{ murl('candles_page') }}" style="background:#D4AF37;color:#14213d;padding:4px 12px;border-radius:6px">الشموع</a>
-    <a href="{{ murl('rules_page') }}" style="background:#138a5e;color:#fff;padding:4px 12px;border-radius:6px">القواعد</a>
-    <a href="{{ murl('m15_page') }}" style="background:#D4AF37;color:#14213d;padding:4px 12px;border-radius:6px">أول ربع ساعة</a>
-    <a href="{{ murl('h11_page') }}" style="background:#D4AF37;color:#14213d;padding:4px 12px;border-radius:6px">الساعة ١١</a>
-    <a href="{{ murl('bigsell_page') }}" style="background:#D4AF37;color:#14213d;padding:4px 12px;border-radius:6px">الكبار بيبيعوا</a>
-    <a href="{{ murl('groups_page') }}" style="background:#D4AF37;color:#14213d;padding:4px 12px;border-radius:6px">المجموعات</a>
+    <a href="{{ url_for('index', m='egx') }}" style="font-weight:700;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.14)">البورصة المصرية</a>
+    <a href="{{ url_for('trade', m='egx') }}" style="background:#f2b705;color:#14213d;padding:4px 12px;border-radius:6px">التريدة</a>
   </div>
   <span class="mute" style="color:#c9d1e6;font-size:13px">قراءة لشكل التداول، مش توصية بشراء أو بيع</span>
 </header>
