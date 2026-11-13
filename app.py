@@ -184,7 +184,7 @@ def bottoms_page():
         if nxt and nxt <= end:
             end = alld[alld.index(nxt) - 1]
         z = sig[(sig['date'] >= r['date']) & (sig['date'] <= end)] if sig is not None and len(sig) else []
-        r['stocks'] = [dict(sym=q.sym, date=q.date, held=q.held) for q in z.sort_values('date').drop_duplicates('sym').itertuples()] if len(z) else []
+        r['stocks'] = [dict(sym=q.sym, date=q.date, held=q.held, kind=q.kind) for q in z.sort_values('date').drop_duplicates('sym').itertuples()] if len(z) else []
         nxt = r['date']
     return render_template('bottoms.html', rows=rows)
 
@@ -202,7 +202,7 @@ def eye_page():
     rows = []
     if sig is not None and len(sig):
         for d, z in sig.sort_values(['date', 'chg'], ascending=[False, False]).groupby('date', sort=False):
-            rows.append(dict(date=d, stocks=[dict(sym=q.sym, chg=round(q.chg, 1), held=q.held) for q in z.itertuples()]))
+            rows.append(dict(date=d, stocks=[dict(sym=q.sym, chg=round(q.chg, 1), held=q.held, kind=q.kind) for q in z.sort_values(['kind', 'chg'], ascending=[True, False]).itertuples()]))
     return render_template('eye.html', rows=rows)
 
 

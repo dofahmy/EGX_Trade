@@ -10,6 +10,7 @@
 .main{color:#138a5e;font-weight:800}
 .short{color:#b7791f;font-weight:700}
 a.held{color:#138a5e;font-weight:700}
+span.q.sh{background:#fde7c8;border-radius:5px;padding:0 4px}
 a.lost{color:#c0392b;text-decoration:line-through}
 </style>
 <div class="card">
@@ -19,11 +20,11 @@ a.lost{color:#c0392b;text-decoration:line-through}
     <tr><th>التاريخ</th><th>الإشارة</th><th>صندوق EGX30</th><th>أسهم كسر بعد تجميع</th></tr>
     {% for r in rows %}
     <tr><td>{{ r.date }}</td><td class="{{ 'main' if r.main else 'short' }}">{{ 'قاع رئيسي' if r.main else 'ارتداد قصير الأجل' }}</td><td>{{ r.idx if r.idx is not none else '—' }}</td>
-      <td class="stk">{% for q in r.stocks %}<span class="q"><a href="{{ murl('candles_page', sym=q.sym) }}" class="{{ 'held' if q.held else ('lost' if q.held == false else '') }}">{{ q.sym }}</a>{% if q.date != r.date %} <span class="mute" style="font-size:12px">({{ q.date[5:] }})</span>{% endif %}</span>{% if not loop.last %} · {% endif %}{% else %}<span class="mute">—</span>{% endfor %}</td></tr>
+      <td class="stk">{% for q in r.stocks %}<span class="q{{ ' sh' if q.kind == 'short' }}"><a href="{{ murl('candles_page', sym=q.sym) }}" class="{{ 'held' if q.held else ('lost' if q.held == false else '') }}">{{ q.sym }}</a>{% if q.date != r.date %} <span class="mute" style="font-size:12px">({{ q.date[5:] }})</span>{% endif %}</span>{% if not loop.last %} · {% endif %}{% else %}<span class="mute">—</span>{% endfor %}</td></tr>
     {% endfor %}
   </table>
   <p class="note" style="margin-top:14px">أسهم كسر بعد تجميع: السهم كان في مدى ضيق ١٢٠ جلسة (أعلى إقفال مش أكتر من أوطى إقفال بـ٤٠٪)، وطلع ٨٪ أو أكتر بقيمة تداول ٥ أضعاف المعتاد، وقفل فوق أعلى المدى. بتظهر من يوم الإشارة لحد الإشارة اللي بعدها (بحد أقصى ٤٠ جلسة)، والتاريخ بين القوسين يوم الكسر.<br>
-  <span style="color:#138a5e;font-weight:700">أخضر</span> = بعد ٥ جلسات لسه فوق مستوى الكسر · <span style="color:#c0392b;text-decoration:line-through">أحمر مشطوب</span> = رجع تحته · أزرق = لسه ماعدّاش ٥ جلسات.</p>
+  <span style="color:#138a5e;font-weight:700">أخضر</span> = بعد ٥ جلسات لسه فوق مستوى الكسر · <span style="color:#c0392b;text-decoration:line-through">أحمر مشطوب</span> = رجع تحته · أزرق = لسه ماعدّاش ٥ جلسات.<br><span class="q sh" style="padding:0 6px">بخلفية برتقاني</span> = كسر بعد استراحة قصيرة: طلعة قبلها، وبعدين مدى ضيق ٣٠ جلسة (٣٠٪ أو أقل)، وكسر فوق أعلاه بطلعة ٨٪ وكمية ٥ أضعاف. ده أضعف في الاختبار، للمتابعة بس.</p>
   {% else %}<p class="note">مفيش إشارات لسه.</p>{% endif %}
 </div>
 {% endblock %}

@@ -3,6 +3,8 @@
 السهم كان في مدى ضيق: أعلى إقفال في آخر ١٢٠ جلسة مش أكتر من أوطى إقفال بـ٤٠٪،
 والنهارده طلع ٨٪ أو أكتر، بقيمة تداول ٥ أضعاف المعتاد (وسيط آخر ٦٠ جلسة) أو أكتر،
 وقفل فوق أعلى إقفال في المدى. الأسعار من تريدنج فيو لو موجودة، وإلا من سيجما متعدلة.
+النوع التاني "استراحة قصيرة": طلعة قبلها، وبعدين مدى ضيق ٣٠ جلسة (٣٠٪ أو أقل)، وكسر فوق أعلاه بنفس شرط الطلعة والكمية.
+اختباره كان أضعف (مالوش ميزة واضحة على السوق)، فبيظهر بلون مختلف للمتابعة بس.
 "ثابت" = بعد ٥ جلسات السعر لسه فوق مستوى الكسر.
 """
 import numpy as np
@@ -16,13 +18,15 @@ CHG = 8.0
 VX = 5.0
 MIN_VAL = 5e5
 HOLD = 5
+SHORT = 30
+SRNG = 30.0
 _CACHE = {}
 
 
 def signals(store):
     t, _ = flowsig.table(store)
     if t.empty:
-        return pd.DataFrame(columns=['sym', 'date', 'held'])
+        return pd.DataFrame(columns=['sym', 'date', 'chg', 'held', 'kind'])
     tv = tvdaily.load(store.root)
     key = (str(getattr(store, 'root', '')), len(t), t['date'].max(), len(tv), tv['date'].max() if len(tv) else None)
     if key in _CACHE:
@@ -42,20 +46,26 @@ def signals(store):
         cs = pd.Series(c).shift(1)
         hi = cs.rolling(LOOK, min_periods=LOOK).max().to_numpy()
         lo = cs.rolling(LOOK, min_periods=LOOK).min().to_numpy()
+        shi = cs.rolling(SHORT, min_periods=SHORT).max().to_numpy()
+        slo = cs.rolling(SHORT, min_periods=SHORT).min().to_numpy()
         dates = x['date'].to_numpy()
         n = len(c)
         for i in range(1, n):
-            if not (np.isfinite(hi[i]) and lo[i] > 0 and c[i - 1] > 0 and med60[i] > 0):
+            if not (c[i - 1] > 0 and med60[i] > 0 and med20[i] >= MIN_VAL):
                 continue
             chg = (c[i] / c[i - 1] - 1) * 100
-            rng = (hi[i] / lo[i] - 1) * 100
             vx = val[i] / med60[i] if np.isfinite(val[i]) else np.nan
-            if chg >= CHG and vx >= VX and rng <= RNG and c[i] > hi[i] and med20[i] >= MIN_VAL:
-                held = None
-                if i + HOLD < n:
-                    held = bool(c[i + HOLD] > hi[i])
-                out.append(dict(sym=sym, date=dates[i], chg=chg, vx=vx, rng=rng, level=hi[i], held=held))
-    r = pd.DataFrame(out, columns=['sym', 'date', 'chg', 'vx', 'rng', 'level', 'held'])
+            if not (chg >= CHG and vx >= VX):
+                continue
+            kind = level = rng = None
+            if np.isfinite(hi[i]) and lo[i] > 0 and (hi[i] / lo[i] - 1) * 100 <= RNG and c[i] > hi[i]:
+                kind, level, rng = 'long', hi[i], (hi[i] / lo[i] - 1) * 100
+            elif np.isfinite(shi[i]) and slo[i] > 0 and (shi[i] / slo[i] - 1) * 100 <= SRNG and c[i] > shi[i]:
+                kind, level, rng = 'short', shi[i], (shi[i] / slo[i] - 1) * 100
+            if kind:
+                held = bool(c[i + HOLD] > level) if i + HOLD < n else None
+                out.append(dict(sym=sym, date=dates[i], chg=chg, vx=vx, rng=rng, level=level, held=held, kind=kind))
+    r = pd.DataFrame(out, columns=['sym', 'date', 'chg', 'vx', 'rng', 'level', 'held', 'kind'])
     _CACHE.clear()
     _CACHE[key] = r
     return r
