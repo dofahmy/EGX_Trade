@@ -49,6 +49,12 @@ def daily(store):
             x[c] = st[c] if c in st else np.nan
         parts.append(x)
     t = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    if len(t):
+        import flowsig
+        ac = flowsig.adj_close(store)
+        if len(ac):
+            v = ac.reindex(pd.MultiIndex.from_frame(t[['date', 'sym']])).to_numpy()
+            t['last'] = np.where(np.isnan(v), t['last'], v)
     if len(t) and len(sd):
         # الجلسات القديمة اللي اترفعت قبل ما التطبيق يحسب الصفقات الكبيرة: ناخدها من big_seed
         s = sd.set_index(['date', 'sym'])

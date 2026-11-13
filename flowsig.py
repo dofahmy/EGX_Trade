@@ -10,6 +10,7 @@
 """
 from pathlib import Path
 import numpy as np
+import adjust
 import pandas as pd
 
 MIN_STOCKS = 10
@@ -20,6 +21,7 @@ LIMIT = 19.5
 SEED = Path(__file__).resolve().parent / 'h1_seed.csv.gz'
 _SEED = None
 _CACHE = {}
+ACTS = {}
 
 
 def seed():
@@ -71,6 +73,10 @@ def _build(store, dates):
     if not parts:
         return pd.DataFrame(), pd.DataFrame()
     t = pd.concat(parts, ignore_index=True).sort_values(['sym', 'date']).reset_index(drop=True)
+    # الأسعار متعدلة بالإجراءات على الأسهم (أسهم مجانية وتجزئة)، زي تريدنج فيو
+    acts = adjust.detect(t, getattr(store, 'root', None))
+    t = adjust.apply(t, acts)
+    ACTS[str(getattr(store, 'root', ''))] = acts
     g = t.groupby('sym')
     t['pvol'] = g['vol'].shift(1)
     t['pdate'] = g['date'].shift(1)
@@ -108,6 +114,14 @@ def _build(store, dates):
     rk = t[t['buy'] & t['cluster']].groupby('date')['g12'].rank(ascending=False, method='first')
     t['rank'] = rk.reindex(t.index)
     return t, m
+
+
+def adj_close(store):
+    """الإقفال المتعدل لكل (تاريخ، سهم)، عشان الصفحات التانية تستخدمه."""
+    t, _ = table(store)
+    if t.empty:
+        return pd.Series(dtype=float)
+    return t.set_index(['date', 'sym'])['last']
 
 
 def stock(store, sym):

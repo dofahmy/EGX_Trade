@@ -128,6 +128,17 @@ def helpers():
     return dict(murl=murl, mkt=m, markets=MARKETS, mtitle=MARKETS[m]['title'], mwin=MARKETS[m]['windows'])
 
 
+@app.route('/actions')
+@auth
+def actions_page():
+    """الإجراءات على الأسهم اللي اتعرفت تلقائي (الأسعار اللي قبلها اتعدلت)."""
+    store = STORES['egx']
+    flowsig.table(store)
+    a = flowsig.ACTS.get(str(store.root))
+    rows = [] if a is None else [dict(sym=r.sym, date=r.date, factor=round(float(r.factor), 4)) for r in a.sort_values('date', ascending=False).itertuples()]
+    return render_template('actions.html', rows=rows)
+
+
 @app.route('/bottoms')
 @auth
 def bottoms_page():

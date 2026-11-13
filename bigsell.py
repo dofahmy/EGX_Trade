@@ -41,6 +41,12 @@ def daily(store):
                 x[c] = sd[c].reindex(idx).to_numpy()
         parts.append(x)
     t = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    if len(t):
+        import flowsig
+        ac = flowsig.adj_close(store)
+        if len(ac):
+            v = ac.reindex(pd.MultiIndex.from_frame(t[['date', 'sym']])).to_numpy()
+            t['c'] = np.where(np.isnan(v), t['c'], v)
     if stamp is not None:
         _CACHE[key] = (stamp, t)
     return t
