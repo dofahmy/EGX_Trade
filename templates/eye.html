@@ -12,25 +12,6 @@ span.q.sh{background:#fde7c8;border-radius:5px;padding:0 4px}
 a.lost{color:#c0392b;text-decoration:line-through}
 </style>
 <div class="card">
-  <h2 style="margin-top:0">أسهم-أكس-باجر</h2>
-  <p class="note">الإشارة: الخط الأصفر لمؤشر CCI (٢٠، ومتوسطه ١٤) بيلف لفوق وهو بين −١١٠ و−٥٠ والأزرق فوقه، والسعر قريب من متوسط ٢٠ جلسة (٥٪ أو أقل)، والسهم في تجميع ٦٠ جلسة (مدى ٤٠٪ أو أقل)، والكمية يوم الإشارة المعتاد أو أقل.<br>
-  التأكيد: في خلال ١٠ جلسات بعد الإشارة السهم يطلع ٨٪ أو أكتر بكمية ٥ أضعاف المعتاد أو أكتر.</p>
-  <h3>تحت المتابعة (لسه ماعملوش الطلعة)</h3>
-  {% if xb_watch %}
-  <table class="bt">
-    <tr><th>السهم</th><th>يوم الإشارة</th><th>إقفال الإشارة</th><th>جلسات باقية</th></tr>
-    {% for q in xb_watch %}<tr><td><a href="{{ murl('candles_page', sym=q.sym) }}">{{ q.sym }}</a></td><td>{{ q.date }}</td><td>{{ '%.2f'|format(q.close) }}</td><td>{{ q.left }}</td></tr>{% endfor %}
-  </table>
-  {% else %}<p class="note">مفيش أسهم تحت المتابعة دلوقتي.</p>{% endif %}
-  <h3>اتأكدت</h3>
-  {% if xb_ok %}
-  <table class="bt">
-    <tr><th>يوم الطلعة</th><th>السهم</th><th>يوم الإشارة</th><th>إقفال الإشارة</th><th>الطلعة</th><th>الكمية</th></tr>
-    {% for q in xb_ok %}<tr><td>{{ q.brk }}</td><td><a href="{{ murl('candles_page', sym=q.sym) }}" style="font-weight:700;color:#138a5e">{{ q.sym }}</a></td><td>{{ q.date }}</td><td>{{ '%.2f'|format(q.close) }}</td><td>+{{ q.bchg }}٪</td><td>{{ q.bvx }} ضعف</td></tr>{% endfor %}
-  </table>
-  {% else %}<p class="note">مفيش لسه.</p>{% endif %}
-</div>
-<div class="card">
   <h2 style="margin-top:0">عين ع السوق</h2>
   <p class="note">أسهم كسرت بعد تجميع طويل: كانت في مدى ضيق ١٢٠ جلسة (أعلى إقفال مش أكتر من أوطى إقفال بـ٤٠٪)، وطلعت ٨٪ أو أكتر بقيمة تداول ٥ أضعاف المعتاد، وقفلت فوق أعلى المدى. الرقم جنب السهم تغير يوم الكسر.<br>
   <span style="color:#138a5e;font-weight:700">أخضر</span> = بعد ٥ جلسات لسه فوق مستوى الكسر · <span style="color:#c0392b;text-decoration:line-through">أحمر مشطوب</span> = رجع تحته · أزرق = لسه ماعدّاش ٥ جلسات.<br><span class="q sh" style="padding:0 6px">بخلفية برتقاني</span> = كسر بعد استراحة قصيرة: طلعة قبلها، وبعدين مدى ضيق ٣٠ جلسة (٣٠٪ أو أقل)، وكسر فوق أعلاه بطلعة ٨٪ وكمية ٥ أضعاف. ده أضعف في الاختبار، للمتابعة بس.</p>

@@ -204,6 +204,14 @@ def eye_page():
     if sig is not None and len(sig):
         for d, z in sig.sort_values(['date', 'chg'], ascending=[False, False]).groupby('date', sort=False):
             rows.append(dict(date=d, stocks=[dict(sym=q.sym, chg=round(q.chg, 1), held=q.held, kind=q.kind) for q in z.sort_values(['kind', 'chg'], ascending=[True, False]).itertuples()]))
+    return render_template('eye.html', rows=rows)
+
+
+@app.route('/xbadger')
+@auth
+def xbadger_page():
+    """أسهم-أكس-باجر: تحت المتابعة واللي اتأكدت."""
+    store = STORES['egx']
     xb_ok, xb_watch = [], []
     try:
         xb = xbadger.signals(store)
@@ -215,7 +223,7 @@ def eye_page():
             xb_watch = [dict(sym=q.sym, date=q.date, close=q.close, left=int(q.left)) for q in w.itertuples()]
     except Exception:
         app.logger.exception('xbadger')
-    return render_template('eye.html', rows=rows, xb_ok=xb_ok, xb_watch=xb_watch)
+    return render_template('xbadger.html', xb_ok=xb_ok, xb_watch=xb_watch)
 
 
 @app.route('/')
