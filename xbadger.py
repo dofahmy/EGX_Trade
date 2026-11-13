@@ -6,12 +6,11 @@
   - تجميع: أعلى إقفال في آخر ٦٠ جلسة مش أكتر من أوطى إقفال بـ٤٠٪.
   - قيمة التداول يوم الإشارة المعتاد أو أقل (وسيط آخر ٦٠ جلسة).
 التأكيد: في خلال ١٠ جلسات بعد الإشارة السهم يطلع ٨٪ أو أكتر بقيمة تداول ٥ أضعاف المعتاد أو أكتر.
-الأسعار من تريدنج فيو لو موجودة (متعدلة)، وإلا من سيجما متعدلة. والمدى بيحسب إقفال امبارح جواه زي تريدنج فيو.
+الأسعار من سيجما متعدلة (نفس الداتا اللي القاعدة اتختبرت عليها). والمدى بيحسب إقفال امبارح جواه زي تريدنج فيو.
 """
 import numpy as np
 import pandas as pd
 import flowsig
-import tvdaily
 
 M_LO, M_HI = -110.0, -50.0
 NEAR = 5.0
@@ -33,15 +32,10 @@ def signals(store):
     t, _ = flowsig.table(store)
     if t.empty:
         return pd.DataFrame(columns=COLS)
-    tv = tvdaily.load(store.root)
-    key = (str(getattr(store, 'root', '')), len(t), t['date'].max(), len(tv), tv['date'].max() if len(tv) else None)
+    key = (str(getattr(store, 'root', '')), len(t), t['date'].max())
     if key in _CACHE:
         return _CACHE[key]
     t = t[['sym', 'date', 'hi', 'lo', 'last', 'val_m']].copy()
-    if len(tv):
-        v = tv.rename(columns={'high': 'hi', 'low': 'lo', 'close': 'last'})[['sym', 'date', 'hi', 'lo', 'last']].copy()
-        v = v.merge(t[['sym', 'date', 'val_m']], on=['sym', 'date'], how='left')
-        t = pd.concat([v, t[~t['sym'].isin(set(v['sym']))]], ignore_index=True)
     out = []
     for sym, x in t.sort_values(['sym', 'date']).groupby('sym'):
         if len(x) < 60:
