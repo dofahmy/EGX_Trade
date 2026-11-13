@@ -24,8 +24,7 @@ a.lost{color:#c0392b;text-decoration:line-through}
       <td class="stk">{% for q in r.stocks %}<span class="q{{ ' big' if q.big }}"><a href="{{ murl('candles_page', sym=q.sym) }}">{{ q.sym }}</a>{% if q.date != r.date %} <span class="mute" style="font-size:12px">({{ q.date[5:] }})</span>{% endif %}</span>{% if not loop.last %} · {% endif %}{% else %}<span class="mute">—</span>{% endfor %}</td></tr>
     {% endfor %}
   </table>
-  <p class="note" style="margin-top:14px">إشارات الشراء: القاع المزدوج على مؤشر CCI (زي صفحة إشارات الشراء)، اللي ظهرت من جلستين قبل يوم القاع لحد جلستين بعده. التاريخ بين القوسين يوم الإشارة لو مختلف عن يوم القاع.<br>
-  <span style="background:#fff4d6;color:#b7791f;font-weight:800;padding:0 6px;border-radius:4px">ملوّن</span> = السهم عمل طلعة ٨٪ أو أكتر بكمية ٥ أضعاف المعتاد أو أكتر، من يوم الإشارة لحد ١٠ جلسات بعدها.</p>
+  <p class="note" style="margin-top:14px"><span style="background:#fff4d6;color:#b7791f;font-weight:800;padding:0 6px;border-radius:4px">ملوّن</span> = السهم طالع بفوليوم كبير جدا</p>
   {% else %}<p class="note">مفيش إشارات لسه.</p>{% endif %}
 </div>
 {% endblock %}
