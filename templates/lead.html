@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}المؤشر سابق السعر{% endblock %}
+{% block body %}
+<style>
+.wrap{max-width:1250px;margin:0 auto;padding:18px}
+h1{font-size:20px;margin:0 0 6px}
+.note{color:#5b6475;font-size:13px;line-height:1.8;margin:0 0 12px}
+.bar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:#fff;border:1px solid #e3e6ec;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:14px}
+.bar input[type=text]{padding:6px 10px;border:1px solid #cfd4dd;border-radius:6px;width:110px;direction:ltr}
+.bar select{padding:5px 8px;border:1px solid #cfd4dd;border-radius:6px}
+.sum{color:#5b6475;font-size:13px}
+.tbl{background:#fff;border:1px solid #e3e6ec;border-radius:10px;overflow:auto;max-height:75vh}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th{position:sticky;top:0;background:#eef1f5;font-weight:600;font-size:13px;color:#4a5263;cursor:pointer;white-space:nowrap}
+th,td{padding:7px 12px;border-bottom:1px solid #eef0f3;text-align:right}
+th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
+.pos{color:#0f7b4d;font-weight:700}.neg{color:#c0392b;font-weight:700}
+.mute{color:#8a92a3;font-size:12px}
+.sym{font-weight:700;direction:ltr;unicode-bidi:isolate}
+.dbl td{background:#e8f6ee}
+.bar label{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:6px;margin:0;font-weight:400}
+main,.container{max-width:none!important}
+.bar input[type=checkbox]{width:auto!important;margin:0}
+.wrap{max-width:none!important}
+</style>
+<div class="wrap">
+<h1>إشارات "المؤشر سابق السعر" · CCI ٤٠ · كل الأسهم من ٢٠٠٥</h1>
+<p class="note"><b>نزول السوق</b> = السوق كله (متوسط كل الأسهم) تحت أعلى نقطة ليه في آخر سنة بكام وقت الإشارة.</p>
+<p class="note">الأزرق فضل تحت الصفر ٣٠ جلسة أو أكتر من آخر مرة كان فوقه، والسعر نزل ٢٠٪ أو أكتر. الإشارة = أول يوم الأزرق يعدي الصفر وإقفاله لسه تحت إقفال يوم أعلى قمة عملها الأزرق بعد قاعه. لو شمعة الإشارة حمرا: الشرا بيتفعّل لما المؤشر والإقفال يعدّوا قيمتهم يوم الإشارة (في خلال ١٠ جلسات). "أعلى طلوع" محسوب من سعر الشرا، على أعلى إقفال في الـ١٢٠ جلسة اللي بعده. داتا تريدنج فيو اليومية لحد {{ last or "—" }}، وبتتحدث لوحدها.</p>
+<div class="bar">
+ <label><input type="checkbox" id="flt" checked> <b>بعد الفلاتر</b> (السوق نازل ١٥٪+ من قمة سنة، والسهم نازل ٣٥٪+، والأصفر مش أوطى من −٩٨، وسعر ١٠ قروش أو أكتر)</label>
+ <label><input type="checkbox" id="liq" checked> سيولة ٥٠٠ ألف جنيه أو أكتر</label>
+ <label>السهم <input type="text" id="q" placeholder="MCQE"></label>
+ <label>السنة <select id="yr"><option value="">الكل</option></select></label>
+ <span class="sum" id="sum"></span>
+</div>
+<div class="tbl"><table><thead><tr>
+<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">الإقفال</th><th data-k="b">جلسات تحت الصفر</th><th data-k="fa">نزول السعر</th><th data-k="md">نزول السوق</th><th data-k="ym">الأصفر</th>
+<th data-k="pk">قمة المؤشر قبلها</th><th data-k="cp">إقفال يوم القمة</th><th data-k="bd">الشرا</th><th data-k="mx">أعلى طلوع خلال ١٢٠</th>
+</tr></thead><tbody id="tb"></tbody></table></div>
+</div>
+
+<script>
+const D={{ rows|tojson }};
+const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g,'٫');
+const DT=s=>s?AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4)):'—';
+const yrs=[...new Set(D.map(r=>r.d.slice(0,4)))].sort().reverse();
+const ys=document.getElementById('yr'); yrs.forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=AR(y);ys.appendChild(o);});
+let key='d',asc=false;
+function pct(v){return v==null?'—':'<span class="'+(v>0?'pos':'neg')+'">\u200e'+(v>0?'+':'')+AR(v.toFixed(1))+'٪</span>';}
+function draw(){
+  const flt=document.getElementById('flt').checked, liq=document.getElementById('liq').checked, q=document.getElementById('q').value.trim().toUpperCase(), y=ys.value;
+  let R=D.filter(r=>(!flt||r.ok)&&(!liq||r.liq)&&(!q||r.s.includes(q))&&(!y||r.d.startsWith(y)));
+  R.sort((a,b)=>{let x=a[key],z=b[key]; if(x==null)return 1; if(z==null)return -1; return (x>z?1:x<z?-1:0)*(asc?1:-1);});
+  document.querySelectorAll('th').forEach(t=>{t.classList.toggle('on',t.dataset.k===key);t.classList.toggle('asc',t.dataset.k===key&&asc);});
+  const done=R.filter(r=>r.mx!=null&&r.n>=120), m=done.map(r=>r.mx).sort((a,b)=>a-b);
+  const med=m.length?m[Math.floor(m.length/2)]:null, dbl=done.filter(r=>r.mx>=100).length;
+  document.getElementById('sum').innerHTML=AR(R.length)+' إشارة'+(m.length?' · وسيط أعلى طلوع (الكاملة) '+pct(med)+' · ضاعف '+AR(dbl)+' من '+AR(m.length):'');
+  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(r.mx!=null&&r.mx>=100?'dbl':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+'</td><td>'+AR(r.c)+'</td><td>'+AR(r.b)+'</td><td>'+pct(r.fa)+'</td><td>'+pct(r.md)+'</td><td>'+(r.ym==null?'—':AR(r.ym))+'</td><td>'+DT(r.pk)+' <span class="mute">('+AR(r.kp)+')</span></td><td>'+AR(r.cp)+'</td><td>'+(r.bd?(r.bd===r.d?'نفس اليوم':DT(r.bd))+' <span class="mute">'+AR(r.bp)+'</span>':'<span class="mute">ماتفعّلش</span>')+'</td><td>'+(r.mx==null?'<span class="mute">—</span>':pct(r.mx)+(r.n<120?' <span class="mute">لسه '+AR(r.n)+' جلسة</span>':''))+'</td></tr>').join('');
+}
+document.querySelectorAll('th').forEach(t=>t.onclick=()=>{if(key===t.dataset.k)asc=!asc;else{key=t.dataset.k;asc=false;}draw();});
+['flt','liq','q','yr'].forEach(i=>document.getElementById(i).addEventListener('input',draw));
+draw();
+</script>
+{% endblock %}

@@ -18,6 +18,7 @@ import adjust
 import brksig
 import xbadger
 import metals
+import zerolead
 import tvdaily
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
@@ -221,6 +222,22 @@ def eye_page():
         for d, z in sig.sort_values(['date', 'chg'], ascending=[False, False]).groupby('date', sort=False):
             rows.append(dict(date=d, stocks=[dict(sym=q.sym, chg=round(q.chg, 1), held=q.held, kind=q.kind) for q in z.sort_values(['kind', 'chg'], ascending=[True, False]).itertuples()]))
     return render_template('eye.html', rows=rows)
+
+
+@app.route('/lead')
+@auth
+def lead_page():
+    """إشارات المؤشر سابق السعر (CCI ٤٠) على كل الأسهم من شموع تريدنج فيو."""
+    try:
+        rows = zerolead.signals(STORES['egx'])
+    except Exception:
+        app.logger.exception('zerolead')
+        rows = []
+    try:
+        last = str(tvdaily.load(STORES['egx'].root)['date'].max())[:10]
+    except Exception:
+        last = None
+    return render_template('lead.html', rows=rows, last=last)
 
 
 @app.route('/metals')
