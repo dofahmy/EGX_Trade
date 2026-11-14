@@ -4,8 +4,9 @@
   - الأزرق فضل تحت الصفر ٣٠ جلسة أو أكتر من آخر مرة كان فوقه، والسعر نزل ٢٠٪ أو أكتر من قمته في الفترة دي.
   - أول يوم الأزرق يعدي الصفر، وإقفاله لسه تحت إقفال يوم أعلى قمة عملها الأزرق بعد قاعه (المؤشر سابق السعر).
   - لو شمعة الإشارة حمرا: الشرا بيتفعّل لما المؤشر والإقفال يعدّوا قيمتهم يوم الإشارة (في خلال ١٠ جلسات).
-الفلاتر: السوق كله (متوسط كل الأسهم) نازل ١٥٪+ من أعلى نقطة في سنة، والسهم نازل ٣٥٪+، والأصفر مش أوطى من −٩٨،
-والسعر ١٠ قروش أو أكتر، ووسيط قيمة التداول ٥٠٠ ألف جنيه أو أكتر.
+الفلاتر (السعر ١٠ قروش أو أكتر، ووسيط قيمة التداول ٥٠٠ ألف جنيه أو أكتر، وبعدين واحد من الاتنين):
+  - قاع سوق: السوق كله (متوسط كل الأسهم) نازل ١٥٪+ من أعلى نقطة في سنة، والسهم نازل ٣٥٪+، والأصفر مش أوطى من −٩٨.
+  - سوق مش في قاع: لازم السهم يعمل طلعة بفوليوم كبير جدا (٨٪+ بفوليوم ٥ أضعاف وسيط آخر ٦٠ جلسة) من يوم الإشارة لحد ١٠ جلسات.
 """
 import numpy as np
 import pandas as pd
@@ -34,9 +35,10 @@ def cci(hi, lo, cl):
     return k, m
 
 
-def _one(dates, o, hi, lo, c, val, mdd):
+def _one(dates, o, hi, lo, c, val, mdd, vol):
     k, m = cci(hi, lo, c)
     n = len(c)
+    vmd = pd.Series(vol).shift(1).rolling(60, min_periods=20).median().to_numpy()
     vmed = pd.Series(val).rolling(20, min_periods=10).median().to_numpy()
     out = []
     last_pos = None
@@ -72,8 +74,16 @@ def _one(dates, o, hi, lo, c, val, mdd):
                         r.update(bd=dates[buy], bp=round(float(c[buy]), 3), n=int(len(f)))
                         if len(f):
                             r['mx'] = round(float((np.nanmax(f) / c[buy] - 1) * 100), 1)
-                    r['ok'] = bool(r['liq'] and c[i] >= F_PX and r['md'] is not None and r['md'] <= F_MKT
-                                   and fall <= F_FALL and r['ym'] is not None and r['ym'] > F_YEL)
+                    vc = None
+                    for j in range(i, min(n, i + 11)):
+                        if c[j - 1] > 0 and c[j] / c[j - 1] - 1 >= 0.08 and vmd[j] > 0 and vol[j] >= 5 * vmd[j]:
+                            vc = j
+                            break
+                    r['vc'] = dates[vc] if vc is not None else None
+                    base = bool(r['liq'] and c[i] >= F_PX)
+                    bottom = r['md'] is not None and r['md'] <= F_MKT
+                    r['ok'] = bool(base and ((bottom and fall <= F_FALL and r['ym'] is not None and r['ym'] > F_YEL)
+                                             or (not bottom and vc is not None)))
                     out.append(r)
         if k[i] > 0:
             last_pos = i
@@ -102,7 +112,8 @@ def signals(store):
         c = z['close'].astype(float).to_numpy()
         val = c * z['volume'].astype(float).to_numpy()
         for r in _one(dates, z['open'].astype(float).to_numpy(), z['high'].astype(float).to_numpy(),
-                      z['low'].astype(float).to_numpy(), c, val, mdd.reindex(dates).to_numpy()):
+                      z['low'].astype(float).to_numpy(), c, val, mdd.reindex(dates).to_numpy(),
+                      z['volume'].astype(float).to_numpy()):
             r['s'] = sym
             out.append(r)
     out.sort(key=lambda r: r['d'], reverse=True)
