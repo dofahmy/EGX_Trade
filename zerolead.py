@@ -74,6 +74,14 @@ def _one(dates, o, hi, lo, c, val, mdd, vol):
                         r.update(bd=dates[buy], bp=round(float(c[buy]), 3), n=int(len(f)))
                         if len(f):
                             r['mx'] = round(float((np.nanmax(f) / c[buy] - 1) * 100), 1)
+                    # دايفرجنس إيجابي: السعر عمل قاعه بعد قاع الأزرق بـ٣ جلسات أو أكتر، والسعر أوطى (أو زي) يوم قاع الأزرق، والأزرق أعلى بـ١٥ نقطة+
+                    seg = range(a + 1, i)
+                    p1 = min(seg, key=lambda j: c[j])
+                    km = min(seg, key=lambda j: k[j] if np.isfinite(k[j]) else 9e9)
+                    r['dv'] = None
+                    if p1 - km >= 3 and c[p1] <= c[km] and np.isfinite(k[p1]) and k[p1] > k[km] + 15:
+                        r['dv'] = dict(d1=dates[km], c1=round(float(c[km]), 3), k1=round(float(k[km])),
+                                       d2=dates[p1], c2=round(float(c[p1]), 3), k2=round(float(k[p1])))
                     vc = None
                     for j in range(i, min(n, i + 11)):
                         if c[j - 1] > 0 and c[j] / c[j - 1] - 1 >= 0.08 and vmd[j] > 0 and vol[j] >= 5 * vmd[j]:

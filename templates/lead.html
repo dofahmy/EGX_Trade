@@ -26,10 +26,11 @@ main,.container{max-width:none!important}
 </style>
 <div class="wrap">
 <h1>إشارات "المؤشر سابق السعر" · CCI ٤٠ · كل الأسهم من ٢٠٠٥</h1>
-<p class="note"><b>طلعة بفوليوم</b> = يوم طلع فيه السهم ٨٪+ بفوليوم ٥ أضعاف المعتاد، من يوم الإشارة لحد ١٠ جلسات. <b>نزول السوق</b> = السوق كله (متوسط كل الأسهم) تحت أعلى نقطة ليه في آخر سنة بكام وقت الإشارة.</p>
+<p class="note"><b>دايفرجنس إيجابي</b> = قبل الإشارة، السعر عمل قاع أوطى من سعره يوم أوطى نقطة للأزرق، والأزرق وقتها أعلى بـ١٥ نقطة أو أكتر (السعر نازل والمؤشر طالع). <b>طلعة بفوليوم</b> = يوم طلع فيه السهم ٨٪+ بفوليوم ٥ أضعاف المعتاد، من يوم الإشارة لحد ١٠ جلسات. <b>نزول السوق</b> = السوق كله (متوسط كل الأسهم) تحت أعلى نقطة ليه في آخر سنة بكام وقت الإشارة.</p>
 <p class="note">الأزرق فضل تحت الصفر ٣٠ جلسة أو أكتر من آخر مرة كان فوقه، والسعر نزل ٢٠٪ أو أكتر. الإشارة = أول يوم الأزرق يعدي الصفر وإقفاله لسه تحت إقفال يوم أعلى قمة عملها الأزرق بعد قاعه. لو شمعة الإشارة حمرا: الشرا بيتفعّل لما المؤشر والإقفال يعدّوا قيمتهم يوم الإشارة (في خلال ١٠ جلسات). "أعلى طلوع" محسوب من سعر الشرا، على أعلى إقفال في الـ١٢٠ جلسة اللي بعده. داتا تريدنج فيو اليومية لحد {{ last or "—" }}، وبتتحدث لوحدها.</p>
 <div class="bar">
  <label><input type="checkbox" id="flt" checked> <b>بعد الفلاتر</b> (في قاع السوق: السوق نازل ١٥٪+ والسهم نازل ٣٥٪+ والأصفر مش أوطى من −٩٨ · في السوق الطالع: لازم طلعة بفوليوم كبير جدا)</label>
+ <label><input type="checkbox" id="dvf"> بعد دايفرجنس إيجابي بس</label>
  <label><input type="checkbox" id="liq" checked> سيولة ٥٠٠ ألف جنيه أو أكتر</label>
  <label>السهم <input type="text" id="q" placeholder="MCQE"></label>
  <label>السنة <select id="yr"><option value="">الكل</option></select></label>
@@ -37,7 +38,7 @@ main,.container{max-width:none!important}
 </div>
 <div class="tbl"><table><thead><tr>
 <th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">الإقفال</th><th data-k="b">جلسات تحت الصفر</th><th data-k="fa">نزول السعر</th><th data-k="md">نزول السوق</th><th data-k="ym">الأصفر</th>
-<th data-k="pk">قمة المؤشر قبلها</th><th data-k="cp">إقفال يوم القمة</th><th data-k="bd">الشرا</th><th data-k="vc">طلعة بفوليوم</th><th data-k="mx">أعلى طلوع خلال ١٢٠</th>
+<th data-k="dv">دايفرجنس إيجابي</th><th data-k="pk">قمة المؤشر قبلها</th><th data-k="cp">إقفال يوم القمة</th><th data-k="bd">الشرا</th><th data-k="vc">طلعة بفوليوم</th><th data-k="mx">أعلى طلوع خلال ١٢٠</th>
 </tr></thead><tbody id="tb"></tbody></table></div>
 </div>
 
@@ -50,17 +51,17 @@ const ys=document.getElementById('yr'); yrs.forEach(y=>{const o=document.createE
 let key='d',asc=false;
 function pct(v){return v==null?'—':'<span class="'+(v>0?'pos':'neg')+'">\u200e'+(v>0?'+':'')+AR(v.toFixed(1))+'٪</span>';}
 function draw(){
-  const flt=document.getElementById('flt').checked, liq=document.getElementById('liq').checked, q=document.getElementById('q').value.trim().toUpperCase(), y=ys.value;
-  let R=D.filter(r=>(!flt||r.ok)&&(!liq||r.liq)&&(!q||r.s.includes(q))&&(!y||r.d.startsWith(y)));
-  R.sort((a,b)=>{let x=a[key],z=b[key]; if(x==null)return 1; if(z==null)return -1; return (x>z?1:x<z?-1:0)*(asc?1:-1);});
+  const flt=document.getElementById('flt').checked, dvf=document.getElementById('dvf').checked, liq=document.getElementById('liq').checked, q=document.getElementById('q').value.trim().toUpperCase(), y=ys.value;
+  let R=D.filter(r=>(!flt||r.ok)&&(!dvf||r.dv)&&(!liq||r.liq)&&(!q||r.s.includes(q))&&(!y||r.d.startsWith(y)));
+  R.sort((a,b)=>{let x=a[key],z=b[key]; if(key==='dv'){x=a.dv?a.dv.d2:null;z=b.dv?b.dv.d2:null;} if(x==null)return 1; if(z==null)return -1; return (x>z?1:x<z?-1:0)*(asc?1:-1);});
   document.querySelectorAll('th').forEach(t=>{t.classList.toggle('on',t.dataset.k===key);t.classList.toggle('asc',t.dataset.k===key&&asc);});
   const done=R.filter(r=>r.mx!=null&&r.n>=120), m=done.map(r=>r.mx).sort((a,b)=>a-b);
   const med=m.length?m[Math.floor(m.length/2)]:null, dbl=done.filter(r=>r.mx>=100).length;
   document.getElementById('sum').innerHTML=AR(R.length)+' إشارة'+(m.length?' · وسيط أعلى طلوع (الكاملة) '+pct(med)+' · ضاعف '+AR(dbl)+' من '+AR(m.length):'');
-  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(r.mx!=null&&r.mx>=100?'dbl ':'')+(r.vc?'vcr':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+'</td><td>'+AR(r.c)+'</td><td>'+AR(r.b)+'</td><td>'+pct(r.fa)+'</td><td>'+pct(r.md)+'</td><td>'+(r.ym==null?'—':AR(r.ym))+'</td><td>'+DT(r.pk)+' <span class="mute">('+AR(r.kp)+')</span></td><td>'+AR(r.cp)+'</td><td>'+(r.bd?(r.bd===r.d?'نفس اليوم':DT(r.bd))+' <span class="mute">'+AR(r.bp)+'</span>':'<span class="mute">ماتفعّلش</span>')+'</td><td>'+(r.vc?'<b style="color:#b7791f">'+DT(r.vc)+'</b>':'<span class="mute">—</span>')+'</td><td>'+(r.mx==null?'<span class="mute">—</span>':pct(r.mx)+(r.n<120?' <span class="mute">لسه '+AR(r.n)+' جلسة</span>':''))+'</td></tr>').join('');
+  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(r.mx!=null&&r.mx>=100?'dbl ':'')+(r.vc?'vcr':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+'</td><td>'+AR(r.c)+'</td><td>'+AR(r.b)+'</td><td>'+pct(r.fa)+'</td><td>'+pct(r.md)+'</td><td>'+(r.ym==null?'—':AR(r.ym))+'</td><td>'+(r.dv?'<span style="color:#0f7b4d;font-weight:700">✓</span> <span class="mute">أزرق '+DT(r.dv.d1)+' ('+AR(r.dv.k1)+') سعر '+AR(r.dv.c1)+' ← '+DT(r.dv.d2)+' ('+AR(r.dv.k2)+') سعر '+AR(r.dv.c2)+'</span>':'<span class="mute">—</span>')+'</td><td>'+DT(r.pk)+' <span class="mute">('+AR(r.kp)+')</span></td><td>'+AR(r.cp)+'</td><td>'+(r.bd?(r.bd===r.d?'نفس اليوم':DT(r.bd))+' <span class="mute">'+AR(r.bp)+'</span>':'<span class="mute">ماتفعّلش</span>')+'</td><td>'+(r.vc?'<b style="color:#b7791f">'+DT(r.vc)+'</b>':'<span class="mute">—</span>')+'</td><td>'+(r.mx==null?'<span class="mute">—</span>':pct(r.mx)+(r.n<120?' <span class="mute">لسه '+AR(r.n)+' جلسة</span>':''))+'</td></tr>').join('');
 }
 document.querySelectorAll('th').forEach(t=>t.onclick=()=>{if(key===t.dataset.k)asc=!asc;else{key=t.dataset.k;asc=false;}draw();});
-['flt','liq','q','yr'].forEach(i=>document.getElementById(i).addEventListener('input',draw));
+['flt','dvf','liq','q','yr'].forEach(i=>document.getElementById(i).addEventListener('input',draw));
 draw();
 </script>
 {% endblock %}

@@ -19,6 +19,7 @@ import brksig
 import xbadger
 import metals
 import zerolead
+import swing5
 import tvdaily
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
@@ -222,6 +223,22 @@ def eye_page():
         for d, z in sig.sort_values(['date', 'chg'], ascending=[False, False]).groupby('date', sort=False):
             rows.append(dict(date=d, stocks=[dict(sym=q.sym, chg=round(q.chg, 1), held=q.held, kind=q.kind) for q in z.sort_values(['kind', 'chg'], ascending=[True, False]).itertuples()]))
     return render_template('eye.html', rows=rows)
+
+
+@app.route('/swing5')
+@auth
+def swing5_page():
+    """تريدة ٥ أيام: دايفرجنس إيجابي على CCI ٤٠ (ohlc4)."""
+    try:
+        rows = swing5.signals(STORES['egx'])
+    except Exception:
+        app.logger.exception('swing5')
+        rows = []
+    try:
+        last = str(tvdaily.load(STORES['egx'].root)['date'].max())[:10]
+    except Exception:
+        last = None
+    return render_template('swing5.html', rows=rows, last=last)
 
 
 @app.route('/lead')
