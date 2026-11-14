@@ -10,8 +10,8 @@ h1{font-size:20px;margin:0 0 6px}
 .bar input[type=checkbox]{width:auto!important;margin:0}
 .bar input[type=text]{padding:6px 10px;border:1px solid #cfd4dd;border-radius:6px;width:110px;direction:ltr}
 .sum{color:#5b6475;font-size:13px;width:100%}
-.tbl{background:#fff;border:1px solid #e3e6ec;border-radius:10px;overflow:auto;max-height:75vh;display:inline-block;max-width:100%}
-table{border-collapse:collapse;width:auto;min-width:520px;font-size:14px;font-variant-numeric:tabular-nums}
+.tbl{background:#fff;border:1px solid #e3e6ec;border-radius:10px;display:block}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px;font-variant-numeric:tabular-nums}
 th{position:sticky;top:0;background:#eef1f5;font-weight:600;font-size:13px;color:#4a5263;cursor:pointer;white-space:nowrap}
 th,td{padding:7px 12px;border-bottom:1px solid #eef0f3;text-align:right;white-space:nowrap}
 th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
@@ -33,7 +33,7 @@ tr.bm td{background:#b9e8cb}
  <span class="sum" id="sum"></span>
 </div>
 <div class="tbl"><table><thead><tr>
-<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h40">أعلى سعر خلال ٤٠ جلسة</th><th data-k="l40">أوطى سعر خلال ٤٠ جلسة</th><th data-k="r40">بعد ٤٠ جلسة</th>
+<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h40">أعلى سعر خلال ٤٠ جلسة</th><th data-k="l40">أوطى سعر خلال ٤٠ جلسة</th><th data-k="r40">بعد ٤٠ جلسة</th><th data-k="nr">السعر دلوقتي</th>
 </tr></thead><tbody id="tb"></tbody></table></div>
 <script>
 const D={{ rows|tojson }};
@@ -57,8 +57,9 @@ function draw(){
     const lnk='/candles?m=egx&sym='+encodeURIComponent(r.s)+'&bare=1&mark='+r.d;
     const hi=r.hp40==null?'<span class="mute">لسه النهارده</span>':'<b>'+AR(r.hp40)+'</b> '+pct(r.h40)+' <span class="mute">بعد '+AR(r.hj)+' جلسة</span>';
     const lo=r.lp40==null?'—':AR(r.lp40)+' '+pct(r.l40);
-    const af=r.cp40==null?'—':(r.n40>=40?'<b>'+AR(r.cp40)+'</b> '+pct(r.r40):'<span class="mute">لسه '+AR(r.n40)+' جلسة · دلوقتي</span> <b>'+AR(r.cp40)+'</b> '+pct(r.r40));
-    return '<tr class="'+bm+'"><td>'+DT(r.d)+'</td><td class="sym"><a href="'+lnk+'">'+r.s+'</a>'+(r.s80?' <span class="tag s80">ستوك فوق ٨٠</span>':'')+(r.st?' <span class="tag">قوية</span>':'')+'</td><td>'+AR(r.c)+'</td><td>'+hi+'</td><td>'+lo+'</td><td>'+af+'</td></tr>';
+    const af=r.cp40==null?'—':(r.n40>=40?'<b>'+AR(r.cp40)+'</b> '+pct(r.r40):'<span class="mute">لسه '+AR(r.n40)+' جلسة</span>');
+    const now='<b>'+AR(r.np_)+'</b> '+pct(r.nr);
+    return '<tr class="'+bm+'"><td>'+DT(r.d)+'</td><td class="sym"><a href="'+lnk+'">'+r.s+'</a>'+(r.s80?' <span class="tag s80">ستوك فوق ٨٠</span>':'')+(r.st?' <span class="tag">قوية</span>':'')+'</td><td>'+AR(r.c)+'</td><td>'+hi+'</td><td>'+lo+'</td><td>'+af+'</td><td>'+now+'</td></tr>';
   }).join('');
 }
 document.querySelectorAll('th').forEach(t=>t.onclick=()=>{if(key===t.dataset.k)asc=!asc;else{key=t.dataset.k;asc=false;}draw();});
