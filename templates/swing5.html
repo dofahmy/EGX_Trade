@@ -4,6 +4,7 @@
 <style>
 
 h1{font-size:20px;margin:0 0 6px}
+.upd{font-size:15px;font-weight:600;color:#5b6475;margin-right:6px}
 .intro{color:#3c4454;font-size:15px;line-height:1.9;margin:0 0 12px;max-width:900px}
 .hint{font-size:20px;font-weight:700;color:#1f4fb5;margin:0 0 14px}
 .dua{text-align:left;margin:4px 0 14px;color:#1f5f3f;line-height:1.6}
@@ -28,7 +29,7 @@ tr.bm td{background:#b9e8cb}
 .tag.s80{background:#b7791f}
 .tag{display:inline-block;font-size:11px;background:#2b6cb0;color:#fff;border-radius:4px;padding:0 5px;margin-right:6px}
 </style>
-<h1>إشارات إيجابية على الأسهم</h1>
+<h1>إشارات إيجابية على الأسهم {% if last %}<span class="upd">(تم تحديث الإشارات حتى تاريخ: <span id="upd"></span>)</span>{% endif %}</h1>
 <p class="intro">يهدف هذا الموقع إلى قراءة مؤشرات التحليل الفني لأسهم البورصة المصرية، وإلقاء الضوء على الأسهم التي تتحول مؤشراتها إلى الوضع الإيجابي في ظروف السوق المختلفة. ويعرض الجدول يوم تحول كل سهم وسعره، وأعلى وأقل سعر وصل إليه خلال ٤٠ جلسة بعدها، وسعر الإقفال بعد ٤٠ جلسة، والسعر الحالي.<br><b>الهدف تعليمي بحت، وما يُعرض هنا ليس توصية بالشراء أو البيع.</b></p>
 <p class="hint">اضغط على رمز السهم، يفتح لك الشارت الخاص به، وعليه إشارة تحول المؤشرات إلى الوضع الإيجابي.</p>
 <div class="dua"><div class="big">علمٌ يُنتفع به</div><div class="mid">صدقة جارية على روح أمي وأبي رحمهما الله</div><div class="sml">نسألكم الدعاء</div></div>
@@ -48,6 +49,7 @@ const D={{ rows|tojson }};
 const BM={{ bm|tojson }};
 const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g,'٫');
 const DT=s=>s?AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4)):'—';
+{% if last %}document.getElementById('upd').textContent=DT('{{ last }}');{% endif %}
 const ys=document.getElementById('yr'); [...new Set(D.map(r=>r.d.slice(0,4)))].sort().reverse().forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=AR(y);ys.appendChild(o);});
 let key='d',asc=false;
 function pct(v){if(v==null)return '—'; if(Math.abs(v)<0.05)return '<span class="mute">‎٠٪</span>'; return '<span class="'+(v>0?'pos':'neg')+'">‎'+(v>0?'+':'')+AR(v.toFixed(1))+'٪</span>';}
