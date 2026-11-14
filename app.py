@@ -17,6 +17,7 @@ import atrsig
 import adjust
 import brksig
 import xbadger
+import metals
 import tvdaily
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
@@ -205,6 +206,39 @@ def eye_page():
         for d, z in sig.sort_values(['date', 'chg'], ascending=[False, False]).groupby('date', sort=False):
             rows.append(dict(date=d, stocks=[dict(sym=q.sym, chg=round(q.chg, 1), held=q.held, kind=q.kind) for q in z.sort_values(['kind', 'chg'], ascending=[True, False]).itertuples()]))
     return render_template('eye.html', rows=rows)
+
+
+@app.route('/metals')
+@auth
+def metals_page():
+    """إشارات الشراء على الدهب والفضة فريم الساعة."""
+    sym = request.args.get('s', 'XAUUSD').upper()
+    if sym not in metals.SYMS:
+        sym = 'XAUUSD'
+    root = STORES['egx'].root
+    if not os.path.exists(metals._path(root, sym)) and not metals.status['running']:
+        threading.Thread(target=metals.refresh, args=(root,), daemon=True).start()
+    rows = metals.signals(root, sym)
+    other = [k for k in metals.SYMS if k != sym][0]
+    both = {r['time'] for r in metals.signals(root, other)}
+    for r in rows:
+        r['both'] = r['time'] in both
+    d = metals.load(root, sym)
+    info = dict(n=len(d), first=str(d['time'].iloc[0])[:16] if len(d) else None, last=str(d['time'].iloc[-1])[:16] if len(d) else None,
+                px=round(float(d['close'].iloc[-1]), 3) if len(d) else None)
+    return render_template('metals.html', rows=rows, sym=sym, syms=metals.SYMS, info=info, st=metals.status,
+                           nbig=sum(1 for r in rows if r['big']), nboth=sum(1 for r in rows if r['both']), oname=metals.SYMS[other])
+
+
+@app.route('/metals/chart')
+@auth
+def metals_chart():
+    sym = request.args.get('s', 'XAUUSD').upper()
+    if sym not in metals.SYMS:
+        sym = 'XAUUSD'
+    mark = request.args.get('mark')
+    data = metals.chart(STORES['egx'].root, sym, mark)
+    return render_template('metals_chart.html', data=data, sym=sym, name=metals.SYMS[sym], mark=mark, bare=True)
 
 
 @app.route('/xbadger')
@@ -801,6 +835,10 @@ def health():
 
 # شموع تريدنج فيو اليومية بتتحدث في الخلفية (TV_FETCH=0 يوقفها)
 if os.environ.get('TV_FETCH', '1') == '1':
+    try:
+        metals.start(STORES['egx'].root, lambda m: print(m, flush=True))
+    except Exception:
+        pass
     try:
         tvdaily.start(STORES['egx'], lambda m: print(m, flush=True))
     except Exception as e:

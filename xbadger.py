@@ -34,8 +34,8 @@ def _mad(v):
     return np.mean(np.abs(v - v.mean()))
 
 
-def _one(dates, hi, lo, cc, val):
-    n = len(cc)
+def cci(hi, lo, cc):
+    """CCI ٢٠ على (أعلى + أوطى + إقفال) ÷ ٣ (المدى بيحسب إقفال امبارح جواه زي تريدنج فيو)، والأصفر متوسطه ١٤."""
     pc = np.r_[np.nan, cc[:-1]]
     h = np.fmax(hi, pc)
     l = np.fmin(lo, pc)
@@ -43,12 +43,12 @@ def _one(dates, hi, lo, cc, val):
     dev = src.rolling(20).apply(_mad, raw=True).replace(0, np.nan)
     c = ((src - src.rolling(20).mean()) / (0.015 * dev)).to_numpy()
     m = pd.Series(c).rolling(14).mean().to_numpy()
-    vs = pd.Series(val)
-    med = vs.shift(1).rolling(60, min_periods=20).median().to_numpy()
-    vm = vs.rolling(60, min_periods=20).median().to_numpy()
-    with np.errstate(divide='ignore', invalid='ignore'):
-        vx = val / med
-        chg = (cc / pc - 1) * 100
+    return c, m, h, l
+
+
+def wsig(c, m, cc):
+    """إشارات القاع المزدوج: [(i يوم الإشارة، k1 القاع الأول، k2 القاع التاني)]."""
+    n = len(cc)
     loc = [k for k in range(W, n - 1) if np.isfinite(c[k]) and c[k] <= T2MAX and c[k] == np.nanmin(c[k - W:k + W + 1])]
     cand = {}
     for k2 in loc:
@@ -75,6 +75,23 @@ def _one(dates, hi, lo, cc, val):
         if i in cand and armed:
             k1, k2 = cand[i]
             armed, floor = False, min(c[k1], c[k2])
+            out.append((i, k1, k2))
+    return out
+
+
+def _one(dates, hi, lo, cc, val):
+    n = len(cc)
+    c, m, _, _ = cci(hi, lo, cc)
+    pc = np.r_[np.nan, cc[:-1]]
+    vs = pd.Series(val)
+    med = vs.shift(1).rolling(60, min_periods=20).median().to_numpy()
+    vm = vs.rolling(60, min_periods=20).median().to_numpy()
+    with np.errstate(divide='ignore', invalid='ignore'):
+        vx = val / med
+        chg = (cc / pc - 1) * 100
+    out = []
+    for i, k1, k2 in wsig(c, m, cc):
+        if True:
             if not (vm[i] >= MIN_VAL):
                 continue
             b = None

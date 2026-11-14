@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}الدهب والفضة{% endblock %}
+{% block body %}
+<style>
+.bt{border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.bt th,.bt td{border-bottom:1px solid var(--line);padding:8px 14px;text-align:right}
+.bt th{font-weight:600;color:var(--mute);font-size:13px}
+tr.big td{background:#fff4d6}
+tr.big a.cm{color:#b7791f;font-weight:800}
+tr.both td{background:#dff3e8}
+tr.both a.cm{color:#0f7b4d;font-weight:800}
+.tg{display:inline-block;font-size:11px;background:#0f7b4d;color:#fff;border-radius:4px;padding:0 6px;margin-right:6px}
+.tabs a,.tabs b{margin-left:14px;font-size:17px}
+</style>
+<div class="card">
+  <h2 style="margin-top:0">إشارات الشراء على الدهب والفضة · فريم الساعة</h2>
+  <p class="tabs">{% for k, t in syms.items() %}{% if k == sym %}<b>{{ t }}</b>{% else %}<a href="{{ murl('metals_page', s=k) }}">{{ t }}</a>{% endif %}{% endfor %}
+    <a class="cm" href="{{ murl('metals_chart', s=sym) }}" style="font-size:14px">الشارت دلوقتي</a></p>
+  <p class="note"><span style="background:#fff4d6;color:#b7791f;font-weight:800;padding:0 6px;border-radius:4px">ملوّن</span> = طالع بفوليوم كبير جدا ·
+    <span style="background:#dff3e8;color:#0f7b4d;font-weight:800;padding:0 6px;border-radius:4px">أخضر</span> = الدهب والفضة إدّوا إشارة في نفس الساعة</p>
+  {% if info.n %}
+  <p class="note">{{ info.n }} شمعة ساعة من {{ info.first }} لحد {{ info.last }} بتوقيت القاهرة · آخر سعر {{ info.px }} · {{ rows|length }} إشارة، منهم {{ nbig }} ملوّن، و{{ nboth }} مع {{ oname }} في نفس الساعة</p>
+  {% else %}
+  <p class="note">{% if st.running %}جاري تحميل الشموع من تريدنج فيو… افتحي الصفحة تاني بعد دقيقة.{% else %}الشموع لسه ما اتحملتش.{% if st.error %} آخر خطأ: {{ st.error }}{% endif %}{% endif %}</p>
+  {% endif %}
+  {% if rows %}
+  <table class="bt">
+    <tr><th>ساعة الإشارة</th><th>السعر</th><th>القاعين</th><th>ساعة الطلعة بالفوليوم</th><th>أعلى طلوع خلال ٦٠ ساعة</th></tr>
+    {% for q in rows %}
+    <tr class="{{ 'both' if q.both else ('big' if q.big) }}"><td><a class="cm" href="{{ murl('metals_chart', s=sym, mark=q.time) }}"{% if q.both and q.big %} style="color:#b7791f"{% endif %}>{{ q.time }}</a>{% if q.both %}<span class="tg">مع {{ oname }}</span>{% endif %}</td><td>{{ '%.2f'|format(q.close) if q.close >= 10 else '%.3f'|format(q.close) }}</td>
+      <td class="mute" style="font-size:12px">{{ q.t1[5:] }} ← {{ q.t2[5:] }}</td>
+      <td>{% if q.big %}{{ q.big[5:] }} <span class="mute" style="font-size:12px">(‎+{{ '%.2f'|format(q.bigchg) }}٪)</span>{% else %}<span class="mute">—</span>{% endif %}</td>
+      <td>{% if q.bars == 0 %}<span class="mute">لسه دلوقتي</span>{% else %}<b>{{ '%+.2f'|format(q.mx) }}٪</b> <span class="mute" style="font-size:12px">بعد {{ q.mxn }} ساعة{% if q.bars < 60 %} · لسه {{ q.bars }} ساعة، ودلوقتي {{ '%+.2f'|format(q.now) }}٪{% endif %}</span>{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+</div>
+{% endblock %}
