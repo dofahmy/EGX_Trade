@@ -4,6 +4,11 @@
 <style>
 
 h1{font-size:20px;margin:0 0 6px}
+.intro{color:#3c4454;font-size:15px;line-height:1.9;margin:0 0 12px;max-width:900px}
+.dua{text-align:left;margin:4px 0 14px;color:#1f5f3f;line-height:1.6}
+.dua .big{font-size:30px;font-weight:800}
+.dua .mid{font-size:22px;font-weight:700}
+.dua .sml{font-size:18px;color:#5b6475}
 .note{color:#5b6475;font-size:13px;line-height:1.8;margin:0 0 10px}
 .bar{display:flex;flex-wrap:wrap;gap:16px;align-items:center;background:#fff;border:1px solid #e3e6ec;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:14px}
 .bar label{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:6px;margin:0;font-weight:400}
@@ -23,6 +28,8 @@ tr.bm td{background:#b9e8cb}
 .tag{display:inline-block;font-size:11px;background:#2b6cb0;color:#fff;border-radius:4px;padding:0 5px;margin-right:6px}
 </style>
 <h1>إشارات إيجابية على الأسهم</h1>
+<p class="intro">يهدف هذا الموقع إلى قراءة مؤشرات التحليل الفني لأسهم البورصة المصرية، وإلقاء الضوء على الأسهم التي تتحول مؤشراتها إلى الوضع الإيجابي في ظروف السوق المختلفة. ويعرض الجدول يوم تحول كل سهم وسعره، وأعلى وأقل سعر وصل إليه خلال ٤٠ جلسة بعدها، وسعر الإقفال بعد ٤٠ جلسة، والسعر الحالي.<br><b>الهدف تعليمي بحت، وما يُعرض هنا ليس توصية بالشراء أو البيع.</b></p>
+<div class="dua"><div class="big">علمٌ يُنتفع به</div><div class="mid">صدقة جارية على روح أمي وأبي رحمهما الله</div><div class="sml">نسألكم الدعاء</div></div>
 <p class="note"><span style="background:#b9e8cb;padding:0 6px;border-radius:4px;font-weight:700">أخضر</span> = السوق كله بيعمل قاع</p>
 <div class="bar">
  <label><input type="checkbox" id="st"> القوية بس</label>
@@ -30,10 +37,9 @@ tr.bm td{background:#b9e8cb}
  <label><input type="checkbox" id="liq" checked> سيولة ٥٠٠ ألف جنيه أو أكتر</label>
  <label>السهم <input type="text" id="q" placeholder="PRMH"></label>
  <label>السنة <select id="yr"><option value="">الكل</option></select></label>
- <span class="sum" id="sum"></span>
 </div>
 <div class="tbl"><table><thead><tr>
-<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h40">أعلى سعر خلال ٤٠ جلسة</th><th data-k="l40">أقل سعر خلال ٤٠ جلسة</th><th data-k="r40">بعد ٤٠ جلسة</th><th data-k="nr">السعر دلوقتي</th>
+<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر تحول الإشارة إلى إيجابي</th><th data-k="h40">أعلى سعر خلال ٤٠ جلسة</th><th data-k="l40">أقل سعر خلال ٤٠ جلسة</th><th data-k="r40">بعد ٤٠ جلسة</th><th data-k="nr">السعر دلوقتي</th>
 </tr></thead><tbody id="tb"></tbody></table></div>
 <script>
 const D={{ rows|tojson }};
@@ -49,9 +55,6 @@ function draw(){
   let R=D.filter(r=>(!st||r.st)&&(!s8||r.s80)&&(!liq||r.liq)&&(!q||r.s.includes(q))&&(!y||r.d.startsWith(y)));
   R.sort((a,b)=>{let x=a[key],z=b[key]; if(x==null)return 1; if(z==null)return -1; return (x>z?1:x<z?-1:0)*(asc?1:-1);});
   document.querySelectorAll('th').forEach(t=>{t.classList.toggle('on',t.dataset.k===key);t.classList.toggle('asc',t.dataset.k===key&&asc);});
-  const done=R.filter(r=>r.n40>=40);
-  const up=done.filter(r=>r.r40>0).length, t10=done.filter(r=>r.h40>=10).length;
-  document.getElementById('sum').innerHTML=AR(R.length)+' إشارة'+(done.length?' · من اللي كمّلوا ٤٠ جلسة ('+AR(done.length)+'): قفلوا كسبانين '+AR(Math.round(up*100/done.length))+'٪ · لمسوا +١٠٪ '+AR(Math.round(t10*100/done.length))+'٪':'');
   document.getElementById('tb').innerHTML=R.map(r=>{
     const bm=BM[r.d]?'bm':'';
     const lnk='/candles?m=egx&sym='+encodeURIComponent(r.s)+'&bare=1&mark='+r.d;
