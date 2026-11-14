@@ -30,7 +30,7 @@ tr.st td{background:#eaf3fe}
  <span class="sum" id="sum"></span>
 </div>
 <div class="tbl"><table><thead><tr>
-<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h5">أعلى سعر في ٥ جلسات</th>
+<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h5">أعلى سعر في ٥ جلسات</th><th data-k="nr">السعر دلوقتي</th>
 </tr></thead><tbody id="tb"></tbody></table></div>
 <script>
 const D={{ rows|tojson }};
@@ -48,7 +48,7 @@ function draw(){
   const done=R.filter(r=>r.n>=5);
   const up=done.filter(r=>r.r5>0).length, t5=done.filter(r=>r.h5>=5).length;
   document.getElementById('sum').innerHTML=AR(R.length)+' إشارة'+(done.length?' · لمسوا +٥٪ في ٥ جلسات: '+AR(Math.round(t5*100/done.length))+'٪':'');
-  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(r.st?'st':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+'</td><td>'+AR(r.c)+'</td><td>'+(r.hp==null?'<span class="mute">لسه النهارده</span>':'<b>'+AR(r.hp)+'</b> '+pct(r.h5)+(r.n<5?' <span class="mute">لسه '+AR(r.n)+' جلسة</span>':''))+'</td></tr>').join('');
+  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(r.st?'st':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+'</td><td>'+AR(r.c)+'</td><td>'+(r.hp==null?'<span class="mute">لسه النهارده</span>':'<b>'+AR(r.hp)+'</b> '+pct(r.h5)+(r.n<5?' <span class="mute">لسه '+AR(r.n)+' جلسة</span>':''))+'</td><td><b>'+AR(r.np_)+'</b> '+pct(r.nr)+'</td></tr>').join('');
 }
 document.querySelectorAll('th').forEach(t=>t.onclick=()=>{if(key===t.dataset.k)asc=!asc;else{key=t.dataset.k;asc=false;}draw();});
 ['st','liq','q','yr'].forEach(i=>document.getElementById(i).addEventListener('input',draw));
