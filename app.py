@@ -355,6 +355,13 @@ def xbadger_page():
 
 @app.route('/')
 @auth
+def home():
+    """الصفحة الرئيسية: إشارات إيجابية على الأسهم."""
+    return redirect(url_for('swing5_page', m='egx'))
+
+
+@app.route('/main')
+@auth
 def index():
     m = market()
     store = STORES[m]
