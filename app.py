@@ -238,7 +238,23 @@ def swing5_page():
         last = str(tvdaily.load(STORES['egx'].root)['date'].max())[:10]
     except Exception:
         last = None
-    return render_template('swing5.html', rows=rows, last=last)
+    # أيام إشارات قيعان السوق (من صفحة القيعان): من جلستين قبل الإشارة لحد جلستين بعدها
+    bm = {}
+    try:
+        store = STORES['egx']
+        days, _, _, _ = analyze(store, **params('egx'))
+        alld = [d['date'] for d in days]
+        for j, d in enumerate(days):
+            a, b = d['trig']['dip'], d['trig']['double']
+            if not (a or b):
+                continue
+            kind = 'main' if (a and b) else 'short'
+            for x in alld[max(0, j - 2):j + 3]:
+                if bm.get(x) != 'main':
+                    bm[x] = kind
+    except Exception:
+        app.logger.exception('swing5 bottoms')
+    return render_template('swing5.html', rows=rows, last=last, bm=bm)
 
 
 @app.route('/lead')

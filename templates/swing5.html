@@ -18,10 +18,12 @@ th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
 .pos{color:#0f7b4d;font-weight:700}.neg{color:#c0392b;font-weight:700}
 .mute{color:#8a92a3;font-size:12px}
 .sym{font-weight:700;direction:ltr;unicode-bidi:isolate}
-tr.st td{background:#eaf3fe}
+tr.bs td{background:#e3f6ea}
+tr.bm td{background:#b9e8cb}
+.tag{display:inline-block;font-size:11px;background:#2b6cb0;color:#fff;border-radius:4px;padding:0 5px;margin-right:6px}
 </style>
 <h1>تريدة ٥ أيام · دايفرجنس إيجابي على CCI ٤٠</h1>
-<p class="note"><span style="background:#eaf3fe;padding:0 6px;border-radius:4px;font-weight:700">قوية</span> = السوق كله في قاع والإشارة أقوى · داتا لحد {{ last or '—' }}</p>
+<p class="note"><span style="background:#e3f6ea;padding:0 6px;border-radius:4px;font-weight:700">أخضر فاتح</span> = حوالين إشارة ارتداد قصير الأجل · <span style="background:#b9e8cb;padding:0 6px;border-radius:4px;font-weight:700">أخضر غامق</span> = حوالين قاع رئيسي (من صفحة قيعان السوق، جلستين قبل وبعد) · <span class="tag">قوية</span> = السوق كله نازل ١٥٪+ والأصفر عميق · داتا لحد {{ last or '—' }}</p>
 <div class="bar">
  <label><input type="checkbox" id="st"> القوية بس</label>
  <label><input type="checkbox" id="liq" checked> سيولة ٥٠٠ ألف جنيه أو أكتر</label>
@@ -34,6 +36,7 @@ tr.st td{background:#eaf3fe}
 </tr></thead><tbody id="tb"></tbody></table></div>
 <script>
 const D={{ rows|tojson }};
+const BM={{ bm|tojson }};
 const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g,'٫');
 const DT=s=>s?AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4)):'—';
 const ys=document.getElementById('yr'); [...new Set(D.map(r=>r.d.slice(0,4)))].sort().reverse().forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=AR(y);ys.appendChild(o);});
@@ -48,7 +51,7 @@ function draw(){
   const done=R.filter(r=>r.n>=5);
   const up=done.filter(r=>r.r5>0).length, t5=done.filter(r=>r.h5>=5).length;
   document.getElementById('sum').innerHTML=AR(R.length)+' إشارة'+(done.length?' · لمسوا +٥٪ في ٥ جلسات: '+AR(Math.round(t5*100/done.length))+'٪':'');
-  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(r.st?'st':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+'</td><td>'+AR(r.c)+'</td><td>'+(r.hp==null?'<span class="mute">لسه النهارده</span>':'<b>'+AR(r.hp)+'</b> '+pct(r.h5)+(r.n<5?' <span class="mute">لسه '+AR(r.n)+' جلسة</span>':''))+'</td><td><b>'+AR(r.np_)+'</b> '+pct(r.nr)+'</td></tr>').join('');
+  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(BM[r.d]==='main'?'bm':BM[r.d]==='short'?'bs':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+(r.st?' <span class="tag">قوية</span>':'')+'</td><td>'+AR(r.c)+'</td><td>'+(r.hp==null?'<span class="mute">لسه النهارده</span>':'<b>'+AR(r.hp)+'</b> '+pct(r.h5)+(r.n<5?' <span class="mute">لسه '+AR(r.n)+' جلسة</span>':''))+'</td><td><b>'+AR(r.np_)+'</b> '+pct(r.nr)+'</td></tr>').join('');
 }
 document.querySelectorAll('th').forEach(t=>t.onclick=()=>{if(key===t.dataset.k)asc=!asc;else{key=t.dataset.k;asc=false;}draw();});
 ['st','liq','q','yr'].forEach(i=>document.getElementById(i).addEventListener('input',draw));
