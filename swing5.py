@@ -55,6 +55,7 @@ def _one(dates, o, h, l, c, val, mdd):
                                 md=None if md is None else round(md, 1), n=int(len(f5)),
                                 r5=round(float((f5[-1] / c[i] - 1) * 100), 1) if len(f5) else None,
                                 h5=round(float((np.max(h5) / c[i] - 1) * 100), 1) if len(h5) else None,
+                                hp=round(float(np.max(h5)), 3) if len(h5) else None,
                                 liq=bool(vm[i] >= 5e5) if np.isfinite(vm[i]) else False,
                                 st=bool(md is not None and md <= -15 and m[i] <= -120)))
                 break

@@ -2,7 +2,7 @@
 {% block title %}تريدة ٥ أيام{% endblock %}
 {% block body %}
 <style>
-main,.container{max-width:none!important}
+
 h1{font-size:20px;margin:0 0 6px}
 .note{color:#5b6475;font-size:13px;line-height:1.8;margin:0 0 10px}
 .bar{display:flex;flex-wrap:wrap;gap:16px;align-items:center;background:#fff;border:1px solid #e3e6ec;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:14px}
@@ -10,8 +10,8 @@ h1{font-size:20px;margin:0 0 6px}
 .bar input[type=checkbox]{width:auto!important;margin:0}
 .bar input[type=text]{padding:6px 10px;border:1px solid #cfd4dd;border-radius:6px;width:110px;direction:ltr}
 .sum{color:#5b6475;font-size:13px;width:100%}
-.tbl{background:#fff;border:1px solid #e3e6ec;border-radius:10px;overflow:auto;max-height:75vh}
-table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+.tbl{background:#fff;border:1px solid #e3e6ec;border-radius:10px;overflow:auto;max-height:75vh;display:inline-block;max-width:100%}
+table{border-collapse:collapse;width:auto;min-width:520px;font-size:14px;font-variant-numeric:tabular-nums}
 th{position:sticky;top:0;background:#eef1f5;font-weight:600;font-size:13px;color:#4a5263;cursor:pointer;white-space:nowrap}
 th,td{padding:7px 12px;border-bottom:1px solid #eef0f3;text-align:right;white-space:nowrap}
 th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
@@ -21,8 +21,7 @@ th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
 tr.st td{background:#eaf3fe}
 </style>
 <h1>تريدة ٥ أيام · دايفرجنس إيجابي على CCI ٤٠</h1>
-<p class="note">المؤشر: CCI ٤٠ على (فتح + أعلى + أوطى + إقفال) ÷ ٤، والأصفر متوسط بسيط ٢٨. الأزرق عمل قاع تحت −١٥٠، وبعده السعر عمل قاع أوطى والأزرق فيه أعلى بـ٣٠ نقطة+ (دايفرجنس إيجابي). يوم الإشارة = أول يوم بعد قاع السعر الأزرق فيه فوق الأصفر وفوق −١٠٠ وطالع، والأصفر تحت −٨٠، والشمعة خضرا. الشرا على إقفال يوم الإشارة.<br>
-<span style="background:#eaf3fe;padding:0 6px;border-radius:4px;font-weight:700">قوية</span> = السوق كله نازل ١٥٪+ من أعلى نقطة في سنة، والأصفر تحت −١٢٠ (في الاختبار من ٢٠٠٥: ٦٤٪ طالعين بعد ٥ جلسات، و٦١٪ لمسوا +٥٪). داتا تريدنج فيو اليومية لحد {{ last or '—' }}.</p>
+<p class="note"><span style="background:#eaf3fe;padding:0 6px;border-radius:4px;font-weight:700">قوية</span> = السوق كله في قاع والإشارة أقوى · داتا لحد {{ last or '—' }}</p>
 <div class="bar">
  <label><input type="checkbox" id="st"> القوية بس</label>
  <label><input type="checkbox" id="liq" checked> سيولة ٥٠٠ ألف جنيه أو أكتر</label>
@@ -31,8 +30,7 @@ tr.st td{background:#eaf3fe}
  <span class="sum" id="sum"></span>
 </div>
 <div class="tbl"><table><thead><tr>
-<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">الإقفال</th><th data-k="d1">قاع الأزرق</th><th data-k="d2">قاع السعر</th>
-<th data-k="ym">الأصفر</th><th data-k="md">نزول السوق</th><th data-k="r5">بعد ٥ جلسات</th><th data-k="h5">أعلى سعر في ٥ جلسات</th>
+<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h5">أعلى سعر في ٥ جلسات</th>
 </tr></thead><tbody id="tb"></tbody></table></div>
 <script>
 const D={{ rows|tojson }};
@@ -49,12 +47,8 @@ function draw(){
   document.querySelectorAll('th').forEach(t=>{t.classList.toggle('on',t.dataset.k===key);t.classList.toggle('asc',t.dataset.k===key&&asc);});
   const done=R.filter(r=>r.n>=5);
   const up=done.filter(r=>r.r5>0).length, t5=done.filter(r=>r.h5>=5).length;
-  document.getElementById('sum').innerHTML=AR(R.length)+' إشارة'+(done.length?' · من '+AR(done.length)+' كاملة: طالعين بعد ٥ جلسات '+AR(Math.round(up*100/done.length))+'٪ · لمسوا +٥٪ '+AR(Math.round(t5*100/done.length))+'٪ · وسيط بعد ٥ جلسات '+pct(med(done.map(r=>r.r5))):'');
-  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(r.st?'st':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+'</td><td>'+AR(r.c)+'</td>'+
-    '<td>'+DT(r.d1)+' <span class="mute">(أزرق '+AR(r.k1)+' · سعر '+AR(r.c1)+')</span></td>'+
-    '<td>'+DT(r.d2)+' <span class="mute">(أزرق '+AR(r.k2)+' · سعر '+AR(r.c2)+')</span></td>'+
-    '<td>'+AR(r.ym)+'</td><td>'+pct(r.md)+'</td>'+
-    '<td>'+(r.n<5?(r.r5==null?'<span class="mute">لسه النهارده</span>':pct(r.r5)+' <span class="mute">لسه '+AR(r.n)+' جلسة</span>'):pct(r.r5))+'</td><td>'+pct(r.h5)+'</td></tr>').join('');
+  document.getElementById('sum').innerHTML=AR(R.length)+' إشارة'+(done.length?' · لمسوا +٥٪ في ٥ جلسات: '+AR(Math.round(t5*100/done.length))+'٪':'');
+  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(r.st?'st':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+'</td><td>'+AR(r.c)+'</td><td>'+(r.hp==null?'<span class="mute">لسه النهارده</span>':'<b>'+AR(r.hp)+'</b> '+pct(r.h5)+(r.n<5?' <span class="mute">لسه '+AR(r.n)+' جلسة</span>':''))+'</td></tr>').join('');
 }
 document.querySelectorAll('th').forEach(t=>t.onclick=()=>{if(key===t.dataset.k)asc=!asc;else{key=t.dataset.k;asc=false;}draw();});
 ['st','liq','q','yr'].forEach(i=>document.getElementById(i).addEventListener('input',draw));
