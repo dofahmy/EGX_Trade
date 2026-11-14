@@ -226,7 +226,12 @@ def metals_page():
     d = metals.load(root, sym)
     info = dict(n=len(d), first=str(d['time'].iloc[0])[:16] if len(d) else None, last=str(d['time'].iloc[-1])[:16] if len(d) else None,
                 px=round(float(d['close'].iloc[-1]), 3) if len(d) else None)
-    return render_template('metals.html', rows=rows, sym=sym, syms=metals.SYMS, info=info, st=metals.status,
+    try:
+        bt = metals.backtest(root, sym)
+    except Exception:
+        app.logger.exception('metals backtest')
+        bt = []
+    return render_template('metals.html', bt=bt, rows=rows, sym=sym, syms=metals.SYMS, info=info, st=metals.status,
                            nbig=sum(1 for r in rows if r['big']), nboth=sum(1 for r in rows if r['both']), oname=metals.SYMS[other])
 
 

@@ -157,3 +157,57 @@ def chart(root, sym, mark=None, span=120):
         a, b = max(0, len(d) - span * 2), len(d)
     r = lambda v: None if v is None or not np.isfinite(v) else round(float(v), 4)
     return [dict(t=times[i], o=r(d['open'][i]), h=r(hi[i]), l=r(lo[i]), c=r(cc[i]), cci=r(c[i]), m=r(m[i])) for i in range(a, b)]
+
+
+def backtest(root, sym):
+    """طرق خروج مختلفة على كل الإشارات. الدخول على إقفال شمعة الإشارة.
+    الوقف: تحت أوطى سعر من القاع التاني لحد الإشارة. لو الوقف والهدف اتلمسوا في نفس الشمعة، بنعتبر الوقف اتضرب الأول."""
+    d = load(root, sym)
+    if len(d) <= 60:
+        return []
+    hi, lo, cc = (d[k].astype(float).to_numpy() for k in ('high', 'low', 'close'))
+    c, m, _, _ = xbadger.cci(hi, lo, cc)
+    n = len(cc)
+    sigs = xbadger.wsig(c, m, cc)
+    rules = [('وقف + هدف ١٪ (أقصى ٤٨ ساعة)', 1.0, 48, None), ('وقف + هدف ١٫٥٪ (أقصى ٤٨ ساعة)', 1.5, 48, None),
+             ('وقف + هدف ٢٪ (أقصى ٤٨ ساعة)', 2.0, 48, None), ('وقف + خروج بعد ٢٤ ساعة', None, 24, None),
+             ('وقف + خروج بعد ٤٨ ساعة', None, 48, None), ('وقف + خروج بالمؤشر', None, 60, 'cci'),
+             ('من غير وقف: خروج بعد ٤٨ ساعة', None, 48, 'nostop')]
+    out = []
+    for name, tgt, cap, mode in rules:
+        res = []
+        for i, k1, k2 in sigs:
+            if i + 1 >= n:
+                continue
+            e = cc[i]
+            stop = np.nanmin(lo[k2:i + 1]) if mode != 'nostop' else -np.inf
+            if stop >= e:
+                stop = e * 0.995
+            seen_ob = False
+            r, held, done = None, 0, False
+            for j in range(i + 1, min(n, i + 1 + cap)):
+                held = j - i
+                if lo[j] <= stop:
+                    r, done = (stop / e - 1) * 100, True
+                    break
+                if tgt is not None and hi[j] >= e * (1 + tgt / 100):
+                    r, done = tgt, True
+                    break
+                if mode == 'cci':
+                    if c[j] >= 100:
+                        seen_ob = True
+                    if seen_ob and c[j] < m[j]:
+                        r, done = (cc[j] / e - 1) * 100, True
+                        break
+            if not done:
+                if i + cap >= n:      # الصفقة لسه مفتوحة
+                    continue
+                r = (cc[min(n - 1, i + cap)] / e - 1) * 100
+                held = cap
+            res.append((r, held))
+        if not res:
+            continue
+        a = np.array([x[0] for x in res])
+        out.append(dict(name=name, n=len(a), win=round((a > 0).mean() * 100), avg=round(a.mean(), 2), med=round(float(np.median(a)), 2),
+                        tot=round(a.sum(), 1), worst=round(a.min(), 2), hold=round(np.mean([x[1] for x in res]))))
+    return out

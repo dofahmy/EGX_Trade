@@ -23,6 +23,14 @@ tr.both a.cm{color:#0f7b4d;font-weight:800}
   {% else %}
   <p class="note">{% if st.running %}جاري تحميل الشموع من تريدنج فيو… افتحي الصفحة تاني بعد دقيقة.{% else %}الشموع لسه ما اتحملتش.{% if st.error %} آخر خطأ: {{ st.error }}{% endif %}{% endif %}</p>
   {% endif %}
+  {% if bt %}
+  <h3 style="margin-bottom:4px">طرق الخروج على كل الإشارات</h3>
+  <p class="note" style="margin-top:0">الدخول على إقفال ساعة الإشارة. الوقف: تحت أوطى سعر من القاع التاني لحد الإشارة. لو الوقف والهدف اتلمسوا في نفس الساعة، بنعتبر الوقف اتضرب الأول. الخروج بالمؤشر: لما الأزرق يوصل +١٠٠ وبعدين ينزل تحت الأصفر (أقصى ٦٠ ساعة).</p>
+  <table class="bt" style="margin-bottom:22px">
+    <tr><th>طريقة الخروج</th><th>صفقات</th><th>كسبانة</th><th>متوسط الصفقة</th><th>الوسيط</th><th>المجموع</th><th>أسوأ صفقة</th><th>متوسط المدة</th></tr>
+    {% for b in bt %}<tr><td>{{ b.name }}</td><td>{{ b.n }}</td><td>{{ b.win }}٪</td><td class="{{ 'pos' if b.avg > 0 else 'neg' }}"><b>{{ '%+.2f'|format(b.avg) }}٪</b></td><td>{{ '%+.2f'|format(b.med) }}٪</td><td>{{ '%+.1f'|format(b.tot) }}٪</td><td>{{ '%+.2f'|format(b.worst) }}٪</td><td>{{ b.hold }} ساعة</td></tr>{% endfor %}
+  </table>
+  {% endif %}
   {% if rows %}
   <table class="bt">
     <tr><th>ساعة الإشارة</th><th>السعر</th><th>القاعين</th><th>ساعة الطلعة بالفوليوم</th><th>أعلى طلوع خلال ٦٠ ساعة</th></tr>
