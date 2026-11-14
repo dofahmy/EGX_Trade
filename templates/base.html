@@ -4,12 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}إشارات المستويات{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--ink:#1d2433;--mute:#6b7385;--line:#e4e7ee;--green:#0f7b4d;--greenbg:#e6f4ec;--red:#b42318;--redbg:#fdecea;--amber:#9a6200;--amberbg:#fff4dc;--blue:#1f4fb5}
 *{box-sizing:border-box}
 body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.6}
 header{background:#14213d;color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center}
 header a{color:#fff;text-decoration:none;font-weight:600}
+header a.brand{font-family:"Reem Kufi","Segoe UI",Tahoma,sans-serif;font-size:38px;font-weight:700;line-height:1.35;padding:0 2px 4px;display:inline-block;letter-spacing:1px;background:linear-gradient(180deg,#f4f6f9 0%,#c0c6cf 45%,#8e959f 55%,#dde1e7 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 1px 0 rgba(255,255,255,.08)}
 main{max-width:1150px;margin:0 auto;padding:20px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
 h1,h2,h3{margin:0 0 12px}
@@ -44,6 +47,7 @@ a{color:var(--blue)}
 <body>
 {% if not bare %}<header>
   <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+    <a class="brand" href="/">رؤية</a>
   </div>
   <span class="mute" style="color:#c9d1e6;font-size:13px">قراءة لشكل التداول، مش توصية بشراء أو بيع</span>
 </header>{% endif %}
