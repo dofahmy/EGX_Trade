@@ -21,6 +21,7 @@ import metals
 import zerolead
 import swing5
 import tvdaily
+import stats
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -49,6 +50,30 @@ MARKETS = {
     'us': dict(title='الأسهم الأمريكية (إس آند بي ٥٠٠)', root=Path(DATA_DIR) / 'us', windows=78),
 }
 STORES = {m: Store(v['root']) for m, v in MARKETS.items()}
+
+# عداد الزيارات
+try:
+    stats.init(Path(DATA_DIR))
+except Exception as e:
+    print('[العداد] ماقدرش يبدأ:', e, flush=True)
+
+
+@app.after_request
+def _count(resp):
+    stats.hit(request, resp)
+    return resp
+
+
+@app.route('/stats')
+def stats_page():
+    """عداد الزيارات: محمي بكلمة سر STATS_PASSWORD من متغيرات ريلواي."""
+    pw = stats.password()
+    if not pw:
+        return Response('الصفحة دي مقفولة لحد ما تضيفي متغير STATS_PASSWORD في ريلواي.', 403, {'Content-Type': 'text/plain; charset=utf-8'})
+    a_ = request.authorization
+    if not a_ or a_.password != pw:
+        return Response('محتاج كلمة السر', 401, {'WWW-Authenticate': 'Basic realm="stats"'})
+    return render_template('stats.html', r=stats.report(60))
 
 DEFAULTS = {
     'egx': dict(day_win=20, min_prices=7, threshold=10, dip_prev=5, dip_lo=9, dip_hi=10, mult=2.0, min_win=20, max_win=None,

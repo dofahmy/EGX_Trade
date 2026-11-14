@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}عداد الزيارات{% endblock %}
+{% block body %}
+<style>
+h1{font-size:20px;margin:0 0 6px}
+.cards{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 16px}
+.card{background:#fff;border:1px solid #e3e6ec;border-radius:10px;padding:12px 18px;min-width:170px}
+.card b{display:block;font-size:26px}
+.card span{color:#5b6475;font-size:13px}
+.grid{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.box{background:#fff;border:1px solid #e3e6ec;border-radius:10px;padding:6px 0}
+.box h2{font-size:15px;margin:6px 14px}
+table{border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 14px;border-bottom:1px solid #eef0f3;text-align:right;white-space:nowrap}
+th{background:#eef1f5;font-weight:600;font-size:13px;color:#4a5263}
+.sym{direction:ltr;unicode-bidi:isolate;font-weight:700}
+.mute{color:#8a92a3;font-size:13px}
+</style>
+<h1>عداد الزيارات · آخر ٦٠ يوم</h1>
+<p class="mute">الزائر بيتحسب مرة واحدة في اليوم. العداد مابيحفظش عناوين الزوار، ومابيعدّش برامج البحث الآلية.</p>
+<div class="cards">
+ <div class="card"><b id="tv"></b><span>صفحة اتفتحت</span></div>
+ <div class="card"><b id="tu"></b><span>زيارة (زائر في اليوم)</span></div>
+ <div class="card"><b id="tc"></b><span>شارت اتفتح</span></div>
+</div>
+<div class="grid">
+ <div class="box"><h2>كل يوم</h2><table><thead><tr><th>اليوم</th><th>الزوار</th><th>الصفحات</th><th>الشارتات</th></tr></thead><tbody id="d"></tbody></table></div>
+ <div class="box"><h2>أكتر الأسهم اللي اتفتح شارتها</h2><table><thead><tr><th>السهم</th><th>مرات الفتح</th></tr></thead><tbody id="s"></tbody></table></div>
+ <div class="box"><h2>الصفحات</h2><table><thead><tr><th>الصفحة</th><th>مرات الفتح</th></tr></thead><tbody id="p"></tbody></table></div>
+</div>
+<script>
+const R={{ r|tojson }};
+const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+const DT=s=>AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4));
+const NM={'/swing5':'إشارات إيجابية على الأسهم','/candles':'الشارت','/main':'الصفحة القديمة'};
+const E='<tr><td colspan="4" class="mute">لسه مافيش زيارات</td></tr>';
+document.getElementById('tv').textContent=AR(R.tot.v||0);
+document.getElementById('tu').textContent=AR(R.tot.u||0);
+document.getElementById('tc').textContent=AR(R.tot.c||0);
+document.getElementById('d').innerHTML=R.days.map(r=>'<tr><td>'+DT(r.d)+'</td><td><b>'+AR(r.u)+'</b></td><td>'+AR(r.v)+'</td><td>'+AR(r.c)+'</td></tr>').join('')||E;
+document.getElementById('s').innerHTML=R.syms.map(x=>'<tr><td class="sym">'+x[0]+'</td><td>'+AR(x[1])+'</td></tr>').join('')||E;
+document.getElementById('p').innerHTML=R.pages.map(x=>'<tr><td>'+(NM[x[0]]||'<span class="sym">'+x[0]+'</span>')+'</td><td>'+AR(x[1])+'</td></tr>').join('')||E;
+</script>
+{% endblock %}
