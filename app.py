@@ -143,6 +143,21 @@ def tv_status():
     return jsonify(tvdaily.status)
 
 
+@app.route('/tv.csv.gz')
+@auth
+def tv_download():
+    """تنزيل ملف شموع تريدنج فيو اليومية كله مضغوط."""
+    import gzip, io
+    p = tvdaily.path(STORES['egx'].root)
+    if not os.path.exists(p):
+        return 'لسه مفيش ملف', 404
+    buf = io.BytesIO()
+    with open(p, 'rb') as f, gzip.GzipFile(fileobj=buf, mode='wb') as g:
+        g.write(f.read())
+    return Response(buf.getvalue(), mimetype='application/gzip',
+                    headers={'Content-Disposition': 'attachment; filename=tv_daily.csv.gz'})
+
+
 @app.route('/actions')
 @auth
 def actions_page():

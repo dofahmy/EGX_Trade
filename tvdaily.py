@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """الشموع اليومية من تريدنج فيو (فتح وأعلى وأوطى وإقفال رسمي، ومتعدلة بالإجراءات زي الشارت).
 
-- بتتنزل في الخلفية: أول مرة ٥٠٠ جلسة لكل سهم، وبعد كده آخر ٢٠ جلسة بس وبتتضاف.
+- بتتنزل في الخلفية: أول مرة التاريخ كله (لحد ٥٠٠٠ جلسة) لكل سهم، وبعد كده آخر ٢٠ جلسة بس وبتتضاف.
 - بتتحدث لوحدها كل يوم من الأحد للخميس الساعة ٣:٤٥ العصر و٩ بالليل (بتوقيت القاهرة)، ولما السيرفر يقوم.
 - لو تريدنج فيو رجّع أسعار مختلفة للأيام القديمة (إجراء جديد على السهم)، السهم بيتنزل من الأول.
 - الملف: DATA_DIR/tv_daily.csv  (date, sym, open, high, low, close, volume)
@@ -15,7 +15,7 @@ from pathlib import Path
 import pandas as pd
 
 COLS = ['date', 'sym', 'open', 'high', 'low', 'close', 'volume']
-FULL = 500
+FULL = 5000
 RECENT = 20
 status = dict(running=False, last_run=None, last_date=None, syms=0, failed=0, error=None)
 _LOCK = threading.Lock()
@@ -92,10 +92,12 @@ def refresh(store, log=print):
         syms = sorted(st['sym'].dropna().unique())
         old = load(store.root)
         have = set(old['sym']) if len(old) else set()
+        mark = Path(store.root) / 'tv_full.txt'      # الأسهم اللي اتنزل تاريخها كله (لحد ٥٠٠٠ جلسة)
+        done = set(mark.read_text().split()) if mark.exists() else set()
         tv = _client()
         parts, failed = [], 0
         for k, s in enumerate(syms, 1):
-            full = s not in have
+            full = s not in have or s not in done
             d = _get(tv, s, FULL if full else RECENT)
             if d is None:
                 failed += 1
@@ -111,6 +113,9 @@ def refresh(store, log=print):
                     if d2 is not None:
                         d = _align(d2, dates)
                         old = old[old['sym'] != s]
+            if full:
+                old = old[old['sym'] != s] if len(old) else old
+                done.add(s)
             parts.append(d)
             if k % 25 == 0:
                 log(f'[تريدنج فيو] {k}/{len(syms)}')
@@ -122,6 +127,7 @@ def refresh(store, log=print):
             tmp = path(store.root).with_suffix('.tmp')
             allp.to_csv(tmp, index=False)
             os.replace(tmp, path(store.root))
+            mark.write_text('\n'.join(sorted(done)))
             status.update(last_date=allp['date'].max(), syms=int(allp['sym'].nunique()))
         status.update(failed=failed, last_run=dt.datetime.now().strftime('%Y-%m-%d %H:%M'))
         log(f'[تريدنج فيو] خلص: {status}')
