@@ -200,31 +200,41 @@ def backtest(root, sym, tf='1h', only_both=False):
             if stop >= e:
                 stop = e * 0.995
             seen_ob = False
-            r, held, done = None, 0, False
+            r, held, done, why, xj = None, 0, False, '', None
             for j in range(i + 1, min(n, i + 1 + cap)):
                 held = j - i
                 if lo[j] <= stop:
-                    r, done = (stop / e - 1) * 100, True
+                    r, done, why, xj = (stop / e - 1) * 100, True, 'الوقف', j
                     break
                 if tgt is not None and hi[j] >= e * (1 + tgt / 100):
-                    r, done = tgt, True
+                    r, done, why, xj = tgt, True, 'الهدف', j
                     break
                 if mode == 'cci':
                     if c[j] >= 100:
                         seen_ob = True
                     if seen_ob and c[j] < m[j]:
-                        r, done = (cc[j] / e - 1) * 100, True
+                        r, done, why, xj = (cc[j] / e - 1) * 100, True, 'المؤشر', j
                         break
             if not done:
                 if i + cap >= n:      # الصفقة لسه مفتوحة
                     continue
-                r = (cc[i + cap] / e - 1) * 100
-                held = cap
-            res.append((r, held))
+                r, held, why, xj = (cc[i + cap] / e - 1) * 100, cap, 'الوقت', i + cap
+            xp = e * (1 + r / 100)
+            res.append((r, held, dict(t=times[i], p=round(float(e), 3), xt=times[xj], xp=round(float(xp), 3), r=round(float(r), 2),
+                                      why=why, held=int(held), stop=None if not np.isfinite(stop) else round(float(stop), 3),
+                                      dd=round(float((np.nanmin(lo[i + 1:xj + 1]) / e - 1) * 100), 2))))
         if not res:
             continue
         a_ = np.array([x[0] for x in res])
         out.append(dict(name=name, n=len(a_), win=round(float((a_ > 0).mean()) * 100), avg=round(float(a_.mean()), 2),
                         med=round(float(np.median(a_)), 2), tot=round(float(a_.sum()), 1), worst=round(float(a_.min()), 2),
-                        hold=round(float(np.mean([x[1] for x in res]))), unit=unit))
+                        hold=round(float(np.mean([x[1] for x in res]))), unit=unit, trades=[x[2] for x in reversed(res)]))
+    # للمقارنة: الشرا في أي شمعة والخروج بعد نفس المدة من غير وقف
+    k = caps[1]
+    if n > k + 20:
+        base = cc[k:] / cc[:-k] - 1
+        base = base[np.isfinite(base)] * 100
+        out.append(dict(name=f'للمقارنة: شرا في أي {unit} والخروج بعد {k} {unit}', n=len(base), win=round(float((base > 0).mean()) * 100),
+                        avg=round(float(base.mean()), 2), med=round(float(np.median(base)), 2), tot=None, worst=round(float(base.min()), 2),
+                        hold=k, unit=unit, trades=[], ref=True))
     return out

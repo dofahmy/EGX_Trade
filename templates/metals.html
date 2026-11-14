@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
-{% block title %}الدهب والفضة{% endblock %}
+{% block title %}الدهب والفضة<script>
+document.querySelectorAll('a.tgl').forEach(a => a.addEventListener('click', e => { e.preventDefault(); const r = document.getElementById('tr-' + a.dataset.k); r.style.display = r.style.display === 'none' ? '' : 'none'; }));
+</script>
+{% endblock %}
 {% block body %}
 <style>
 .bt{border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
@@ -25,19 +28,28 @@ tr.both a.cm{color:#0f7b4d;font-weight:800}
   {% else %}
   <p class="note">{% if st.running %}جاري تحميل الشموع من تريدنج فيو… افتحي الصفحة تاني بعد دقيقة.{% else %}الشموع لسه ما اتحملتش.{% if st.error %} آخر خطأ: {{ st.error }}{% endif %}{% endif %}</p>
   {% endif %}
-  {% macro bttable(rows) %}
+  {% macro bttable(rows, tag) %}
   <table class="bt" style="margin-bottom:18px">
     <tr><th>طريقة الخروج</th><th>صفقات</th><th>كسبانة</th><th>متوسط الصفقة</th><th>الوسيط</th><th>المجموع</th><th>أسوأ صفقة</th><th>متوسط المدة</th></tr>
-    {% for b in rows %}<tr><td>{{ b.name }}</td><td>{{ b.n }}</td><td>{{ b.win }}٪</td><td class="{{ 'pos' if b.avg > 0 else 'neg' }}"><b>{{ '%+.2f'|format(b.avg) }}٪</b></td><td>{{ '%+.2f'|format(b.med) }}٪</td><td>{{ '%+.1f'|format(b.tot) }}٪</td><td>{{ '%+.2f'|format(b.worst) }}٪</td><td>{{ b.hold }} {{ b.unit }}</td></tr>{% endfor %}
+    {% for b in rows %}
+    <tr{% if b.ref %} style="background:#f3f5f9;font-style:italic"{% endif %}><td>{% if b.trades %}<a href="#" class="tgl" data-k="{{ tag }}{{ loop.index }}">{{ b.name }} ▾</a>{% else %}{{ b.name }}{% endif %}</td><td>{{ b.n }}</td><td>{{ b.win }}٪</td><td class="{{ 'pos' if b.avg > 0 else 'neg' }}"><b>{{ '%+.2f'|format(b.avg) }}٪</b></td><td>{{ '%+.2f'|format(b.med) }}٪</td><td>{% if b.tot is not none %}{{ '%+.1f'|format(b.tot) }}٪{% else %}—{% endif %}</td><td>{{ '%+.2f'|format(b.worst) }}٪</td><td>{{ b.hold }} {{ b.unit }}</td></tr>
+    {% if b.trades %}
+    <tr id="tr-{{ tag }}{{ loop.index }}" style="display:none"><td colspan="8" style="background:#fafbfc;padding:6px 10px">
+      <table class="bt" style="font-size:13px;width:100%">
+        <tr><th>الدخول</th><th>سعر الدخول</th><th>الوقف</th><th>الخروج</th><th>سعر الخروج</th><th>سبب الخروج</th><th>المدة</th><th>أوطى نزول جوه الصفقة</th><th>النتيجة</th></tr>
+        {% for t in b.trades %}<tr><td><a class="cm" href="{{ murl('metals_chart', s=sym, tf=tf, mark=t.t) }}">{{ t.t }}</a></td><td>{{ t.p }}</td><td>{{ t.stop if t.stop is not none else '—' }}</td><td>{{ t.xt }}</td><td>{{ t.xp }}</td><td>{{ t.why }}</td><td>{{ t.held }} {{ b.unit }}</td><td class="neg">{{ '%+.2f'|format(t.dd) }}٪</td><td class="{{ 'pos' if t.r > 0 else 'neg' }}"><b>{{ '%+.2f'|format(t.r) }}٪</b></td></tr>{% endfor %}
+      </table></td></tr>
+    {% endif %}
+    {% endfor %}
   </table>
   {% endmacro %}
   {% if bt %}
   <h3 style="margin-bottom:4px">طرق الخروج</h3>
   <p class="note" style="margin-top:0">الدخول على إقفال شمعة الإشارة. الوقف: تحت أوطى سعر من القاع التاني لحد الإشارة. لو الوقف والهدف اتلمسوا في نفس الشمعة، بنعتبر الوقف اتضرب الأول. الخروج بالمؤشر: لما الأزرق يوصل +١٠٠ وبعدين ينزل تحت الأصفر.</p>
   <h4 style="margin:10px 0 4px;color:#0f7b4d">الإشارات اللي الدهب والفضة إدّوها مع بعض بس</h4>
-  {% if bt2 %}{{ bttable(bt2) }}{% else %}<p class="note">مفيش صفقات مع بعض في الفريم ده.</p>{% endif %}
+  {% if bt2 %}{{ bttable(bt2, 'b') }}{% else %}<p class="note">مفيش صفقات مع بعض في الفريم ده.</p>{% endif %}
   <h4 style="margin:10px 0 4px">كل الإشارات</h4>
-  {{ bttable(bt) }}
+  {{ bttable(bt, 'a') }}
   {% endif %}
   {% if rows %}
   <table class="bt">
@@ -51,4 +63,7 @@ tr.both a.cm{color:#0f7b4d;font-weight:800}
   </table>
   {% endif %}
 </div>
+<script>
+document.querySelectorAll('a.tgl').forEach(a => a.addEventListener('click', e => { e.preventDefault(); const r = document.getElementById('tr-' + a.dataset.k); r.style.display = r.style.display === 'none' ? '' : 'none'; }));
+</script>
 {% endblock %}
