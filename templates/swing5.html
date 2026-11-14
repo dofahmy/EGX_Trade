@@ -23,17 +23,17 @@ tr.bm td{background:#b9e8cb}
 .tag{display:inline-block;font-size:11px;background:#2b6cb0;color:#fff;border-radius:4px;padding:0 5px;margin-right:6px}
 </style>
 <h1>إشارات إيجابية على الأسهم</h1>
-<p class="note"><span style="background:#b9e8cb;padding:0 6px;border-radius:4px;font-weight:700">أخضر</span> = السوق كله بيعمل قاع (حوالين إشارة من صفحة قيعان السوق) · <span class="tag s80">ستوك فوق ٨٠</span> = تقاطع ستوكاستيك آر إس آي من فوق ٨٠ · داتا لحد {{ last or '—' }}</p>
+<p class="note"><span style="background:#b9e8cb;padding:0 6px;border-radius:4px;font-weight:700">أخضر</span> = السوق كله بيعمل قاع</p>
 <div class="bar">
  <label><input type="checkbox" id="st"> القوية بس</label>
- <label><input type="checkbox" id="s8"> ستوك فوق ٨٠ بس</label>
+ <label><input type="checkbox" id="s8"> دبل شرا بس</label>
  <label><input type="checkbox" id="liq" checked> سيولة ٥٠٠ ألف جنيه أو أكتر</label>
  <label>السهم <input type="text" id="q" placeholder="PRMH"></label>
  <label>السنة <select id="yr"><option value="">الكل</option></select></label>
  <span class="sum" id="sum"></span>
 </div>
 <div class="tbl"><table><thead><tr>
-<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h40">أعلى سعر خلال ٤٠ جلسة</th><th data-k="l40">أوطى سعر خلال ٤٠ جلسة</th><th data-k="r40">بعد ٤٠ جلسة</th><th data-k="nr">السعر دلوقتي</th>
+<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h40">أعلى سعر خلال ٤٠ جلسة</th><th data-k="l40">أقل سعر خلال ٤٠ جلسة</th><th data-k="r40">بعد ٤٠ جلسة</th><th data-k="nr">السعر دلوقتي</th>
 </tr></thead><tbody id="tb"></tbody></table></div>
 <script>
 const D={{ rows|tojson }};
@@ -59,7 +59,7 @@ function draw(){
     const lo=r.lp40==null?'—':AR(r.lp40)+' '+pct(r.l40);
     const af=r.cp40==null?'—':(r.n40>=40?'<b>'+AR(r.cp40)+'</b> '+pct(r.r40):'<span class="mute">لسه '+AR(r.n40)+' جلسة</span>');
     const now='<b>'+AR(r.np_)+'</b> '+pct(r.nr);
-    return '<tr class="'+bm+'"><td>'+DT(r.d)+'</td><td class="sym"><a href="'+lnk+'">'+r.s+'</a>'+(r.s80?' <span class="tag s80">ستوك فوق ٨٠</span>':'')+(r.st?' <span class="tag">قوية</span>':'')+'</td><td>'+AR(r.c)+'</td><td>'+hi+'</td><td>'+lo+'</td><td>'+af+'</td><td>'+now+'</td></tr>';
+    return '<tr class="'+bm+'"><td>'+DT(r.d)+'</td><td class="sym"><a href="'+lnk+'">'+r.s+'</a>'+(r.s80?' <span class="tag s80">دبل شرا</span>':'')+(r.st?' <span class="tag">قوية</span>':'')+'</td><td>'+AR(r.c)+'</td><td>'+hi+'</td><td>'+lo+'</td><td>'+af+'</td><td>'+now+'</td></tr>';
   }).join('');
 }
 document.querySelectorAll('th').forEach(t=>t.onclick=()=>{if(key===t.dataset.k)asc=!asc;else{key=t.dataset.k;asc=false;}draw();});
