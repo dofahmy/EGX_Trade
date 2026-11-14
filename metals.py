@@ -16,6 +16,10 @@ import pandas as pd
 import xbadger
 
 SYMS = {'XAUUSD': 'الدهب', 'XAGUSD': 'الفضة'}
+# الفريم: (اسم الفاصل في tvDatafeed، اسمه بالعربي، وحدة الشمعة، الأهداف ٪، مدد الخروج بالشموع، أقصى مدة للخروج بالمؤشر)
+TFS = {'1h': ('in_1_hour', 'ساعة', 'ساعة', (1.0, 1.5, 2.0), (24, 48), 60),
+       '4h': ('in_4_hour', '٤ ساعات', 'شمعة', (2.0, 3.0, 4.0), (6, 12), 30),
+       '1d': ('in_daily', 'يوم', 'يوم', (3.0, 5.0, 8.0), (5, 10), 20)}
 EXCH = 'OANDA'
 BARS = 5000
 WAIT = 10
@@ -27,8 +31,8 @@ _LOCK = threading.Lock()
 _CACHE = {}
 
 
-def _path(root, sym):
-    return os.path.join(root, f'metal_{sym}_1h.csv')
+def _path(root, sym, tf='1h'):
+    return os.path.join(root, f'metal_{sym}_{tf}.csv')
 
 
 def _to_cairo(ts):
@@ -52,28 +56,29 @@ def refresh(root, log=print):
             tv = TvDatafeed(u, p) if u and p else TvDatafeed()
         except Exception:
             tv = TvDatafeed()
-        for sym in SYMS:
-            d = None
-            for _ in range(3):
-                try:
-                    d = tv.get_hist(symbol=sym, exchange=EXCH, interval=Interval.in_1_hour, n_bars=BARS)
-                    if d is not None and len(d):
-                        break
-                except Exception as e:
-                    status['error'] = str(e)[:200]
-                time.sleep(3)
-            if d is None or not len(d):
-                log(f'[الدهب والفضة] مفيش داتا لـ{sym}')
-                continue
-            d = d.reset_index().rename(columns={'datetime': 'time'})
-            d['time'] = _to_cairo(d['time'])
-            d = d[['time', 'open', 'high', 'low', 'close', 'volume']]
-            p = _path(root, sym)
-            if os.path.exists(p):   # نحتفظ بالقديم اللي خرج من آخر ٥٠٠٠ شمعة
-                old = pd.read_csv(p, parse_dates=['time'])
-                d = pd.concat([old[old['time'] < d['time'].min()], d], ignore_index=True)
-            d.sort_values('time').to_csv(p, index=False)
-            status['rows'][sym] = len(d)
+        for tf, spec in TFS.items():
+            for sym in SYMS:
+                d = None
+                for _ in range(3):
+                    try:
+                        d = tv.get_hist(symbol=sym, exchange=EXCH, interval=getattr(Interval, spec[0]), n_bars=BARS)
+                        if d is not None and len(d):
+                            break
+                    except Exception as e:
+                        status['error'] = str(e)[:200]
+                    time.sleep(3)
+                if d is None or not len(d):
+                    log(f'[الدهب والفضة] مفيش داتا لـ{sym} {tf}')
+                    continue
+                d = d.reset_index().rename(columns={'datetime': 'time'})
+                d['time'] = _to_cairo(d['time'])
+                d = d[['time', 'open', 'high', 'low', 'close', 'volume']]
+                p = _path(root, sym, tf)
+                if os.path.exists(p):   # نحتفظ بالقديم اللي خرج من آخر ٥٠٠٠ شمعة
+                    old = pd.read_csv(p, parse_dates=['time'])
+                    d = pd.concat([old[old['time'] < d['time'].min()], d], ignore_index=True)
+                d.sort_values('time').to_csv(p, index=False)
+                status['rows'][f'{sym} {tf}'] = len(d)
         status['last'] = dt.datetime.utcnow().isoformat(timespec='minutes')
         _CACHE.clear()
     except Exception as e:
@@ -93,8 +98,8 @@ def start(root, log=print):
     threading.Thread(target=loop, daemon=True).start()
 
 
-def load(root, sym):
-    p = _path(root, sym)
+def load(root, sym, tf='1h'):
+    p = _path(root, sym, tf)
     if not os.path.exists(p):
         return pd.DataFrame(columns=['time', 'open', 'high', 'low', 'close', 'volume'])
     return pd.read_csv(p, parse_dates=['time']).sort_values('time').reset_index(drop=True)
@@ -106,16 +111,20 @@ def _atr(h, l, cc, n=14):
     return pd.Series(tr).rolling(n).mean().to_numpy()
 
 
-def signals(root, sym):
-    d = load(root, sym)
-    key = (sym, len(d), str(d['time'].iloc[-1]) if len(d) else '')
+def _key(t, tf):
+    return t[:10] if tf == '1d' else t
+
+
+def signals(root, sym, tf='1h'):
+    d = load(root, sym, tf)
+    key = (sym, tf, len(d), str(d['time'].iloc[-1]) if len(d) else '')
     if key in _CACHE:
         return _CACHE[key]
     out = []
     if len(d) > 60:
         hi, lo, cc = (d[k].astype(float).to_numpy() for k in ('high', 'low', 'close'))
         vol = d['volume'].astype(float).to_numpy()
-        times = d['time'].dt.strftime('%Y-%m-%d %H:%M').to_numpy()
+        times = d['time'].dt.strftime('%Y-%m-%d' if tf == '1d' else '%Y-%m-%d %H:%M').to_numpy()
         c, m, _, _ = xbadger.cci(hi, lo, cc)
         atr = _atr(hi, lo, cc)
         med = pd.Series(vol).shift(1).rolling(120, min_periods=40).median().to_numpy()
@@ -140,14 +149,14 @@ def signals(root, sym):
     return [dict(x) for x in r]
 
 
-def chart(root, sym, mark=None, span=120):
+def chart(root, sym, mark=None, span=120, tf='1h'):
     """شموع + CCI حوالين الإشارة (أو آخر الشموع)."""
-    d = load(root, sym)
+    d = load(root, sym, tf)
     if not len(d):
         return []
     hi, lo, cc = (d[k].astype(float).to_numpy() for k in ('high', 'low', 'close'))
     c, m, _, _ = xbadger.cci(hi, lo, cc)
-    times = d['time'].dt.strftime('%Y-%m-%d %H:%M').to_numpy()
+    times = d['time'].dt.strftime('%Y-%m-%d' if tf == '1d' else '%Y-%m-%d %H:%M').to_numpy()
     k = len(d) - 1
     if mark:
         w = np.where(times >= mark)[0]
@@ -159,20 +168,27 @@ def chart(root, sym, mark=None, span=120):
     return [dict(t=times[i], o=r(d['open'][i]), h=r(hi[i]), l=r(lo[i]), c=r(cc[i]), cci=r(c[i]), m=r(m[i])) for i in range(a, b)]
 
 
-def backtest(root, sym):
+def backtest(root, sym, tf='1h', only_both=False):
     """طرق خروج مختلفة على كل الإشارات. الدخول على إقفال شمعة الإشارة.
-    الوقف: تحت أوطى سعر من القاع التاني لحد الإشارة. لو الوقف والهدف اتلمسوا في نفس الشمعة، بنعتبر الوقف اتضرب الأول."""
-    d = load(root, sym)
+    الوقف: تحت أوطى سعر من القاع التاني لحد الإشارة. لو الوقف والهدف اتلمسوا في نفس الشمعة، بنعتبر الوقف اتضرب الأول.
+    only_both: الإشارات اللي المعدن التاني إدّى فيها إشارة في نفس الشمعة (أو نفس اليوم في فريم اليوم) بس."""
+    d = load(root, sym, tf)
     if len(d) <= 60:
         return []
+    _, _, unit, tgts, caps, icap = TFS[tf]
     hi, lo, cc = (d[k].astype(float).to_numpy() for k in ('high', 'low', 'close'))
+    times = d['time'].dt.strftime('%Y-%m-%d' if tf == '1d' else '%Y-%m-%d %H:%M').to_numpy()
     c, m, _, _ = xbadger.cci(hi, lo, cc)
     n = len(cc)
     sigs = xbadger.wsig(c, m, cc)
-    rules = [('وقف + هدف ١٪ (أقصى ٤٨ ساعة)', 1.0, 48, None), ('وقف + هدف ١٫٥٪ (أقصى ٤٨ ساعة)', 1.5, 48, None),
-             ('وقف + هدف ٢٪ (أقصى ٤٨ ساعة)', 2.0, 48, None), ('وقف + خروج بعد ٢٤ ساعة', None, 24, None),
-             ('وقف + خروج بعد ٤٨ ساعة', None, 48, None), ('وقف + خروج بالمؤشر', None, 60, 'cci'),
-             ('من غير وقف: خروج بعد ٤٨ ساعة', None, 48, 'nostop')]
+    if only_both:
+        other = [k for k in SYMS if k != sym][0]
+        ok = {_key(r['time'], tf) for r in signals(root, other, tf)}
+        sigs = [x for x in sigs if _key(times[x[0]], tf) in ok]
+    pct = lambda v: ('%g' % v).replace('.', '٫')
+    rules = [(f'وقف + هدف {pct(t)}٪ (أقصى {caps[1]} {unit})', t, caps[1], None) for t in tgts]
+    rules += [(f'وقف + خروج بعد {k} {unit}', None, k, None) for k in caps]
+    rules += [('وقف + خروج بالمؤشر', None, icap, 'cci'), (f'من غير وقف: خروج بعد {caps[1]} {unit}', None, caps[1], 'nostop')]
     out = []
     for name, tgt, cap, mode in rules:
         res = []
@@ -202,12 +218,13 @@ def backtest(root, sym):
             if not done:
                 if i + cap >= n:      # الصفقة لسه مفتوحة
                     continue
-                r = (cc[min(n - 1, i + cap)] / e - 1) * 100
+                r = (cc[i + cap] / e - 1) * 100
                 held = cap
             res.append((r, held))
         if not res:
             continue
-        a = np.array([x[0] for x in res])
-        out.append(dict(name=name, n=len(a), win=round((a > 0).mean() * 100), avg=round(a.mean(), 2), med=round(float(np.median(a)), 2),
-                        tot=round(a.sum(), 1), worst=round(a.min(), 2), hold=round(np.mean([x[1] for x in res]))))
+        a_ = np.array([x[0] for x in res])
+        out.append(dict(name=name, n=len(a_), win=round(float((a_ > 0).mean()) * 100), avg=round(float(a_.mean()), 2),
+                        med=round(float(np.median(a_)), 2), tot=round(float(a_.sum()), 1), worst=round(float(a_.min()), 2),
+                        hold=round(float(np.mean([x[1] for x in res]))), unit=unit))
     return out

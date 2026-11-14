@@ -211,27 +211,33 @@ def eye_page():
 @app.route('/metals')
 @auth
 def metals_page():
-    """إشارات الشراء على الدهب والفضة فريم الساعة."""
+    """إشارات الشراء على الدهب والفضة: فريم الساعة أو ٤ ساعات أو يوم."""
     sym = request.args.get('s', 'XAUUSD').upper()
     if sym not in metals.SYMS:
         sym = 'XAUUSD'
+    tf = request.args.get('tf', '1h')
+    if tf not in metals.TFS:
+        tf = '1h'
     root = STORES['egx'].root
-    if not os.path.exists(metals._path(root, sym)) and not metals.status['running']:
+    if not os.path.exists(metals._path(root, sym, tf)) and not metals.status['running']:
         threading.Thread(target=metals.refresh, args=(root,), daemon=True).start()
-    rows = metals.signals(root, sym)
+    rows = metals.signals(root, sym, tf)
     other = [k for k in metals.SYMS if k != sym][0]
-    both = {r['time'] for r in metals.signals(root, other)}
+    both = {metals._key(r['time'], tf) for r in metals.signals(root, other, tf)}
     for r in rows:
-        r['both'] = r['time'] in both
-    d = metals.load(root, sym)
+        r['both'] = metals._key(r['time'], tf) in both
+    d = metals.load(root, sym, tf)
     info = dict(n=len(d), first=str(d['time'].iloc[0])[:16] if len(d) else None, last=str(d['time'].iloc[-1])[:16] if len(d) else None,
                 px=round(float(d['close'].iloc[-1]), 3) if len(d) else None)
     try:
-        bt = metals.backtest(root, sym)
+        bt = metals.backtest(root, sym, tf)
+        bt2 = metals.backtest(root, sym, tf, only_both=True)
     except Exception:
         app.logger.exception('metals backtest')
-        bt = []
-    return render_template('metals.html', bt=bt, rows=rows, sym=sym, syms=metals.SYMS, info=info, st=metals.status,
+        bt, bt2 = [], []
+    spec = metals.TFS[tf]
+    return render_template('metals.html', bt=bt, bt2=bt2, rows=rows, sym=sym, syms=metals.SYMS, tf=tf, tfs=metals.TFS,
+                           unit=spec[2], ahead=metals.AHEAD, info=info, st=metals.status,
                            nbig=sum(1 for r in rows if r['big']), nboth=sum(1 for r in rows if r['both']), oname=metals.SYMS[other])
 
 
@@ -241,9 +247,12 @@ def metals_chart():
     sym = request.args.get('s', 'XAUUSD').upper()
     if sym not in metals.SYMS:
         sym = 'XAUUSD'
+    tf = request.args.get('tf', '1h')
+    if tf not in metals.TFS:
+        tf = '1h'
     mark = request.args.get('mark')
-    data = metals.chart(STORES['egx'].root, sym, mark)
-    return render_template('metals_chart.html', data=data, sym=sym, name=metals.SYMS[sym], mark=mark, bare=True)
+    data = metals.chart(STORES['egx'].root, sym, mark, tf=tf)
+    return render_template('metals_chart.html', data=data, sym=sym, name=metals.SYMS[sym], mark=mark, bare=True, tfname=metals.TFS[tf][1])
 
 
 @app.route('/xbadger')

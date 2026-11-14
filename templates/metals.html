@@ -13,32 +13,40 @@ tr.both a.cm{color:#0f7b4d;font-weight:800}
 .tabs a,.tabs b{margin-left:14px;font-size:17px}
 </style>
 <div class="card">
-  <h2 style="margin-top:0">إشارات الشراء على الدهب والفضة · فريم الساعة</h2>
-  <p class="tabs">{% for k, t in syms.items() %}{% if k == sym %}<b>{{ t }}</b>{% else %}<a href="{{ murl('metals_page', s=k) }}">{{ t }}</a>{% endif %}{% endfor %}
-    <a class="cm" href="{{ murl('metals_chart', s=sym) }}" style="font-size:14px">الشارت دلوقتي</a></p>
+  <h2 style="margin-top:0">إشارات الشراء على الدهب والفضة · فريم {{ tfs[tf][1] }}</h2>
+  <p class="tabs">{% for k, t in syms.items() %}{% if k == sym %}<b>{{ t }}</b>{% else %}<a href="{{ murl('metals_page', s=k, tf=tf) }}">{{ t }}</a>{% endif %}{% endfor %}
+    <span class="mute" style="margin:0 10px">|</span>
+    {% for k, v in tfs.items() %}{% if k == tf %}<b style="font-size:15px">{{ v[1] }}</b>{% else %}<a href="{{ murl('metals_page', s=sym, tf=k) }}" style="font-size:15px">{{ v[1] }}</a>{% endif %}{% endfor %}
+    <a class="cm" href="{{ murl('metals_chart', s=sym, tf=tf) }}" style="font-size:14px">الشارت دلوقتي</a></p>
   <p class="note"><span style="background:#fff4d6;color:#b7791f;font-weight:800;padding:0 6px;border-radius:4px">ملوّن</span> = طالع بفوليوم كبير جدا ·
-    <span style="background:#dff3e8;color:#0f7b4d;font-weight:800;padding:0 6px;border-radius:4px">أخضر</span> = الدهب والفضة إدّوا إشارة في نفس الساعة</p>
+    <span style="background:#dff3e8;color:#0f7b4d;font-weight:800;padding:0 6px;border-radius:4px">أخضر</span> = الدهب والفضة إدّوا إشارة في نفس {{ 'اليوم' if tf == '1d' else 'الشمعة' }}</p>
   {% if info.n %}
-  <p class="note">{{ info.n }} شمعة ساعة من {{ info.first }} لحد {{ info.last }} بتوقيت القاهرة · آخر سعر {{ info.px }} · {{ rows|length }} إشارة، منهم {{ nbig }} ملوّن، و{{ nboth }} مع {{ oname }} في نفس الساعة</p>
+  <p class="note">{{ info.n }} شمعة {{ tfs[tf][1] }} من {{ info.first }} لحد {{ info.last }} بتوقيت القاهرة · آخر سعر {{ info.px }} · {{ rows|length }} إشارة، منهم {{ nbig }} ملوّن، و{{ nboth }} مع {{ oname }} في نفس {{ 'اليوم' if tf == '1d' else 'الشمعة' }}</p>
   {% else %}
   <p class="note">{% if st.running %}جاري تحميل الشموع من تريدنج فيو… افتحي الصفحة تاني بعد دقيقة.{% else %}الشموع لسه ما اتحملتش.{% if st.error %} آخر خطأ: {{ st.error }}{% endif %}{% endif %}</p>
   {% endif %}
-  {% if bt %}
-  <h3 style="margin-bottom:4px">طرق الخروج على كل الإشارات</h3>
-  <p class="note" style="margin-top:0">الدخول على إقفال ساعة الإشارة. الوقف: تحت أوطى سعر من القاع التاني لحد الإشارة. لو الوقف والهدف اتلمسوا في نفس الساعة، بنعتبر الوقف اتضرب الأول. الخروج بالمؤشر: لما الأزرق يوصل +١٠٠ وبعدين ينزل تحت الأصفر (أقصى ٦٠ ساعة).</p>
-  <table class="bt" style="margin-bottom:22px">
+  {% macro bttable(rows) %}
+  <table class="bt" style="margin-bottom:18px">
     <tr><th>طريقة الخروج</th><th>صفقات</th><th>كسبانة</th><th>متوسط الصفقة</th><th>الوسيط</th><th>المجموع</th><th>أسوأ صفقة</th><th>متوسط المدة</th></tr>
-    {% for b in bt %}<tr><td>{{ b.name }}</td><td>{{ b.n }}</td><td>{{ b.win }}٪</td><td class="{{ 'pos' if b.avg > 0 else 'neg' }}"><b>{{ '%+.2f'|format(b.avg) }}٪</b></td><td>{{ '%+.2f'|format(b.med) }}٪</td><td>{{ '%+.1f'|format(b.tot) }}٪</td><td>{{ '%+.2f'|format(b.worst) }}٪</td><td>{{ b.hold }} ساعة</td></tr>{% endfor %}
+    {% for b in rows %}<tr><td>{{ b.name }}</td><td>{{ b.n }}</td><td>{{ b.win }}٪</td><td class="{{ 'pos' if b.avg > 0 else 'neg' }}"><b>{{ '%+.2f'|format(b.avg) }}٪</b></td><td>{{ '%+.2f'|format(b.med) }}٪</td><td>{{ '%+.1f'|format(b.tot) }}٪</td><td>{{ '%+.2f'|format(b.worst) }}٪</td><td>{{ b.hold }} {{ b.unit }}</td></tr>{% endfor %}
   </table>
+  {% endmacro %}
+  {% if bt %}
+  <h3 style="margin-bottom:4px">طرق الخروج</h3>
+  <p class="note" style="margin-top:0">الدخول على إقفال شمعة الإشارة. الوقف: تحت أوطى سعر من القاع التاني لحد الإشارة. لو الوقف والهدف اتلمسوا في نفس الشمعة، بنعتبر الوقف اتضرب الأول. الخروج بالمؤشر: لما الأزرق يوصل +١٠٠ وبعدين ينزل تحت الأصفر.</p>
+  <h4 style="margin:10px 0 4px;color:#0f7b4d">الإشارات اللي الدهب والفضة إدّوها مع بعض بس</h4>
+  {% if bt2 %}{{ bttable(bt2) }}{% else %}<p class="note">مفيش صفقات مع بعض في الفريم ده.</p>{% endif %}
+  <h4 style="margin:10px 0 4px">كل الإشارات</h4>
+  {{ bttable(bt) }}
   {% endif %}
   {% if rows %}
   <table class="bt">
-    <tr><th>ساعة الإشارة</th><th>السعر</th><th>القاعين</th><th>ساعة الطلعة بالفوليوم</th><th>أعلى طلوع خلال ٦٠ ساعة</th></tr>
+    <tr><th>وقت الإشارة</th><th>السعر</th><th>القاعين</th><th>الطلعة بالفوليوم</th><th>أعلى طلوع خلال ٦٠ {{ unit }}</th></tr>
     {% for q in rows %}
-    <tr class="{{ 'both' if q.both else ('big' if q.big) }}"><td><a class="cm" href="{{ murl('metals_chart', s=sym, mark=q.time) }}"{% if q.both and q.big %} style="color:#b7791f"{% endif %}>{{ q.time }}</a>{% if q.both %}<span class="tg">مع {{ oname }}</span>{% endif %}</td><td>{{ '%.2f'|format(q.close) if q.close >= 10 else '%.3f'|format(q.close) }}</td>
+    <tr class="{{ 'both' if q.both else ('big' if q.big) }}"><td><a class="cm" href="{{ murl('metals_chart', s=sym, tf=tf, mark=q.time) }}"{% if q.both and q.big %} style="color:#b7791f"{% endif %}>{{ q.time }}</a>{% if q.both %}<span class="tg">مع {{ oname }}</span>{% endif %}</td><td>{{ '%.2f'|format(q.close) if q.close >= 10 else '%.3f'|format(q.close) }}</td>
       <td class="mute" style="font-size:12px">{{ q.t1[5:] }} ← {{ q.t2[5:] }}</td>
       <td>{% if q.big %}{{ q.big[5:] }} <span class="mute" style="font-size:12px">(‎+{{ '%.2f'|format(q.bigchg) }}٪)</span>{% else %}<span class="mute">—</span>{% endif %}</td>
-      <td>{% if q.bars == 0 %}<span class="mute">لسه دلوقتي</span>{% else %}<b>{{ '%+.2f'|format(q.mx) }}٪</b> <span class="mute" style="font-size:12px">بعد {{ q.mxn }} ساعة{% if q.bars < 60 %} · لسه {{ q.bars }} ساعة، ودلوقتي {{ '%+.2f'|format(q.now) }}٪{% endif %}</span>{% endif %}</td></tr>
+      <td>{% if q.bars == 0 %}<span class="mute">لسه دلوقتي</span>{% else %}<b>{{ '%+.2f'|format(q.mx) }}٪</b> <span class="mute" style="font-size:12px">بعد {{ q.mxn }} {{ unit }}{% if q.bars < 60 %} · لسه {{ q.bars }} {{ unit }}، ودلوقتي {{ '%+.2f'|format(q.now) }}٪{% endif %}</span>{% endif %}</td></tr>
     {% endfor %}
   </table>
   {% endif %}
