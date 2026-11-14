@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-"""تريدة ٥ أيام: دايفرجنس إيجابي على CCI ٤٠ (على (فتح + أعلى + أوطى + إقفال) ÷ ٤، والأصفر متوسط بسيط ٢٨).
-  - الأزرق عمل قاع تحت −١٥٠، وبعده بـ٥ جلسات أو أكتر (في خلال ٤٥ جلسة) السعر عمل قاع أوطى، والأزرق فيه أعلى بـ٣٠ نقطة+.
-  - يوم الإشارة: أول يوم في خلال ١٥ جلسة من قاع السعر الأزرق فيه فوق الأصفر وفوق −١٠٠ وطالع، والأصفر تحت −٨٠، والشمعة خضرا.
+"""تريدة ٥ أيام: دايفرجنس إيجابي على CCI ٤٠ (على (فتح + أعلى + أوطى + إقفال) ÷ ٤، ومعاه متوسط أسي ٢٠) وعلى ستوكاستيك آر إس آي (٣، ٣، ١٤، ١٤ على الإقفال).
+  - المؤشر عمل قاع تحت −١٥٠، وبعده بـ٥ جلسات أو أكتر (في خلال ٤٥ جلسة) السعر عمل قاع أوطى، والمؤشر فيه أعلى بـ٣٠ نقطة+.
+  - الستوكاستيك كمان: قاعه عند قاع السعر التاني فوق ٥٠، وأعلى من قاعه عند القاع الأول بـ٢٠ نقطة+.
+  - إشارة الستوك: الخط السريع يعدّي البطيء لفوق والبطيء فوق ٥٠ (في خلال ١٥ جلسة من قاع السعر).
+    ولو البطيء فوق ٨٠ وقت التقاطع، الإشارة أقوى (ستوك فوق ٨٠).
+  - يوم الإشارة: في خلال ٣ جلسات من تقاطع الستوك، والسريع لسه فوق البطيء، والمؤشر فوق متوسطه وطالع، والمتوسط تحت −٨٠، والشمعة خضرا.
   - "قوية": السوق كله نازل ١٥٪+ من أعلى نقطة في سنة، والأصفر تحت −١٢٠.
 النتيجة: الإقفال بعد ٥ جلسات، وأعلى سعر في الـ٥ جلسات.
 """
@@ -11,7 +14,7 @@ from numpy.lib.stride_tricks import sliding_window_view as swv
 
 import tvdaily
 
-L, M = 40, 28
+L, M = 40, 20
 _CACHE = {}
 
 
@@ -25,11 +28,24 @@ def cci(o, h, l, c):
         with np.errstate(all='ignore'):
             k[L - 1:] = (src[L - 1:] - mu) / (0.015 * mad)
     k[~np.isfinite(k)] = np.nan
-    return k, pd.Series(k).rolling(M).mean().to_numpy()
+    return k, pd.Series(k).ewm(span=M, adjust=False, min_periods=M).mean().to_numpy()
+
+
+def stochrsi(c, a=3, b=3, r=14, s=14):
+    d = np.diff(c, prepend=np.nan)
+    up, dn = np.where(d > 0, d, 0.), np.where(d < 0, -d, 0.)
+    up[0] = dn[0] = np.nan
+    au = pd.Series(up).ewm(alpha=1 / r, adjust=False, min_periods=r).mean()
+    ad = pd.Series(dn).ewm(alpha=1 / r, adjust=False, min_periods=r).mean()
+    x = (100 - 100 / (1 + au / ad)).where(ad > 0, 100)
+    lo, hi = x.rolling(s).min(), x.rolling(s).max()
+    k = ((x - lo) / (hi - lo) * 100).rolling(a).mean()
+    return k.to_numpy(), k.rolling(b).mean().to_numpy()
 
 
 def _one(dates, o, h, l, c, val, mdd):
     k, m = cci(o, h, l, c)
+    sk, sd = stochrsi(c)
     n = len(c)
     vm = pd.Series(val).rolling(20, min_periods=10).median().to_numpy()
     out, last = [], -99
@@ -42,14 +58,28 @@ def _one(dates, o, h, l, c, val, mdd):
         t1 = lo + int(np.nanargmin(k[lo:hi]))
         if not (k[t1] <= -150 and c[t2] < c[t1] and k[t2] > k[t1] + 30):
             continue
+        a1, a2 = sk[max(0, t1 - 2):t1 + 3], sk[max(0, t2 - 2):t2 + 3]
+        if not (np.isfinite(a1).any() and np.isfinite(a2).any()):
+            continue
+        s1, s2 = np.nanmin(a1), np.nanmin(a2)
+        if not (s2 >= 50 and s2 > s1 + 20):
+            continue
+        x = None
         for i in range(t2 + 1, min(n, t2 + 16)):
-            if np.isfinite(m[i]) and k[i] > m[i] and k[i] > -100 and k[i] > k[i - 1] and c[i] > o[i] and m[i] <= -80:
+            if sk[i] > sd[i] and sk[i - 1] <= sd[i - 1]:
+                if sd[i] >= 50:
+                    x = i
+                else:
+                    break
+            if (x is not None and i - x <= 3 and sk[i] > sd[i] and np.isfinite(m[i]) and k[i] > m[i]
+                    and k[i] > k[i - 1] and c[i] > o[i] and m[i] <= -80):
                 if i - last < 15:
                     break
                 last = i
                 f5, h5 = c[i + 1:i + 6], h[i + 1:i + 6]
+                c40, h40, l40 = c[i + 1:i + 41], h[i + 1:i + 41], l[i + 1:i + 41]
                 md = float(mdd[i]) if np.isfinite(mdd[i]) else None
-                out.append(dict(d=dates[i], c=round(float(c[i]), 3), ki=round(float(k[i]), 1), ym=round(float(m[i]), 1),
+                out.append(dict(d=dates[i], c=round(float(c[i]), 3), ki=round(float(k[i]), 1), ym=round(float(m[i]), 1), s1=round(float(s1)), s2=round(float(s2)), s80=bool(sd[x] >= 80),
                                 d1=dates[t1], k1=round(float(k[t1])), c1=round(float(c[t1]), 3),
                                 d2=dates[t2], k2=round(float(k[t2])), c2=round(float(c[t2]), 3),
                                 md=None if md is None else round(md, 1), n=int(len(f5)),
@@ -57,6 +87,14 @@ def _one(dates, o, h, l, c, val, mdd):
                                 h5=round(float((np.max(h5) / c[i] - 1) * 100), 1) if len(h5) else None,
                                 hp=round(float(np.max(h5)), 3) if len(h5) else None,
                                 np_=round(float(c[-1]), 3), nr=round(float((c[-1] / c[i] - 1) * 100), 1),
+                                n40=int(len(c40)),
+                                hp40=round(float(np.max(h40)), 3) if len(h40) else None,
+                                h40=round(float((np.max(h40) / c[i] - 1) * 100), 1) if len(h40) else None,
+                                hj=int(np.argmax(h40)) + 1 if len(h40) else None,
+                                lp40=round(float(np.min(l40)), 3) if len(l40) else None,
+                                l40=round(float((np.min(l40) / c[i] - 1) * 100), 1) if len(l40) else None,
+                                cp40=round(float(c40[-1]), 3) if len(c40) else None,
+                                r40=round(float((c40[-1] / c[i] - 1) * 100), 1) if len(c40) else None,
                                 liq=bool(vm[i] >= 5e5) if np.isfinite(vm[i]) else False,
                                 st=bool(md is not None and md <= -15 and m[i] <= -120)))
                 break

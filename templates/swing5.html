@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}تريدة ٥ أيام{% endblock %}
+{% block title %}إشارات إيجابية على الأسهم{% endblock %}
 {% block body %}
 <style>
 
@@ -18,21 +18,22 @@ th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
 .pos{color:#0f7b4d;font-weight:700}.neg{color:#c0392b;font-weight:700}
 .mute{color:#8a92a3;font-size:12px}
 .sym{font-weight:700;direction:ltr;unicode-bidi:isolate}
-tr.bs td{background:#e3f6ea}
 tr.bm td{background:#b9e8cb}
+.tag.s80{background:#b7791f}
 .tag{display:inline-block;font-size:11px;background:#2b6cb0;color:#fff;border-radius:4px;padding:0 5px;margin-right:6px}
 </style>
-<h1>تريدة ٥ أيام · دايفرجنس إيجابي على CCI ٤٠</h1>
-<p class="note"><span style="background:#e3f6ea;padding:0 6px;border-radius:4px;font-weight:700">أخضر فاتح</span> = حوالين إشارة ارتداد قصير الأجل · <span style="background:#b9e8cb;padding:0 6px;border-radius:4px;font-weight:700">أخضر غامق</span> = حوالين قاع رئيسي (من صفحة قيعان السوق، جلستين قبل وبعد) · <span class="tag">قوية</span> = السوق كله نازل ١٥٪+ والأصفر عميق · داتا لحد {{ last or '—' }}</p>
+<h1>إشارات إيجابية على الأسهم</h1>
+<p class="note"><span style="background:#b9e8cb;padding:0 6px;border-radius:4px;font-weight:700">أخضر</span> = السوق كله بيعمل قاع (حوالين إشارة من صفحة قيعان السوق) · <span class="tag s80">ستوك فوق ٨٠</span> = تقاطع ستوكاستيك آر إس آي من فوق ٨٠ · داتا لحد {{ last or '—' }}</p>
 <div class="bar">
  <label><input type="checkbox" id="st"> القوية بس</label>
+ <label><input type="checkbox" id="s8"> ستوك فوق ٨٠ بس</label>
  <label><input type="checkbox" id="liq" checked> سيولة ٥٠٠ ألف جنيه أو أكتر</label>
  <label>السهم <input type="text" id="q" placeholder="PRMH"></label>
  <label>السنة <select id="yr"><option value="">الكل</option></select></label>
  <span class="sum" id="sum"></span>
 </div>
 <div class="tbl"><table><thead><tr>
-<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h5">أعلى سعر في ٥ جلسات</th><th data-k="nr">السعر دلوقتي</th>
+<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر الشرا</th><th data-k="h40">أعلى سعر خلال ٤٠ جلسة</th><th data-k="l40">أوطى سعر خلال ٤٠ جلسة</th><th data-k="r40">بعد ٤٠ جلسة</th>
 </tr></thead><tbody id="tb"></tbody></table></div>
 <script>
 const D={{ rows|tojson }};
@@ -41,20 +42,27 @@ const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]).replace(/\.
 const DT=s=>s?AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4)):'—';
 const ys=document.getElementById('yr'); [...new Set(D.map(r=>r.d.slice(0,4)))].sort().reverse().forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=AR(y);ys.appendChild(o);});
 let key='d',asc=false;
-function pct(v){return v==null?'—':'<span class="'+(v>0?'pos':'neg')+'">‎'+(v>0?'+':'')+AR(v.toFixed(1))+'٪</span>';}
+function pct(v){if(v==null)return '—'; if(Math.abs(v)<0.05)return '<span class="mute">‎٠٪</span>'; return '<span class="'+(v>0?'pos':'neg')+'">‎'+(v>0?'+':'')+AR(v.toFixed(1))+'٪</span>';}
 function med(a){a=a.slice().sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:null;}
 function draw(){
-  const st=document.getElementById('st').checked, liq=document.getElementById('liq').checked, q=document.getElementById('q').value.trim().toUpperCase(), y=ys.value;
-  let R=D.filter(r=>(!st||r.st)&&(!liq||r.liq)&&(!q||r.s.includes(q))&&(!y||r.d.startsWith(y)));
+  const st=document.getElementById('st').checked, s8=document.getElementById('s8').checked, liq=document.getElementById('liq').checked, q=document.getElementById('q').value.trim().toUpperCase(), y=ys.value;
+  let R=D.filter(r=>(!st||r.st)&&(!s8||r.s80)&&(!liq||r.liq)&&(!q||r.s.includes(q))&&(!y||r.d.startsWith(y)));
   R.sort((a,b)=>{let x=a[key],z=b[key]; if(x==null)return 1; if(z==null)return -1; return (x>z?1:x<z?-1:0)*(asc?1:-1);});
   document.querySelectorAll('th').forEach(t=>{t.classList.toggle('on',t.dataset.k===key);t.classList.toggle('asc',t.dataset.k===key&&asc);});
-  const done=R.filter(r=>r.n>=5);
-  const up=done.filter(r=>r.r5>0).length, t5=done.filter(r=>r.h5>=5).length;
-  document.getElementById('sum').innerHTML=AR(R.length)+' إشارة'+(done.length?' · لمسوا +٥٪ في ٥ جلسات: '+AR(Math.round(t5*100/done.length))+'٪':'');
-  document.getElementById('tb').innerHTML=R.map(r=>'<tr class="'+(BM[r.d]==='main'?'bm':BM[r.d]==='short'?'bs':'')+'"><td>'+DT(r.d)+'</td><td class="sym">'+r.s+(r.st?' <span class="tag">قوية</span>':'')+'</td><td>'+AR(r.c)+'</td><td>'+(r.hp==null?'<span class="mute">لسه النهارده</span>':'<b>'+AR(r.hp)+'</b> '+pct(r.h5)+(r.n<5?' <span class="mute">لسه '+AR(r.n)+' جلسة</span>':''))+'</td><td><b>'+AR(r.np_)+'</b> '+pct(r.nr)+'</td></tr>').join('');
+  const done=R.filter(r=>r.n40>=40);
+  const up=done.filter(r=>r.r40>0).length, t10=done.filter(r=>r.h40>=10).length;
+  document.getElementById('sum').innerHTML=AR(R.length)+' إشارة'+(done.length?' · من اللي كمّلوا ٤٠ جلسة ('+AR(done.length)+'): قفلوا كسبانين '+AR(Math.round(up*100/done.length))+'٪ · لمسوا +١٠٪ '+AR(Math.round(t10*100/done.length))+'٪':'');
+  document.getElementById('tb').innerHTML=R.map(r=>{
+    const bm=BM[r.d]?'bm':'';
+    const lnk='/candles?m=egx&sym='+encodeURIComponent(r.s)+'&bare=1&mark='+r.d;
+    const hi=r.hp40==null?'<span class="mute">لسه النهارده</span>':'<b>'+AR(r.hp40)+'</b> '+pct(r.h40)+' <span class="mute">بعد '+AR(r.hj)+' جلسة</span>';
+    const lo=r.lp40==null?'—':AR(r.lp40)+' '+pct(r.l40);
+    const af=r.cp40==null?'—':(r.n40>=40?'<b>'+AR(r.cp40)+'</b> '+pct(r.r40):'<span class="mute">لسه '+AR(r.n40)+' جلسة · دلوقتي</span> <b>'+AR(r.cp40)+'</b> '+pct(r.r40));
+    return '<tr class="'+bm+'"><td>'+DT(r.d)+'</td><td class="sym"><a href="'+lnk+'">'+r.s+'</a>'+(r.s80?' <span class="tag s80">ستوك فوق ٨٠</span>':'')+(r.st?' <span class="tag">قوية</span>':'')+'</td><td>'+AR(r.c)+'</td><td>'+hi+'</td><td>'+lo+'</td><td>'+af+'</td></tr>';
+  }).join('');
 }
 document.querySelectorAll('th').forEach(t=>t.onclick=()=>{if(key===t.dataset.k)asc=!asc;else{key=t.dataset.k;asc=false;}draw();});
-['st','liq','q','yr'].forEach(i=>document.getElementById(i).addEventListener('input',draw));
+['st','s8','liq','q','yr'].forEach(i=>document.getElementById(i).addEventListener('input',draw));
 draw();
 </script>
 {% endblock %}
