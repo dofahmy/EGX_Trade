@@ -37,9 +37,11 @@ tr.bm td{background:#b9e8cb}
 <div class="bar">
  <label><input type="checkbox" id="st"> القوية فقط</label>
  <label><input type="checkbox" id="s8"> دبل شرا فقط</label>
- <label><input type="checkbox" id="liq" checked> سيولة ٥٠٠ ألف جنيه أو أكتر</label>
+ <label><input type="checkbox" id="liq"> حد أقصى سيولة ٥٠٠ ألف جنيه</label>
+ <span style="margin-right:auto;display:inline-flex;gap:16px;align-items:center">
  <label>السهم <input type="text" id="q" placeholder="PRMH"></label>
  <label>السنة <select id="yr"><option value="">الكل</option></select></label>
+ </span>
 </div>
 <div class="tbl"><table><thead><tr>
 <th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر تحول الإشارة إلى إيجابي</th><th data-k="h40">أعلى سعر خلال ٤٠ جلسة من تاريخ الإشارة</th><th data-k="l40">أقل سعر خلال ٤٠ جلسة من تاريخ الإشارة</th><th data-k="r40">بعد ٤٠ جلسة</th><th data-k="nr">السعر الحالي</th>
@@ -56,7 +58,7 @@ function pct(v){if(v==null)return '—'; if(Math.abs(v)<0.05)return '<span class
 function med(a){a=a.slice().sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:null;}
 function draw(){
   const st=document.getElementById('st').checked, s8=document.getElementById('s8').checked, liq=document.getElementById('liq').checked, q=document.getElementById('q').value.trim().toUpperCase(), y=ys.value;
-  let R=D.filter(r=>(!st||r.st)&&(!s8||r.s80)&&(!liq||r.liq)&&(!q||r.s.includes(q))&&(!y||r.d.startsWith(y)));
+  let R=D.filter(r=>(!st||r.st)&&(!s8||r.s80)&&(liq?(!r.liq&&r.lv>0):r.liq)&&(!q||r.s.includes(q))&&(!y||r.d.startsWith(y)));
   R.sort((a,b)=>{let x=a[key],z=b[key]; if(x==null)return 1; if(z==null)return -1; return (x>z?1:x<z?-1:0)*(asc?1:-1);});
   document.querySelectorAll('th').forEach(t=>{t.classList.toggle('on',t.dataset.k===key);t.classList.toggle('asc',t.dataset.k===key&&asc);});
   document.getElementById('tb').innerHTML=R.map(r=>{
