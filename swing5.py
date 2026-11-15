@@ -96,6 +96,7 @@ def _one(dates, o, h, l, c, val, mdd):
                                 cp40=round(float(c40[-1]), 3) if len(c40) else None,
                                 r40=round(float((c40[-1] / c[i] - 1) * 100), 1) if len(c40) else None,
                                 liq=bool(vm[i] >= 5e5) if np.isfinite(vm[i]) else False,
+                                lv=float(vm[i]) if np.isfinite(vm[i]) else 0.0,
                                 st=bool(md is not None and md <= -15 and m[i] <= -120)))
                 break
     return out
