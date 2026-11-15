@@ -19,11 +19,16 @@ h1{font-size:20px;margin:0 0 6px}
 .sum{color:#5b6475;font-size:13px;width:100%}
 .tbl{background:#fff;border:1px solid #e3e6ec;border-radius:10px;display:block}
 table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px;font-variant-numeric:tabular-nums}
-th{position:sticky;top:0;background:#eef1f5;font-weight:600;font-size:13px;color:#4a5263;cursor:pointer;white-space:nowrap}
-th,td{padding:7px 12px;border-bottom:1px solid #eef0f3;text-align:right;white-space:nowrap}
+th{position:sticky;top:0;background:#eef1f5;font-weight:600;font-size:13px;color:#4a5263;cursor:pointer;white-space:normal;line-height:1.4;vertical-align:bottom}
+th,td{padding:7px 10px;border-bottom:1px solid #eef0f3;text-align:right}
+td{white-space:nowrap}
+th{min-width:70px;max-width:150px}
 th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
 .pos{color:#0f7b4d;font-weight:700}.neg{color:#c0392b;font-weight:700}
 .mute{color:#8a92a3;font-size:12px}
+td .mute{display:block;line-height:1.3}
+.tbl{overflow:hidden}
+@media (max-width:1000px){.tbl{overflow-x:auto}}
 .sym{font-weight:700;direction:ltr;unicode-bidi:isolate}
 tr.bm td{background:#b9e8cb}
 .tag.s80{background:#b7791f}
@@ -54,7 +59,7 @@ const DT=s=>s?AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4)):'—';
 {% if last %}document.getElementById('upd').textContent=DT('{{ last }}');{% endif %}
 const ys=document.getElementById('yr'); [...new Set(D.map(r=>r.d.slice(0,4)))].sort().reverse().forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=AR(y);ys.appendChild(o);});
 let key='d',asc=false;
-function pct(v){if(v==null)return '—'; if(Math.abs(v)<0.05)return '<span class="mute">‎٠٪</span>'; return '<span class="'+(v>0?'pos':'neg')+'">‎'+(v>0?'+':'')+AR(v.toFixed(1))+'٪</span>';}
+function pct(v){if(v==null)return '—'; if(Math.abs(v)<0.05)return '<span style="color:#8a92a3">‎٠٪</span>'; return '<span class="'+(v>0?'pos':'neg')+'">‎'+(v>0?'+':'')+AR(v.toFixed(1))+'٪</span>';}
 function med(a){a=a.slice().sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:null;}
 function draw(){
   const st=document.getElementById('st').checked, s8=document.getElementById('s8').checked, liq=document.getElementById('liq').checked, q=document.getElementById('q').value.trim().toUpperCase(), y=ys.value;
