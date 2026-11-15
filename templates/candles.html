@@ -86,12 +86,32 @@ const MARK = {{ (mark or '')|tojson }};
 const TV = {{ (src == 'tv')|tojson }};
 function draw(){
   let n = +document.getElementById('cc-n').value, D = ALL.slice(-n);
-  if (MARK){   // فترة الإشارة نفسها: ٦٠ جلسة قبلها و٦٠ جلسة بعدها
+  let MX = null;
+  if (MARK){   // من ٦٠ جلسة قبل الإشارة لحد آخر يوم
     const k = ALL.findIndex(d => d.d >= MARK);
-    if (k >= 0) D = ALL.slice(Math.max(0, k - 60), k + 61);
+    if (k >= 0) D = ALL.slice(Math.max(0, k - 60));
+  }
+  // لو المدة طويلة: شموع أسبوعية أو شهرية عشان الشارت كله يبان من غير سكرول
+  let AGG = '';
+  if (MARK && D.length > 300){
+    const wk = s => { const t = new Date(s + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - t.getUTCDay()); return t.toISOString().slice(0, 10); };
+    AGG = D.length / 5 > 300 ? 'm' : 'w';
+    const key = AGG === 'm' ? (s => s.slice(0, 7)) : wk, B = [];
+    D.forEach(d => {
+      const kk = key(d.d), b = B[B.length - 1];
+      if (b && b.k === kk){ b.h = Math.max(b.h, d.h); b.l = Math.min(b.l, d.l); b.c = d.c; b.d2 = d.d; }
+      else B.push({k: kk, d: d.d, d2: d.d, o: d.o, h: d.h, l: d.l, c: d.c, net: 0, mh1: true});
+    });
+    B.forEach((b, i) => { b.chg = i ? (b.c / B[i - 1].c - 1) * 100 : 0; });
+    D = B;
+  }
+  let MI = -1;
+  if (MARK){
+    if (AGG){ D.forEach((z, i) => { if (z.d <= MARK) MI = i; }); }
+    else MI = D.findIndex(z => z.d >= MARK);
   }
   const svg = document.getElementById('cc'); svg.innerHTML = '';
-  notes(D);
+  notes(AGG);
   if (!D.length){ svg.setAttribute('height', 40); return; }
   const wrapW = document.getElementById('cc-wrap').clientWidth || 800;
   const PADL = 92, PADT = 16, H1 = 380, GAP = TV ? 0 : 34, H2 = TV ? 0 : 110, H3 = TV ? 0 : 110, PB = 26;
@@ -101,7 +121,7 @@ function draw(){
   svg.setAttribute('width', W); svg.setAttribute('height', H);
   const LO = d => Math.max(d.l, Math.min(d.o, d.c) * 0.8), HI = d => Math.min(d.h, Math.max(d.o, d.c) * 1.25);
   let lo = Math.min(...D.map(LO)), hi = Math.max(...D.map(HI));
-  const pad = (hi - lo) * 0.06 || hi * 0.01; lo -= pad; hi += pad;
+  const pad = (hi - lo) * 0.06 || hi * 0.01; lo = Math.max(0, lo - pad); hi += pad;
   const y = v => PADT + (hi - v) / (hi - lo) * H1;
   const BOT = 10;   // مساحة تحت الشموع لكلمة «حذر»
   for (let i = 0; i <= 5; i++){
@@ -130,7 +150,7 @@ function draw(){
   el('text', {x: PADL - 6, y: T3 + 6, 'text-anchor': 'end', 'font-size': 10, fill: '#6b7385'}, svg).textContent = 'الساعة الأولى';
   }
   
-  const every = Math.ceil(40 / step), bw = Math.max(2, step * 0.6);
+  const LONG = !!AGG || D.length > 260, every = Math.ceil((LONG ? 60 : 40) / step), bw = Math.max(2, step * 0.6);
   D.forEach((d, i) => {
     const x = PADL + step * i + step / 2;
     const up = d.c >= d.o, c = up ? UP : DN;
@@ -152,24 +172,26 @@ function draw(){
     let h = `<b>${d.d}</b><br>افتتاح ${d.o} · إغلاق ${d.c} (${SG(d.chg)}٪)<br>أدنى ${d.l} · أعلى ${d.h}`;
     if (d.bsh != null) h += `<br>الساعة الأولى: المشتري ${Math.round(d.bsh * 100)}٪` + (d.h1x != null ? ` · الكمية ${d.h1x.toFixed(1)}× الجلسة اللي قبلها` : '');
     if (!d.mh1) h += '<br><span style="color:#f3b3b2">بيانات الساعة الأولى مش موجودة للجلسة دي</span>';
-    if (MARK && d.d === (D.find(z => z.d >= MARK) || {}).d){
+    if (MARK && i === MI){
+      MX = x;
       el('line', {x1: x, x2: x, y1: PADT - 4, y2: H - PB, stroke: '#6b46c1', 'stroke-width': 2, 'stroke-dasharray': '6 4'}, svg);
       const yl = Math.min(y(LO(d)) + 14, PADT + H1 - 4);
       el('path', {d: `M${x} ${yl} l-8 14 h16 z`, fill: '#6b46c1'}, svg);
       const anc = x > W - 170 ? 'end' : x < PADL + 170 ? 'start' : 'middle';
       const lb = el('text', {x: anc === 'end' ? x - 8 : anc === 'start' ? x + 8 : x, y: Math.min(yl + 30, PADT + H1 + 8), 'text-anchor': anc, 'font-size': 13, 'font-weight': 800, fill: '#6b46c1'}, svg);
-      lb.textContent = 'إشارة تحول المؤشرات إلى الوضع الإيجابي ' + DT(d.d);
+      lb.textContent = 'إشارة تحول المؤشرات إلى الوضع الإيجابي ' + DT(AGG ? MARK : d.d);
       h += '<br><b style="color:#c9b6f2">إشارة تحول المؤشرات إلى الوضع الإيجابي</b>';
     }
     const hit = el('rect', {x: x - step / 2, y: PADT - 20, width: step, height: H - PADT - PB + 20, fill: 'transparent'}, svg);
     hover(hit, h);
     const lastLbl = D.length - 1;
     if (i === lastLbl || (i % every === 0 && lastLbl - i >= every))
-      el('text', {x: x, y: H - 8, 'text-anchor': 'middle', 'font-size': 11, fill: '#1d2433'}, svg).textContent = d.d.slice(5);
+      el('text', {x: x, y: H - 8, 'text-anchor': 'middle', 'font-size': 11, fill: '#1d2433'}, svg).textContent = LONG ? d.d.slice(0, 7) : d.d.slice(5);
   });
-  document.getElementById('cc-wrap').scrollLeft = 1e9;
+  const wr = document.getElementById('cc-wrap');
+  wr.scrollLeft = MX == null ? 1e9 : Math.max(0, MX - 200);
 }
-function notes(D){ document.getElementById('cv-notes').innerHTML = ''; }
+function notes(a){ document.getElementById('cv-notes').innerHTML = a ? '<span class="mute">' + (a === 'm' ? 'شموع شهرية' : 'شموع أسبوعية') + ' من قبل الإشارة لحد آخر يوم</span>' : ''; }
 const px = document.getElementById('cv-px');
 let token = 0;
 async function load(sym, push){
