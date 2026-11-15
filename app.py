@@ -770,7 +770,21 @@ def candles_page():
                 mark = str(z['date'].max())
         except Exception:
             app.logger.exception('xbadger mark')
-    return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None, mk=mk, bare=bare, mark=mark)
+    src = 'tv' if request.args.get('src') == 'tv' else ''
+    return render_template('candles.html', stocks=stocks, sel=sel, last_date=dates[-1] if dates else None, mk=mk, bare=bare, mark=mark, src=src)
+
+
+def _tv_rows(store, sym):
+    """شموع يومية من تريدنج فيو (تاريخ طويل)، من غير بيانات الساعة الأولى."""
+    d = tvdaily.load(store.root)
+    z = d[d['sym'] == sym].sort_values('date')
+    if not len(z):
+        return []
+    f = lambda v: None if pd.isna(v) else round(float(v), 4)
+    chg = (z['close'] / z['close'].shift(1) - 1) * 100
+    return [dict(d=str(r.date)[:10], o=f(r.open), h=f(r.high), l=f(r.low), c=f(r.close), chg=f(g) or 0.0,
+                 buy=False, sell=False, bsh=None, h1x=None, cluster=False, net=0, nb=0, ns=0, mh1=True)
+            for r, g in zip(z.itertuples(), chg)]
 
 
 @app.route('/candles/data/<sym>')
@@ -778,6 +792,12 @@ def candles_page():
 def candles_data(sym):
     m = market()
     sym = sym.upper()
+    if request.args.get('src') == 'tv':
+        try:
+            return jsonify(sym=sym, data=_tv_rows(STORES[m], sym))
+        except Exception as e:
+            app.logger.exception('candles_data tv %s', sym)
+            return jsonify(sym=sym, data=None, error=str(e)[:200]), 500
     try:
         data = flowsig.stock(STORES[m], sym)
     except Exception as e:
