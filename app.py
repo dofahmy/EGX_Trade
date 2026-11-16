@@ -22,6 +22,7 @@ import zerolead
 import swing5
 import tvdaily
 import stats
+import m30
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -250,9 +251,16 @@ def eye_page():
     return render_template('eye.html', rows=rows)
 
 
+@app.route('/preview')
+@auth
+def preview_page():
+    """معاينة قبل النشر: نفس الصفحة ومعاها مربع أول نص ساعة واللوجو الجديد."""
+    return swing5_page(preview=True)
+
+
 @app.route('/swing5')
 @auth
-def swing5_page():
+def swing5_page(preview=False):
     """تريدة ٥ أيام: دايفرجنس إيجابي على CCI ٤٠ (ohlc4)."""
     try:
         rows = swing5.signals(STORES['egx'])
@@ -279,6 +287,12 @@ def swing5_page():
                     bm[x] = kind
     except Exception:
         app.logger.exception('swing5 bottoms')
+    try:
+        h30 = m30.latest(STORES["egx"].root)
+    except Exception:
+        h30 = None
+    if preview:
+        return render_template('preview.html', h30=h30, rows=rows, last=last, bm=bm)
     return render_template('swing5.html', rows=rows, last=last, bm=bm)
 
 
@@ -650,6 +664,14 @@ def upload_noon():
         if not got:
             return 'الملف مش ملف صفقات سيجما', 400
         date, csv = sorted(got.items())[-1] if isinstance(got, dict) else got[-1]
+        if (request.form.get('kind') or request.args.get('kind')) == 'm30':
+            try:
+                n = m30.save(store.root, date, csv)
+                m30.build(store.root, date)
+            except Exception as e:
+                app.logger.exception('m30')
+                return f'أول نص ساعة: {str(e)[:200]}', 400
+            return f'تمام: {n} صفقة', 200
         before = [x for x in store.dates() if x < date]
         prev = store.load(before[-1])[0]['last'].to_dict() if before else {}
         df = engine.read_sigma(csv, prev, engine.sigma_names())
