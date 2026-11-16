@@ -80,9 +80,9 @@ tr.bm td{background:#b9e8cb}
  <div class="h30u">يتحدث يوميًا الساعة ١٠:٣٠ صباحًا · آخر تحديث: <span class="dt" data-d="{{ h30.date }}"></span></div>
  <div class="h30d">تنفيذات أول نصف ساعة من ١٠:٠٠ حتى ١٠:٣٠</div>
  {% for t in h30.lines %}<p>{{ t }}</p>{% endfor %}
- {% if h30.buy %}<div class="h30k"><b class="kb">المشتري مسيطر</b>{% for x in h30.buy %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
- {% if h30.sell %}<div class="h30k"><b class="ks">البياع مسيطر</b>{% for x in h30.sell %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
- {% if h30.act %}<div class="h30k"><b class="ka">نشاط غير معتاد</b>{% for x in h30.act %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i dir="rtl">{{ x.x }} ضعف أمس</i></a>{% endfor %}</div>{% endif %}
+ {% if h30.buy %}<div class="h30k"><b class="kb">الشراء مسيطر</b>{% for x in h30.buy %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
+ {% if h30.sell %}<div class="h30k"><b class="ks">البيع مسيطر</b>{% for x in h30.sell %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
+ {% if h30.act %}<div class="h30k"><b class="ka">نشاط حجم تداول غير معتاد</b>{% for x in h30.act %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i dir="rtl">{{ x.x }} ضعف أمس</i></a>{% endfor %}</div>{% endif %}
  <div class="h30n">قراءة آلية لتنفيذات أول نصف ساعة، وليست توصية.</div>
 </aside>
 {% endif %}
