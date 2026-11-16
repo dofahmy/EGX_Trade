@@ -135,7 +135,7 @@ def text(r):
         return []
     tone = {'buy': 'بميل شرائي', 'sell': 'بميل بيعي', 'mix': 'بأداء متوازن بين المشترين والبائعين'}[r['tone']]
     out = [f"بدأت جلسة اليوم {tone}؛ ارتفع {_ar(r['up'])} سهمًا مقابل تراجع {_ar(r['dn'])}، "
-           f"ونفّذ المشترون {_ar(r['mb'])}٪ من قيمة التداول بأسعار أعلى."]
+           f"وكانت {_ar(r['mb'])}٪ من قيمة التداول صفقات شراء، أي صفقات نُفّذت بسعر أعلى من الصفقة التي قبلها."]
     s = f"بلغت قيمة التداول في أول نصف ساعة {_ar(r['tot'])} مليون جنيه"
     if r.get('prev_tot'):
         ch = (r['tot'] / r['prev_tot'] - 1) * 100
@@ -192,6 +192,9 @@ def latest(root):
     if not fs:
         return None
     try:
-        return json.loads(fs[-1].read_text(encoding='utf-8'))
+        r = json.loads(fs[-1].read_text(encoding='utf-8'))
+        if not r.get('by_ai'):
+            r['lines'] = text(r)   # الصياغة دايمًا بآخر نسخة
+        return r
     except Exception:
         return None
