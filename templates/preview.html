@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}إشارات إيجابية على الأسهم{% endblock %}
+{% block body %}
+<style>
+
+h1{font-size:20px;margin:0 0 6px}
+.upd{font-size:15px;font-weight:600;color:#5b6475;margin-right:6px}
+.top{display:flex;gap:24px;align-items:flex-start}
+.topr{flex:1;min-width:0}
+.h30{position:relative;margin-top:30px;width:430px;flex:none;background:#fff;border:1px solid #d9dfe8;border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.bot30{position:absolute;width:52px;height:57px;left:14px;top:-44px;transform:rotate(-8deg);filter:drop-shadow(0 3px 4px rgba(0,0,0,.18))}
+.h30t{font-size:17px;font-weight:800;color:#1f3b73}
+.h30u{font-size:14px;font-weight:700;color:#178a52;background:#eaf7f0;border-radius:6px;padding:4px 8px;margin:6px 0 2px;display:inline-block}
+.h30d{color:#8a92a3;font-size:12px;margin:2px 0 8px}
+.h30 p{margin:0 0 6px;font-size:14px;line-height:1.8;color:#2d3443}
+.h30k{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 0}
+.h30k b{font-size:12px;padding:2px 8px;border-radius:5px;color:#fff}
+.kb{background:#178a52}.ks{background:#c0392b}.ka{background:#6b46c1}
+.ch{direction:ltr;unicode-bidi:isolate;font-size:13px;font-weight:700;color:#1f4fb5;background:#f1f4f9;border-radius:5px;padding:2px 7px;text-decoration:none}
+.ch i{unicode-bidi:isolate;font-style:normal;font-weight:500;color:#5b6475;font-size:12px}
+.h30n{color:#8a92a3;font-size:11px;margin-top:10px}
+@media (max-width:1000px){.top{flex-direction:column}.h30{width:auto}}
+.intro{color:#3c4454;font-size:15px;line-height:1.9;margin:0 0 12px;max-width:900px}
+.legend{color:#3c4454;font-size:15px;line-height:2;margin:22px 0 22px;max-width:900px}
+.legend .tag{margin:0 0 0 6px}
+.hint{font-size:20px;font-weight:700;color:#1f4fb5;margin:0 0 14px}
+.dua{text-align:left;margin:4px 0 14px;color:#1f5f3f;line-height:1.6}
+.dua .big{font-size:30px;font-weight:800}
+.dua .mid{font-size:22px;font-weight:700}
+.dua .sml{font-size:18px;color:#5b6475}
+.note{color:#5b6475;font-size:13px;line-height:1.8;margin:0 0 10px}
+.bar{display:flex;flex-wrap:wrap;gap:16px;align-items:center;background:#fff;border:1px solid #e3e6ec;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:14px}
+.bar label{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:6px;margin:0;font-weight:400}
+.bar input[type=checkbox]{width:auto!important;margin:0}
+.bar input[type=text]{padding:6px 10px;border:1px solid #cfd4dd;border-radius:6px;width:110px;direction:ltr}
+.sum{color:#5b6475;font-size:13px;width:100%}
+.tbl{background:#fff;border:1px solid #e3e6ec;border-radius:10px;display:block}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px;font-variant-numeric:tabular-nums}
+th{position:sticky;top:0;background:#eef1f5;font-weight:600;font-size:13px;color:#4a5263;cursor:pointer;white-space:normal;line-height:1.4;vertical-align:bottom}
+th,td{padding:7px 10px;border-bottom:1px solid #eef0f3;text-align:right}
+td{white-space:nowrap}
+th{min-width:70px;max-width:150px}
+th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
+.pos{color:#0f7b4d;font-weight:700}.neg{color:#c0392b;font-weight:700}
+.mute{color:#8a92a3;font-size:12px}
+td .mute{display:block;line-height:1.3}
+.tbl{overflow:hidden}
+@media (max-width:1000px){.tbl{overflow-x:auto}}
+.sym{font-weight:700;direction:ltr;unicode-bidi:isolate}
+tr.bm td{background:#b9e8cb}
+.tag.s80{background:#b7791f}
+.tag{display:inline-block;font-size:11px;background:#2b6cb0;color:#fff;border-radius:4px;padding:0 5px;margin-right:6px}
+</style>
+<div class="top"><div class="topr">
+<h1>إشارات إيجابية على الأسهم {% if last %}<span class="upd">(تم تحديث الإشارات حتى تاريخ: <span id="upd"></span>)</span>{% endif %}</h1>
+<p class="intro">يهدف هذا الموقع إلى قراءة مؤشرات التحليل الفني لأسهم البورصة المصرية، وإلقاء الضوء على الأسهم التي تتحول مؤشراتها إلى الوضع الإيجابي في ظروف السوق المختلفة. ويعرض الجدول يوم تحول كل سهم وسعره، وأعلى وأقل سعر وصل إليه خلال ٤٠ جلسة بعدها، وسعر الإغلاق بعد ٤٠ جلسة، والسعر الحالي.<br><b>الهدف تعليمي بحت، وما يُعرض هنا ليس توصية بالشراء أو البيع.</b></p>
+<p class="legend"><span class="tag">قوية</span> إشارة ظهرت بعد هبوط كبير في السوق كله والسهم قرب مناطق قاع محتملة.<br>
+<span class="tag s80">دبل شرا</span> إشارة تأكدت بتحول مؤشر زخم ثانٍ إلى الإيجابي وهو في منطقة قوة، فتجتمع إشارتان في الوقت نفسه.</p>
+<p class="hint">اضغط على رمز السهم، يفتح لك الشارت الخاص به، وعليه إشارة تحول المؤشرات إلى الوضع الإيجابي.</p>
+</div>
+{% if h30 %}
+<aside class="h30">
+ <svg class="bot30" viewBox="0 0 64 70" aria-hidden="true">
+<line x1="32" y1="10" x2="32" y2="3" stroke="#c9ced6" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="32" cy="3.5" r="3.5" fill="#3ddc97"/>
+<rect x="6" y="10" width="52" height="40" rx="17" fill="url(#bg1)" stroke="#8e959f" stroke-width="1.5"/>
+<rect x="2" y="24" width="6" height="13" rx="3" fill="#3ddc97"/><rect x="56" y="24" width="6" height="13" rx="3" fill="#3ddc97"/>
+<rect x="13" y="18" width="38" height="24" rx="11" fill="#14213d"/>
+<path d="M19 30 q4 -6 8 0" stroke="#3ddc97" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M37 30 q4 -6 8 0" stroke="#3ddc97" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M26 35 q6 5 12 0" stroke="#3ddc97" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<path d="M20 50 h24 v8 q0 6 -6 6 h-12 q-6 0 -6 -6z" fill="url(#bg1)" stroke="#8e959f" stroke-width="1.5"/>
+<path d="M18 54 q-6 2 -7 9" stroke="#c9ced6" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M46 54 q6 -2 8 -9" stroke="#c9ced6" stroke-width="4" fill="none" stroke-linecap="round"/>
+<circle cx="55" cy="43" r="3.5" fill="#3ddc97"/>
+<defs><linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#d5dae1"/><stop offset="1" stop-color="#9aa1ab"/></linearGradient></defs>
+</svg>
+ <div class="h30t">الذكاء الاصطناعي شايف أول نص ساعة إزاي؟</div>
+ <div class="h30u">يتحدث يوميًا الساعة ١٠:٣٠ صباحًا · آخر تحديث: <span class="dt" data-d="{{ h30.date }}"></span></div>
+ <div class="h30d">تنفيذات أول نصف ساعة من ١٠:٠٠ حتى ١٠:٣٠</div>
+ {% for t in h30.lines %}<p>{{ t }}</p>{% endfor %}
+ {% if h30.buy %}<div class="h30k"><b class="kb">المشتري مسيطر</b>{% for x in h30.buy %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
+ {% if h30.sell %}<div class="h30k"><b class="ks">البياع مسيطر</b>{% for x in h30.sell %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
+ {% if h30.act %}<div class="h30k"><b class="ka">نشاط غير معتاد</b>{% for x in h30.act %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i dir="rtl">{{ x.x }} ضعف أمس</i></a>{% endfor %}</div>{% endif %}
+ <div class="h30n">قراءة آلية لتنفيذات أول نصف ساعة، وليست توصية.</div>
+</aside>
+{% endif %}
+</div>
+<div class="dua"><div class="big">علمٌ يُنتفع به</div><div class="mid">صدقة جارية على روح أمي وأبي رحمهما الله</div><div class="sml">نسألكم الدعاء</div></div>
+<p class="note"><span style="background:#b9e8cb;padding:0 6px;border-radius:4px;font-weight:700">أخضر</span> = السوق كله بيعمل قاع</p>
+<div class="bar">
+ <label><input type="checkbox" id="st"> القوية فقط</label>
+ <label><input type="checkbox" id="s8"> دبل شرا فقط</label>
+ <label><input type="checkbox" id="liq"> حد أقصى سيولة ٥٠٠ ألف جنيه</label>
+ <span style="margin-right:auto;display:inline-flex;gap:16px;align-items:center">
+ <label>السهم <input type="text" id="q" placeholder="PRMH"></label>
+ <label>السنة <select id="yr"><option value="">الكل</option></select></label>
+ </span>
+</div>
+<div class="tbl"><table><thead><tr>
+<th data-k="d">الإشارة</th><th data-k="s">السهم</th><th data-k="c">سعر تحول الإشارة إلى إيجابي</th><th data-k="h40">أعلى سعر خلال ٤٠ جلسة من تاريخ الإشارة</th><th data-k="l40">أقل سعر خلال ٤٠ جلسة من تاريخ الإشارة</th><th data-k="r40">بعد ٤٠ جلسة</th><th data-k="nr">السعر الحالي</th>
+</tr></thead><tbody id="tb"></tbody></table></div>
+<script>
+const D={{ rows|tojson }};
+const BM={{ bm|tojson }};
+const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g,'٫');
+const DT=s=>s?AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4)):'—';
+document.querySelectorAll('.dt').forEach(e=>e.textContent=DT(e.dataset.d));
+{% if last %}document.getElementById('upd').textContent=DT('{{ last }}');{% endif %}
+const ys=document.getElementById('yr'); [...new Set(D.map(r=>r.d.slice(0,4)))].sort().reverse().forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=AR(y);ys.appendChild(o);});
+let key='d',asc=false;
+function pct(v){if(v==null)return '—'; if(Math.abs(v)<0.05)return '<span style="color:#8a92a3">‎٠٪</span>'; return '<span class="'+(v>0?'pos':'neg')+'">‎'+(v>0?'+':'')+AR(v.toFixed(1))+'٪</span>';}
+function med(a){a=a.slice().sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:null;}
+function draw(){
+  const st=document.getElementById('st').checked, s8=document.getElementById('s8').checked, liq=document.getElementById('liq').checked, q=document.getElementById('q').value.trim().toUpperCase(), y=ys.value;
+  let R=D.filter(r=>(!st||r.st)&&(!s8||r.s80)&&(liq?(!r.liq&&r.lv>0):r.liq)&&(!q||r.s.includes(q))&&(!y||r.d.startsWith(y)));
+  R.sort((a,b)=>{let x=a[key],z=b[key]; if(x==null)return 1; if(z==null)return -1; return (x>z?1:x<z?-1:0)*(asc?1:-1);});
+  document.querySelectorAll('th').forEach(t=>{t.classList.toggle('on',t.dataset.k===key);t.classList.toggle('asc',t.dataset.k===key&&asc);});
+  document.getElementById('tb').innerHTML=R.map(r=>{
+    const bm=BM[r.d]?'bm':'';
+    const lnk='/candles?m=egx&sym='+encodeURIComponent(r.s)+'&bare=1&src=tv&mark='+r.d;
+    const hi=r.hp40==null?'<span class="mute">لسه النهارده</span>':'<b>'+AR(r.hp40)+'</b> '+pct(r.h40)+' <span class="mute">بعد '+AR(r.hj)+' جلسة</span>';
+    const lo=r.lp40==null?'—':AR(r.lp40)+' '+pct(r.l40);
+    const af=r.cp40==null?'—':(r.n40>=40?'<b>'+AR(r.cp40)+'</b> '+pct(r.r40):'<span class="mute">لم يمر ٤٠ جلسة بعد</span>');
+    const now='<b>'+AR(r.np_)+'</b> '+pct(r.nr);
+    return '<tr class="'+bm+'"><td>'+DT(r.d)+'</td><td class="sym"><a href="'+lnk+'">'+r.s+'</a>'+(r.s80?' <span class="tag s80">دبل شرا</span>':'')+(r.st?' <span class="tag">قوية</span>':'')+'</td><td>'+AR(r.c)+'</td><td>'+hi+'</td><td>'+lo+'</td><td>'+af+'</td><td>'+now+'</td></tr>';
+  }).join('');
+}
+document.querySelectorAll('th').forEach(t=>t.onclick=()=>{if(key===t.dataset.k)asc=!asc;else{key=t.dataset.k;asc=false;}draw();});
+['st','s8','liq','q','yr'].forEach(i=>document.getElementById(i).addEventListener('input',draw));
+draw();
+</script>
+{% endblock %}
