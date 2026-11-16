@@ -291,9 +291,8 @@ def swing5_page(preview=False):
         h30 = m30.latest(STORES["egx"].root)
     except Exception:
         h30 = None
-    if preview:
-        return render_template('preview.html', h30=h30, rows=rows, last=last, bm=bm)
-    return render_template('swing5.html', rows=rows, last=last, bm=bm)
+    # الصفحة الأساسية بقت بنفس شكل المعاينة (فيها قراءة بداية الجلسة)
+    return render_template('preview.html', h30=h30, rows=rows, last=last, bm=bm)
 
 
 @app.route('/lead')
