@@ -77,7 +77,7 @@ tr.bm td{background:#b9e8cb}
 <defs><linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#d5dae1"/><stop offset="1" stop-color="#9aa1ab"/></linearGradient></defs>
 </svg>
  <div class="h30t">قراءة سريعة لبداية الجلسة</div>
- <div class="h30u">يتحدث يوميًا الساعة ١٠:٣٠ صباحًا · آخر تحديث: <span class="dt" data-d="{{ h30.date }}"></span></div>
+ <div class="h30u">يتحدث يوميًا بعد الساعة ١٠:٣٠ صباحًا بدقائق · آخر تحديث: <span class="dt" data-d="{{ h30.date }}"></span></div>
  <div class="h30d">تنفيذات أول نصف ساعة من ١٠:٠٠ حتى ١٠:٣٠</div>
  {% for t in h30.lines %}<p>{{ t }}</p>{% endfor %}
  {% if h30.buy %}<div class="h30k"><b class="kb">الشراء مسيطر</b>{% for x in h30.buy %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}

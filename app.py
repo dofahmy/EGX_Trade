@@ -475,6 +475,14 @@ def upload():
     with tempfile.TemporaryDirectory() as td:
         sig = ext == '.csv' or (ext in ('.zip', '.rar') and engine.is_sigma(tmp, Path(td)))
     if sig:
+        try:   # لو ده رفع صفقات النهارده بعد ١٠:٣٠، نعمل منه ملخص بداية الجلسة
+            with tempfile.TemporaryDirectory() as td:
+                g_ = engine.sigma_files(tmp, Path(td)) or []
+                for d_, c_ in (g_.items() if isinstance(g_, dict) else g_):
+                    if str(d_) == cairo_today():
+                        m30.try_from(store.root, str(d_), c_)
+        except Exception:
+            app.logger.exception('m30 from upload')
         threading.Thread(target=engine.process_sigma, args=(store, jid, tmp), daemon=True).start()
     else:
         threading.Thread(target=process_upload, args=(store, jid, tmp, date), daemon=True).start()
@@ -663,6 +671,11 @@ def upload_noon():
         if not got:
             return 'الملف مش ملف صفقات سيجما', 400
         date, csv = sorted(got.items())[-1] if isinstance(got, dict) else got[-1]
+        try:   # أي رفع لصفقات اليوم بعد ١٠:٣٠ بيعمل ملخص بداية الجلسة
+            if (request.form.get('kind') or request.args.get('kind')) != 'm30':
+                m30.try_from(store.root, date, csv)
+        except Exception:
+            app.logger.exception('m30 from noon')
         if (request.form.get('kind') or request.args.get('kind')) == 'm30':
             try:
                 n = m30.save(store.root, date, csv)

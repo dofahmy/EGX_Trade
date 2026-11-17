@@ -48,6 +48,19 @@ def save(root, date, csv_path):
     return len(d)
 
 
+def try_from(root, date, csv_path):
+    """من أي رفع لتنفيذات اليوم (مش لازم يكون نوع m30): لو الصفقات وصلت لـ١٠:٣٠، نعمل الملخص.
+    لو الملخص بتاع اليوم ده اتعمل قبل كده، مانعيدهوش."""
+    if (folder(root) / f'{date}.json').exists():
+        return False
+    d = pd.read_csv(csv_path, dtype={'Symbol': str}, usecols=lambda c: c in ('Symbol', 'Time'))
+    m = _mins(d['Time'])
+    if not len(m) or m.max() < END - 1:
+        return False
+    save(root, date, csv_path)
+    return build(root, date) is not None
+
+
 def _daily(root, date):
     """من داتا تريدنج فيو: إقفال وكمية آخر يوم قبل التاريخ، ومتوسط السيولة في ٢٠ يوم."""
     t = tvdaily.load(root)
