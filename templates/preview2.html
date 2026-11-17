@@ -91,7 +91,7 @@ tr.bm td{background:#b9e8cb}
 <defs><linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#d5dae1"/><stop offset="1" stop-color="#9aa1ab"/></linearGradient></defs>
 </svg>
  <div class="h30t">قراءة الجلسة في كل ساعة</div>
- <div class="h30u">يُحدَّث كل ساعة من ١٠:٣٠ حتى ٢:٣٠ · آخر تحديث: الساعة {{ hr.cps[-1].t }} · <span class="dt" data-d="{{ hr.date }}"></span></div>
+ <div class="h30u">يُحدَّث كل ساعة من ١٠:٣٠ حتى ٢:٣٠<br>آخر تحديث: جلسة <bdi class="dt" data-d="{{ hr.date }}"></bdi> الساعة <bdi>{{ hr.cps[-1].t }}</bdi></div>
  <div id="hv" class="hv"></div>
  <div class="hseq" id="hseq"></div>
  <div class="hl"><b class="kb">أسهم يستمر فيها الشراء</b><table id="hkb"></table></div>
@@ -168,10 +168,11 @@ const DT=s=>s?AR(s.slice(8,10)+'\u200F/\u200F'+s.slice(5,7)+'\u200F/\u200F'+s.sl
  const dot=h=>'<i class="d '+(h==null?'de':h>=60?'dg':h<=40?'dr':'dn')+'"></i>';
  const lastv=a=>{for(let i=a.length-1;i>=0;i--) if(a[i]!=null) return [a[i],i]; return [null,-1];};
  const S=M.map(x=>{const h=x.h.filter(v=>v!=null),[lv,li]=lastv(x.h);
-   return Object.assign({},x,{n:h.length,nb:h.filter(v=>v>=60).length,ns:h.filter(v=>v<=40).length,lv,live:li===C.length-1});});
+   return Object.assign({},x,{n:h.length,avg:h.length?h.reduce((a,b)=>a+b,0)/h.length:50,nb:h.filter(v=>v>=60).length,ns:h.filter(v=>v<=40).length,lv,live:li===C.length-1});});
  const need=n=>Math.max(2,Math.ceil(n*0.6));
- const kb=S.filter(x=>x.live&&x.lv>=60&&x.n>=2&&x.nb>=need(x.n)&&x.ns===0).sort((a,b)=>b.nb-a.nb||b.val-a.val).slice(0,5);
- const ks=S.filter(x=>x.live&&x.lv<=40&&x.n>=2&&x.ns>=need(x.n)&&x.nb===0).sort((a,b)=>b.ns-a.ns||b.val-a.val).slice(0,5);
+ const nmin=Math.min(3,C.length);
+ const kb=S.filter(x=>x.live&&x.n>=nmin&&x.avg>=55&&x.lv>=50).sort((a,b)=>b.avg-a.avg||b.val-a.val).slice(0,5);
+ const ks=S.filter(x=>x.live&&x.n>=nmin&&x.avg<=45&&x.lv<=50).sort((a,b)=>a.avg-b.avg||b.val-a.val).slice(0,5);
  const pc=v=>v==null?'':'<span class="'+(v>0?'pos':v<0?'neg':'')+'">\u200E'+(v>0?'+':'')+A(v.toFixed(1))+'٪</span>';
  const row=x=>'<tr><td><a class="sym" href="/candles?m=egx&sym='+x.s+'&bare=1&src=tv&mark=none">'+x.s+'</a></td><td>'+pc(x.chg)+'</td><td><span class="dots">'+x.h.map(dot).join('')+'</span></td></tr>';
  const f=(id,a)=>document.getElementById(id).innerHTML=a.length?a.map(row).join(''):'<tr><td class="mute">لا توجد حتى الآن</td></tr>';
