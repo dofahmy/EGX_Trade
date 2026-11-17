@@ -3,59 +3,104 @@
 {% block body %}
 <style>
 h1{font-size:20px;margin:0 0 4px}
-.sub{color:#5b6475;font-size:13px;margin:0 0 14px}
-.days{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px}
+.sub{color:#8a92a3;font-size:12px;margin:0 0 12px}
+.days{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
 .days a{background:#fff;border:1px solid #d9dfe8;border-radius:6px;padding:3px 10px;font-size:13px;color:#1f3b73;text-decoration:none}
 .days a.on{background:#1f3b73;color:#fff}
-.tl{position:relative;padding-right:22px;max-width:900px}
-.tl:before{content:'';position:absolute;right:7px;top:6px;bottom:6px;width:2px;background:#d9dfe8}
-.cp{position:relative;background:#fff;border:1px solid #d9dfe8;border-radius:12px;padding:12px 16px;margin:0 0 14px}
-.cp:before{content:'';position:absolute;right:-21px;top:16px;width:12px;height:12px;border-radius:50%;background:#1f3b73;border:2px solid #fff;box-shadow:0 0 0 1px #d9dfe8}
-.cp h2{font-size:17px;margin:0 0 2px;color:#1f3b73}
-.cp .rng{color:#8a92a3;font-size:12px;margin-bottom:8px}
-.nums{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
-.nums span{background:#f1f4f9;border-radius:6px;padding:3px 9px;font-size:13px}
-.nums b{font-weight:700}
-.cp p{margin:0 0 5px;font-size:14px;line-height:1.85;color:#2d3443}
-.k{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:7px 0 0}
-.k b{font-size:12px;padding:2px 8px;border-radius:5px;color:#fff}
-.kb{background:#178a52}.ks{background:#c0392b}.kk{background:#0f766e}.kf{background:#b7791f}.kx{background:#8e4b10}
-.ch{direction:ltr;unicode-bidi:isolate;font-size:13px;font-weight:700;color:#1f4fb5;background:#f1f4f9;border-radius:5px;padding:2px 7px;text-decoration:none}
-.ch i{unicode-bidi:isolate;font-style:normal;font-weight:500;color:#5b6475;font-size:12px}
-.pos{color:#178a52}.neg{color:#c0392b}
+.wrap{max-width:980px}
+.verdict{border-radius:12px;padding:14px 18px;margin:0 0 16px;font-size:19px;font-weight:800;line-height:1.7}
+.v-b{background:#e6f6ee;border:1px solid #9fd8b8;color:#126b40}
+.v-s{background:#fdecea;border:1px solid #f1b0a8;color:#9b2c1f}
+.v-m{background:#f1f4f9;border:1px solid #d3dae6;color:#33405a}
+.verdict .seq{display:block;font-size:15px;font-weight:600;margin-top:4px;color:#33405a}
+.box{background:#fff;border:1px solid #d9dfe8;border-radius:12px;padding:10px 14px;margin:0 0 16px}
+.box h2{font-size:16px;margin:2px 0 8px;color:#1f3b73}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid #eef0f3;text-align:right;white-space:nowrap}
+th{color:#5b6475;font-weight:600;font-size:13px;background:#f6f8fb}
+.pill{display:inline-block;border-radius:6px;padding:1px 9px;font-weight:700;font-size:13px}
+.pb{background:#d9f2e4;color:#126b40}.ps{background:#fbdcd8;color:#9b2c1f}.pm{background:#eceff4;color:#4a5263}
+.pos{color:#178a52;font-weight:700}.neg{color:#c0392b;font-weight:700}.mute{color:#8a92a3;font-size:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.sym{direction:ltr;unicode-bidi:isolate;font-weight:700;color:#1f4fb5;text-decoration:none}
+.dots{display:inline-flex;gap:4px;direction:rtl}
+.d{width:14px;height:14px;border-radius:50%;display:inline-block}
+.dg{background:#1fa564}.dr{background:#d64535}.dn{background:#c9ced6}.de{background:#fff;border:1.5px solid #d3d8e0}
+.legend{color:#5b6475;font-size:12px;margin:6px 0 0;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.legend .d{width:11px;height:11px;margin-left:4px;vertical-align:middle}
+details{margin:0 0 16px}
+summary{cursor:pointer;color:#1f4fb5;font-weight:600;font-size:14px}
+.cp{background:#fff;border:1px solid #e3e6ec;border-radius:10px;padding:8px 12px;margin:8px 0}
+.cp b{color:#1f3b73}
+.cp p{margin:3px 0;font-size:13px;line-height:1.8;color:#2d3443}
 .empty{background:#fff;border:1px dashed #c9d2df;border-radius:10px;padding:16px;color:#5b6475}
 </style>
-<h1>قراءة الجلسة كل ساعة <span style="font-size:13px;color:#8a92a3">(تجربة خاصة، غير منشورة)</span></h1>
-<p class="sub">نقاط القراءة: ١٠:٣٠ ثم ١١:٣٠ ثم ١٢:٣٠ ثم ١:٣٠ ثم ٢:٣٠. كل نقطة بتوصف الساعة نفسها، وبتربطها بالساعة اللي قبلها وبنفس التوقيت في الجلسة اللي قبلها.</p>
+<div class="wrap">
+<h1>قراءة الجلسة في كل ساعة <span style="font-size:13px;color:#8a92a3">(تجربة خاصة)</span></h1>
+<p class="sub">نسبة الشراء هي نصيب الصفقات المنفذة بسعر أعلى من الصفقة السابقة من إجمالي قيمة التداول؛ وتُعد الساعة شرائية إذا تجاوزت ٥٥٪، وبيعية إذا قلت عن ٤٥٪.</p>
 {% if ds %}<div class="days">{% for x in ds[:15] %}<a class="dt{% if x == d %} on{% endif %}" data-d="{{ x }}" href="?d={{ x }}"></a>{% endfor %}</div>{% endif %}
-{% macro row(xs, cls, label) %}{% if xs %}<div class="k"><b class="{{ cls }}">{{ label }}</b>{% for x in xs %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv&mark=none">{{ x.s }} <i>{% if x.chg is not none %}{{ '%+.1f'|format(x.chg) }}٪{% endif %}</i></a>{% endfor %}</div>{% endif %}{% endmacro %}
 {% if r and r.cps %}
-<div class="tl">
-{% for c in r.cps|reverse %}
-<div class="cp">
- <h2>الساعة {{ c.t }}</h2>
- <div class="rng">{% if loop.last %}أول نصف ساعة{% else %}الساعة المنتهية {{ c.t }}{% endif %}</div>
- <div class="nums">
-  <span>قيمة الساعة <b class="n">{{ c.wv }}</b> مليون</span>
-  <span>نصيب الشراء <b class="n {{ 'pos' if c.mb >= 55 else 'neg' if c.mb <= 45 else '' }}">{{ c.mb }}</b>٪</span>
-  <span>مرتفع <b class="n pos">{{ c.up }}</b> · متراجع <b class="n neg">{{ c.dn }}</b></span>
-  <span>من أول الجلسة <b class="n">{{ c.cv }}</b> مليون</span>
- </div>
- {% for t in c.lines %}<p>{{ t }}</p>{% endfor %}
- {{ row(c.buy, 'kb', 'الشراء مسيطر') }}
- {{ row(c.sell, 'ks', 'البيع مسيطر') }}
- {{ row(c.all_b, 'kk', 'شراء من أول الجلسة') }}
- {{ row(c.to_b, 'kf', 'انقلب لشراء') }}
- {{ row(c.to_s, 'kx', 'انقلب لبيع') }}
+<div id="verdict" class="verdict"></div>
+
+<div class="box"><h2>الأداء في كل ساعة</h2>
+<table><thead><tr><th>الساعة</th><th>الطابع</th><th>نسبة الشراء</th><th>قيمة الساعة</th><th>مرتفع / متراجع</th><th>مقارنة بالتوقيت نفسه في الجلسة السابقة</th></tr></thead><tbody id="hrs"></tbody></table>
 </div>
-{% endfor %}
+
+<div class="grid">
+ <div class="box"><h2>أسهم يستمر فيها الشراء</h2><table><tbody id="kb"></tbody></table></div>
+ <div class="box"><h2>أسهم يستمر فيها البيع</h2><table><tbody id="ks"></tbody></table></div>
+ <div class="box"><h2>أسهم بدأت تتحول إلى الشراء</h2><table><tbody id="tb"></tbody></table></div>
+ <div class="box"><h2>أسهم بدأت تتحول إلى البيع</h2><table><tbody id="ts"></tbody></table></div>
 </div>
+<div class="legend">كل دائرة تمثل ساعة، من اليمين إلى اليسار:
+ <span><i class="d dg"></i>الشراء مسيطر</span><span><i class="d dr"></i>البيع مسيطر</span><span><i class="d dn"></i>متوازن</span><span><i class="d de"></i>تداول محدود</span></div>
+
+<details style="margin-top:16px"><summary>التفاصيل الكاملة لكل ساعة</summary>
+{% for c in r.cps|reverse %}<div class="cp"><b>الساعة {{ c.t }}</b>{% for t in c.lines %}<p>{{ t }}</p>{% endfor %}</div>{% endfor %}
+</details>
 {% else %}
-<div class="empty">لسه مافيش قراءات. أول قراءة هتظهر بعد أول رفع لصفقات اليوم بعد ١٠:٣٠، أو بعد رفع آخر اليوم.</div>
+<div class="empty">لا توجد قراءات بعد. تظهر أول قراءة بعد رفع صفقات اليوم عقب الساعة ١٠:٣٠، أو بعد رفع بيانات نهاية الجلسة.</div>
 {% endif %}
+</div>
 <script>
 const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g,'٫');
 document.querySelectorAll('.dt').forEach(e=>e.textContent=AR(e.dataset.d.slice(8,10)+'‏/‏'+e.dataset.d.slice(5,7)+'‏/‏'+e.dataset.d.slice(0,4)));
-document.querySelectorAll('.n').forEach(e=>e.textContent=AR(e.textContent));
+{% if r and r.cps %}
+const R={{ r|tojson }}, C=R.cps, M=R.mx||[];
+const tone=v=>v>=55?['شرائي','pb','v-b']:v<=45?['بيعي','ps','v-s']:['متوازن','pm','v-m'];
+const pct=v=>v==null?'—':'<span class="'+(v>0?'pos':v<0?'neg':'')+'">‎'+(v>0?'+':'')+AR(v.toFixed(1))+'٪</span>';
+const L=C[C.length-1], T=tone(L.mb);
+// الحكم العام
+let trend='';
+if(C.length>=2){const a=C[C.length-2].mb,b=L.mb; trend=b-a>=5?' مع تزايد الشراء':a-b>=5?' مع تزايد البيع':'';}
+const v=document.getElementById('verdict'); v.className='verdict '+T[2];
+v.innerHTML='حتى الساعة '+L.t+': يغلب على السوق الطابع '+T[0]+trend+'، والأسهم المرتفعة '+AR(L.up)+' مقابل '+AR(L.dn)+' متراجعة.'
+ +'<span class="seq">نسبة الشراء في كل ساعة: '+C.map(c=>AR(c.mb)+'٪').join(' ← ')+'</span>';
+// الساعات
+document.getElementById('hrs').innerHTML=C.map((c,i)=>{
+  const t=tone(c.mb), rate=c.wv/(c.b-c.a), pr=i?C[i-1].wv/(C[i-1].b-C[i-1].a):null;
+  const ch=pr?Math.round((rate/pr-1)*100):null;
+  const arrow=ch==null||Math.abs(ch)<5?'':(ch>0?' <span class="pos">▲ '+AR(ch)+'٪</span>':' <span class="neg">▼ '+AR(-ch)+'٪</span>');
+  let y='<span class="mute">—</span>';
+  if(c.y){const d=Math.round((c.cv/c.y.cv-1)*100); y='قيمة التداول '+(d>=0?'<span class="pos">أعلى بنسبة '+AR(d)+'٪</span>':'<span class="neg">أقل بنسبة '+AR(-d)+'٪</span>')+' · نسبة الشراء '+AR(c.cmb)+'٪ مقابل '+AR(c.y.cmb)+'٪';}
+  return '<tr><td><b>'+c.t+'</b></td><td><span class="pill '+t[1]+'">'+t[0]+'</span></td><td><b>'+AR(c.mb)+'٪</b></td><td>'+AR(c.wv.toFixed(0))+' مليون'+arrow+'</td><td><span class="pos">'+AR(c.up)+'</span> / <span class="neg">'+AR(c.dn)+'</span></td><td>'+y+'</td></tr>';
+}).reverse().join('');
+// الأسهم
+const dot=h=>'<i class="d '+(h==null?'de':h>=60?'dg':h<=40?'dr':'dn')+'"></i>';
+const lastv=a=>{for(let i=a.length-1;i>=0;i--) if(a[i]!=null) return [a[i],i]; return [null,-1];};
+const prevv=(a,i)=>{for(let j=i-1;j>=0;j--) if(a[j]!=null) return a[j]; return null;};
+const S=M.map(x=>{const h=x.h.filter(v=>v!=null), [lv,li]=lastv(x.h);
+  return Object.assign({},x,{n:h.length,nb:h.filter(v=>v>=60).length,ns:h.filter(v=>v<=40).length,lv,pv:li>=0?prevv(x.h,li):null,live:li===C.length-1});});
+const need=n=>Math.max(2,Math.ceil(n*0.6));
+const kb=S.filter(x=>x.live&&x.lv>=60&&x.n>=2&&x.nb>=need(x.n)&&x.ns===0).sort((a,b)=>b.nb-a.nb||b.val-a.val).slice(0,6);
+const ks=S.filter(x=>x.live&&x.lv<=40&&x.n>=2&&x.ns>=need(x.n)&&x.nb===0).sort((a,b)=>b.ns-a.ns||b.val-a.val).slice(0,6);
+const used=new Set([...kb,...ks].map(x=>x.s));
+const tb=S.filter(x=>x.live&&!used.has(x.s)&&x.lv>=60&&x.pv!=null&&x.pv<=45).sort((a,b)=>b.val-a.val).slice(0,5);
+const ts=S.filter(x=>x.live&&!used.has(x.s)&&x.lv<=40&&x.pv!=null&&x.pv>=55).sort((a,b)=>b.val-a.val).slice(0,5);
+const row=x=>'<tr><td><a class="sym" href="/candles?m=egx&sym='+x.s+'&bare=1&src=tv&mark=none">'+x.s+'</a></td><td>'+pct(x.chg)+'</td><td><span class="dots">'+x.h.map(dot).join('')+'</span></td><td class="mute">'+AR(x.val.toFixed(0))+' مليون</td></tr>';
+const fill=(id,a)=>document.getElementById(id).innerHTML=a.length?a.map(row).join(''):'<tr><td class="mute">لا توجد</td></tr>';
+fill('kb',kb);fill('ks',ks);fill('tb',tb);fill('ts',ts);
+{% endif %}
 </script>
 {% endblock %}
