@@ -142,7 +142,27 @@ def compute(root, date):
         out.append(c)
         hist.append(dict(buy=buy, sell=sell))
 
-    r = dict(date=str(date), last=last_min, cps=out)
+    # مصفوفة الأسهم: نصيب الشراء في كل ساعة لأكبر الأسهم تداولًا
+    mx = []
+    if out:
+        b_last = out[-1]['b']
+        cu = d[d.mn < b_last]
+        tot = cu.groupby('Symbol')['Value'].sum().sort_values(ascending=False)
+        lastp = cu.groupby('Symbol')['Price'].last()
+        for sym in tot.index[:60]:
+            hs = []
+            for c in out:
+                w = d[(d.Symbol == sym) & (d.mn >= c['a']) & (d.mn < c['b'])]
+                v = float(w.Value.sum())
+                if v < MINV / 2:
+                    hs.append(None)
+                    continue
+                bb, ss = float(w.bv.sum()), float(w.sv.sum())
+                hs.append(None if bb + ss == 0 else int(round(bb / (bb + ss) * 100)))
+            pc = float(ref.loc[sym, 'pc']) if sym in ref.index else None
+            mx.append(dict(s=sym, val=round(float(tot[sym]) / 1e6, 1), h=hs,
+                           chg=None if not pc else round((float(lastp[sym]) / pc - 1) * 100, 1)))
+    r = dict(date=str(date), last=last_min, cps=out, mx=mx, prev=(prev_day or {}).get('date'))
     (folder(root) / f'{date}.json').write_text(json.dumps(r, ensure_ascii=False), encoding='utf-8')
     return r
 
@@ -202,4 +222,10 @@ def load(root, date):
     p = folder(root) / f'{date}.json'
     if not p.exists():
         return None
-    return json.loads(p.read_text(encoding='utf-8'))
+    r = json.loads(p.read_text(encoding='utf-8'))
+    if 'mx' not in r:          # محسوب بنسخة قديمة: نعيد الحساب من الصفقات المحفوظة
+        try:
+            r = compute(root, date) or r
+        except Exception:
+            pass
+    return r
