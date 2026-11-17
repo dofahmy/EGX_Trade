@@ -20,6 +20,8 @@ h1{font-size:20px;margin:0 0 6px}
 .ch i{unicode-bidi:isolate;font-style:normal;font-weight:500;color:#5b6475;font-size:12px}
 .h30n{color:#8a92a3;font-size:11px;margin-top:10px}
 @media (max-width:1000px){.top{flex-direction:column}.h30{width:auto}}
+.stat{font-size:17px;font-weight:700;color:#1f3b73;background:#eef4ff;border:1px solid #c9d8f5;border-radius:10px;padding:10px 14px;margin:6px 0 12px}
+.stat b{color:#178a52}
 .intro{color:#3c4454;font-size:15px;line-height:1.9;margin:0 0 12px;max-width:900px}
 .legend{color:#3c4454;font-size:15px;line-height:2;margin:22px 0 22px;max-width:900px}
 .legend .tag{margin:0 0 0 6px}
@@ -80,13 +82,14 @@ tr.bm td{background:#b9e8cb}
  <div class="h30u">يتحدث يوميًا بعد الساعة ١٠:٣٠ صباحًا بدقائق · آخر تحديث: <span class="dt" data-d="{{ h30.date }}"></span></div>
  <div class="h30d">تنفيذات أول نصف ساعة من ١٠:٠٠ حتى ١٠:٣٠</div>
  {% for t in h30.lines %}<p>{{ t }}</p>{% endfor %}
- {% if h30.buy %}<div class="h30k"><b class="kb">الشراء مسيطر</b>{% for x in h30.buy %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
- {% if h30.sell %}<div class="h30k"><b class="ks">البيع مسيطر</b>{% for x in h30.sell %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
- {% if h30.act %}<div class="h30k"><b class="ka">نشاط حجم تداول غير معتاد</b>{% for x in h30.act %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv">{{ x.s }} <i dir="rtl">{{ x.x }} ضعف أمس</i></a>{% endfor %}</div>{% endif %}
+ {% if h30.buy %}<div class="h30k"><b class="kb">الشراء مسيطر</b>{% for x in h30.buy %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv&mark=none">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
+ {% if h30.sell %}<div class="h30k"><b class="ks">البيع مسيطر</b>{% for x in h30.sell %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv&mark=none">{{ x.s }} <i>{{ '%+.1f'|format(x.chg) }}٪</i></a>{% endfor %}</div>{% endif %}
+ {% if h30.act %}<div class="h30k"><b class="ka">نشاط حجم تداول غير معتاد</b>{% for x in h30.act %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv&mark=none">{{ x.s }} <i dir="rtl">{{ x.x }} ضعف أمس</i></a>{% endfor %}</div>{% endif %}
  <div class="h30n">قراءة آلية لتنفيذات أول نصف ساعة، وليست توصية.</div>
 </aside>
 {% endif %}
 </div>
+<div class="stat" id="stat"></div>
 <p class="note"><span style="background:#b9e8cb;padding:0 6px;border-radius:4px;font-weight:700">أخضر</span> = السوق كله بيعمل قاع</p>
 <div class="bar">
  <label><input type="checkbox" id="st"> القوية فقط</label>
@@ -102,6 +105,14 @@ tr.bm td{background:#b9e8cb}
 </tr></thead><tbody id="tb"></tbody></table></div>
 <script>
 const D={{ rows|tojson }};
+window.addEventListener('DOMContentLoaded',function(){
+  const L='{{ last or '' }}', q=D.filter(r=>r.liq), md=q.length?q.reduce((a,r)=>r.d>a?r.d:a,''):'';
+  const el=document.getElementById('stat'); if(!L||!md){return;}
+  const n=q.filter(r=>r.d===L).length;
+  el.innerHTML = md===L
+    ? 'ظهرت <b>'+AR(n)+'</b> '+(n===1?'إشارة جديدة':'إشارات جديدة')+' في جلسة اليوم '+DT(L)+'.'
+    : 'آخر إشارة ظهرت يوم <b>'+DT(md)+'</b>، ولا توجد إشارات جديدة حتى جلسة <b>'+DT(L)+'</b>.';
+});
 const BM={{ bm|tojson }};
 const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g,'٫');
 const DT=s=>s?AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4)):'—';

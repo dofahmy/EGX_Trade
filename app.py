@@ -796,7 +796,9 @@ def candles_page():
     sel = (request.args.get('sym') or (stocks[0]['sym'] if stocks else '')).upper()
     bare = request.args.get('bare') == '1'
     mark = request.args.get('mark')
-    if bare and not mark and m == 'egx':
+    if mark == 'none':          # شارت من غير علامة إشارة (من مربع بداية الجلسة)
+        mark = None
+    elif bare and not mark and m == 'egx':
         try:
             xb = xbadger.signals(store)
             z = xb[xb['sym'] == sel]
