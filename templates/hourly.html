@@ -56,7 +56,7 @@ summary{cursor:pointer;color:#1f4fb5;font-weight:600;font-size:14px}
 <div class="legend">كل دائرة تمثل ساعة، من اليمين إلى اليسار:
  <span><i class="d dg"></i>الشراء مسيطر</span><span><i class="d dr"></i>البيع مسيطر</span><span><i class="d dn"></i>متوازن</span><span><i class="d de"></i>تداول محدود</span></div>
 
-<details style="margin-top:16px"><summary>التفاصيل الكاملة لكل ساعة</summary>
+<details open style="margin-top:16px"><summary>التفاصيل الكاملة لكل ساعة</summary>
 {% for c in r.cps|reverse %}<div class="cp"><b>الساعة {{ c.t }}</b>{% for t in c.lines %}<p>{{ t }}</p>{% endfor %}</div>{% endfor %}
 </details>
 {% else %}
