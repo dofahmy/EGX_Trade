@@ -23,6 +23,7 @@ import swing5
 import tvdaily
 import stats
 import m30
+import hourly
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data' if Path('/data').exists() else './data')
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -63,6 +64,28 @@ except Exception as e:
 def _count(resp):
     stats.hit(request, resp)
     return resp
+
+
+def _private():
+    pw = stats.password()
+    if not pw:
+        return Response('الصفحة دي مقفولة لحد ما تضيفي متغير STATS_PASSWORD في ريلواي.', 403, {'Content-Type': 'text/plain; charset=utf-8'})
+    a_ = request.authorization
+    if not a_ or a_.password != pw:
+        return Response('محتاج كلمة السر', 401, {'WWW-Authenticate': 'Basic realm="stats"'})
+    return None
+
+
+@app.route('/hourly')
+def hourly_page():
+    """قراءة الجلسة كل ساعة (تجربة خاصة، بنفس كلمة سر العداد)."""
+    no = _private()
+    if no:
+        return no
+    root = STORES['egx'].root
+    ds = hourly.dates(root)
+    d = request.args.get('d') or (ds[0] if ds else None)
+    return render_template('hourly.html', r=hourly.load(root, d) if d else None, ds=ds, d=d)
 
 
 @app.route('/stats')
@@ -479,6 +502,10 @@ def upload():
             with tempfile.TemporaryDirectory() as td:
                 g_ = engine.sigma_files(tmp, Path(td)) or []
                 for d_, c_ in (g_.items() if isinstance(g_, dict) else g_):
+                    try:
+                        hourly.ingest(store.root, str(d_), c_)
+                    except Exception:
+                        app.logger.exception('hourly from upload')
                     if str(d_) == cairo_today():
                         m30.try_from(store.root, str(d_), c_)
         except Exception:
@@ -671,6 +698,16 @@ def upload_noon():
         if not got:
             return 'الملف مش ملف صفقات سيجما', 400
         date, csv = sorted(got.items())[-1] if isinstance(got, dict) else got[-1]
+        try:   # قراءة كل ساعة (صفحة خاصة)
+            hourly.ingest(store.root, date, csv)
+        except Exception:
+            app.logger.exception('hourly')
+        if (request.form.get('kind') or request.args.get('kind')) == 'hour':
+            try:
+                m30.try_from(store.root, date, csv)
+            except Exception:
+                pass
+            return 'تمام', 200
         try:   # أي رفع لصفقات اليوم بعد ١٠:٣٠ بيعمل ملخص بداية الجلسة
             if (request.form.get('kind') or request.args.get('kind')) != 'm30':
                 m30.try_from(store.root, date, csv)

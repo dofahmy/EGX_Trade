@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}قراءة الجلسة كل ساعة{% endblock %}
+{% block body %}
+<style>
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:#5b6475;font-size:13px;margin:0 0 14px}
+.days{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px}
+.days a{background:#fff;border:1px solid #d9dfe8;border-radius:6px;padding:3px 10px;font-size:13px;color:#1f3b73;text-decoration:none}
+.days a.on{background:#1f3b73;color:#fff}
+.tl{position:relative;padding-right:22px;max-width:900px}
+.tl:before{content:'';position:absolute;right:7px;top:6px;bottom:6px;width:2px;background:#d9dfe8}
+.cp{position:relative;background:#fff;border:1px solid #d9dfe8;border-radius:12px;padding:12px 16px;margin:0 0 14px}
+.cp:before{content:'';position:absolute;right:-21px;top:16px;width:12px;height:12px;border-radius:50%;background:#1f3b73;border:2px solid #fff;box-shadow:0 0 0 1px #d9dfe8}
+.cp h2{font-size:17px;margin:0 0 2px;color:#1f3b73}
+.cp .rng{color:#8a92a3;font-size:12px;margin-bottom:8px}
+.nums{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.nums span{background:#f1f4f9;border-radius:6px;padding:3px 9px;font-size:13px}
+.nums b{font-weight:700}
+.cp p{margin:0 0 5px;font-size:14px;line-height:1.85;color:#2d3443}
+.k{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:7px 0 0}
+.k b{font-size:12px;padding:2px 8px;border-radius:5px;color:#fff}
+.kb{background:#178a52}.ks{background:#c0392b}.kk{background:#0f766e}.kf{background:#b7791f}.kx{background:#8e4b10}
+.ch{direction:ltr;unicode-bidi:isolate;font-size:13px;font-weight:700;color:#1f4fb5;background:#f1f4f9;border-radius:5px;padding:2px 7px;text-decoration:none}
+.ch i{unicode-bidi:isolate;font-style:normal;font-weight:500;color:#5b6475;font-size:12px}
+.pos{color:#178a52}.neg{color:#c0392b}
+.empty{background:#fff;border:1px dashed #c9d2df;border-radius:10px;padding:16px;color:#5b6475}
+</style>
+<h1>قراءة الجلسة كل ساعة <span style="font-size:13px;color:#8a92a3">(تجربة خاصة، غير منشورة)</span></h1>
+<p class="sub">نقاط القراءة: ١٠:٣٠ ثم ١١:٣٠ ثم ١٢:٣٠ ثم ١:٣٠ ثم ٢:٣٠. كل نقطة بتوصف الساعة نفسها، وبتربطها بالساعة اللي قبلها وبنفس التوقيت في الجلسة اللي قبلها.</p>
+{% if ds %}<div class="days">{% for x in ds[:15] %}<a class="dt{% if x == d %} on{% endif %}" data-d="{{ x }}" href="?d={{ x }}"></a>{% endfor %}</div>{% endif %}
+{% macro row(xs, cls, label) %}{% if xs %}<div class="k"><b class="{{ cls }}">{{ label }}</b>{% for x in xs %}<a class="ch" href="/candles?m=egx&sym={{ x.s }}&bare=1&src=tv&mark=none">{{ x.s }} <i>{% if x.chg is not none %}{{ '%+.1f'|format(x.chg) }}٪{% endif %}</i></a>{% endfor %}</div>{% endif %}{% endmacro %}
+{% if r and r.cps %}
+<div class="tl">
+{% for c in r.cps|reverse %}
+<div class="cp">
+ <h2>الساعة {{ c.t }}</h2>
+ <div class="rng">{% if loop.last %}أول نصف ساعة{% else %}الساعة المنتهية {{ c.t }}{% endif %}</div>
+ <div class="nums">
+  <span>قيمة الساعة <b class="n">{{ c.wv }}</b> مليون</span>
+  <span>نصيب الشراء <b class="n {{ 'pos' if c.mb >= 55 else 'neg' if c.mb <= 45 else '' }}">{{ c.mb }}</b>٪</span>
+  <span>مرتفع <b class="n pos">{{ c.up }}</b> · متراجع <b class="n neg">{{ c.dn }}</b></span>
+  <span>من أول الجلسة <b class="n">{{ c.cv }}</b> مليون</span>
+ </div>
+ {% for t in c.lines %}<p>{{ t }}</p>{% endfor %}
+ {{ row(c.buy, 'kb', 'الشراء مسيطر') }}
+ {{ row(c.sell, 'ks', 'البيع مسيطر') }}
+ {{ row(c.all_b, 'kk', 'شراء من أول الجلسة') }}
+ {{ row(c.to_b, 'kf', 'انقلب لشراء') }}
+ {{ row(c.to_s, 'kx', 'انقلب لبيع') }}
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty">لسه مافيش قراءات. أول قراءة هتظهر بعد أول رفع لصفقات اليوم بعد ١٠:٣٠، أو بعد رفع آخر اليوم.</div>
+{% endif %}
+<script>
+const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g,'٫');
+document.querySelectorAll('.dt').forEach(e=>e.textContent=AR(e.dataset.d.slice(8,10)+'‏/‏'+e.dataset.d.slice(5,7)+'‏/‏'+e.dataset.d.slice(0,4)));
+document.querySelectorAll('.n').forEach(e=>e.textContent=AR(e.textContent));
+</script>
+{% endblock %}
