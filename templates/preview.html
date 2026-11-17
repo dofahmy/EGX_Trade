@@ -115,7 +115,7 @@ window.addEventListener('DOMContentLoaded',function(){
 });
 const BM={{ bm|tojson }};
 const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g,'٫');
-const DT=s=>s?AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4)):'—';
+const DT=s=>s?AR(s.slice(8,10)+'\u200F/\u200F'+s.slice(5,7)+'\u200F/\u200F'+s.slice(0,4)):'—';
 document.querySelectorAll('.dt').forEach(e=>e.textContent=DT(e.dataset.d));
 {% if last %}document.getElementById('upd').textContent=DT('{{ last }}');{% endif %}
 const ys=document.getElementById('yr'); [...new Set(D.map(r=>r.d.slice(0,4)))].sort().reverse().forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=AR(y);ys.appendChild(o);});

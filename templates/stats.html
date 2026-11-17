@@ -31,7 +31,7 @@ th{background:#eef1f5;font-weight:600;font-size:13px;color:#4a5263}
 <script>
 const R={{ r|tojson }};
 const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
-const DT=s=>AR(s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4));
+const DT=s=>AR(s.slice(8,10)+'\u200F/\u200F'+s.slice(5,7)+'\u200F/\u200F'+s.slice(0,4));
 const NM={'/swing5':'إشارات إيجابية على الأسهم','/candles':'الشارت','/main':'الصفحة القديمة'};
 const E='<tr><td colspan="4" class="mute">لسه مافيش زيارات</td></tr>';
 document.getElementById('tv').textContent=AR(R.tot.v||0);

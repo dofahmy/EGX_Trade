@@ -67,7 +67,7 @@ const UP = '#1baf7a', DN = '#e34948', BLUE = '#2a78d6', GOLD = '#e8a317';
 const NS = 'http://www.w3.org/2000/svg';
 const AR = s => String(s).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]).replace(/\./g, '٫');
 const SG = v => (v > 0 ? '+' : '') + v;
-const DT = d => `${AR(d.slice(8))}/${AR(d.slice(5, 7))}/${AR(d.slice(0, 4))}`;
+const DT = d => `${AR(d.slice(8))}\u200F/\u200F${AR(d.slice(5, 7))}\u200F/\u200F${AR(d.slice(0, 4))}`;
 function el(t, a, p){ const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p && p.appendChild(e); return e; }
 const tip = document.getElementById('cc-tip');
 function hover(e, html){
