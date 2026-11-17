@@ -29,6 +29,13 @@ h1{font-size:20px;margin:0 0 6px}
 .d{width:12px;height:12px;border-radius:50%;display:inline-block;vertical-align:middle}
 .dg{background:#1fa564}.dr{background:#d64535}.dn{background:#c9ced6}.de{background:#fff;border:1.5px solid #d3d8e0}
 .hleg{font-size:11px;color:#8a92a3;margin:8px 0 0}.hleg .d{width:9px;height:9px;margin:0 6px 0 2px}
+.cta{display:flex;align-items:center;gap:12px;text-decoration:none;border-radius:14px;padding:12px 16px;margin-top:12px;background:linear-gradient(135deg,#1f3b73,#2b5cb8);color:#fff;box-shadow:0 4px 14px rgba(31,59,115,.25);transition:transform .15s}
+.cta:hover{transform:translateY(-2px)}
+.cta .ic{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:rgba(255,255,255,.15)}
+.cta .bi{width:40px;height:44px}
+.cta .tx{flex:1;display:flex;flex-direction:column;line-height:1.5}
+.cta .tx b{font-size:16px}.cta .tx small{font-size:12px;opacity:.9}
+.cta .ar{font-size:26px;font-weight:800}
 .hmore{display:inline-block;margin-top:8px;font-weight:700;color:#1f4fb5;text-decoration:none;font-size:14px}
 .h30n{color:#8a92a3;font-size:11px;margin-top:10px}
 @media (max-width:1000px){.top{flex-direction:column}.h30{width:auto}}
@@ -97,7 +104,21 @@ tr.bm td{background:#b9e8cb}
  <div class="hl"><b class="kb">سيطرة قوة الشراء ساعة بساعة</b><table id="hkb"></table></div>
  <div class="hl"><b class="ks">سيطرة قوة البيع ساعة بساعة</b><table id="hks"></table></div>
  <div class="hleg">كل دائرة تمثل ساعة، من اليمين إلى اليسار: <i class="d dg"></i>شراء <i class="d dr"></i>بيع <i class="d dn"></i>متوازن <i class="d de"></i>تداول محدود</div>
- <a class="hmore" href="/hourly?d={{ hr.date }}">عرض التفاصيل لكل ساعة ←</a>
+ <a class="cta" href="/hourly?d={{ hr.date }}"><span class="ic"><svg class="bi" viewBox="0 0 64 70" aria-hidden="true">
+<line x1="32" y1="10" x2="32" y2="3" stroke="#c9ced6" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="32" cy="3.5" r="3.5" fill="#3ddc97"/>
+<rect x="6" y="10" width="52" height="40" rx="17" fill="url(#bgX)" stroke="#8e959f" stroke-width="1.5"/>
+<rect x="2" y="24" width="6" height="13" rx="3" fill="#3ddc97"/><rect x="56" y="24" width="6" height="13" rx="3" fill="#3ddc97"/>
+<rect x="13" y="18" width="38" height="24" rx="11" fill="#14213d"/>
+<path d="M19 30 q4 -6 8 0" stroke="#3ddc97" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M37 30 q4 -6 8 0" stroke="#3ddc97" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M26 35 q6 5 12 0" stroke="#3ddc97" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<path d="M20 50 h24 v8 q0 6 -6 6 h-12 q-6 0 -6 -6z" fill="url(#bgX)" stroke="#8e959f" stroke-width="1.5"/>
+<path d="M18 54 q-6 2 -7 9" stroke="#c9ced6" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M46 54 q6 -2 8 -9" stroke="#c9ced6" stroke-width="4" fill="none" stroke-linecap="round"/>
+<circle cx="55" cy="43" r="3.5" fill="#3ddc97"/>
+<defs><linearGradient id="bgX" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#d5dae1"/><stop offset="1" stop-color="#9aa1ab"/></linearGradient></defs>
+</svg></span><span class="tx"><b>شاهد الجلسة كاملة ساعة بساعة</b><small>الأسهم الأقوى شراءً وبيعًا، والأسهم التي غيّرت اتجاهها</small></span><span class="ar">←</span></a>
  <div class="h30n">قراءة آلية لتنفيذات الجلسة، وليست توصية.</div>
 </aside>
 {% elif h30 %}
