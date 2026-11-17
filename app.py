@@ -79,9 +79,6 @@ def _private():
 @app.route('/hourly')
 def hourly_page():
     """قراءة الجلسة كل ساعة (تجربة خاصة، بنفس كلمة سر العداد)."""
-    no = _private()
-    if no:
-        return no
     root = STORES['egx'].root
     ds = hourly.dates(root)
     d = request.args.get('d') or (ds[0] if ds else None)
@@ -314,7 +311,7 @@ def swing5_page(preview=False):
         h30 = m30.latest(STORES["egx"].root)
     except Exception:
         h30 = None
-    if preview:   # معاينة: مربع قراءة الجلسة ساعة بساعة
+    if True:      # الصفحة الرئيسية: مربع قراءة الجلسة في كل ساعة
         hr = None
         try:
             ds_ = hourly.dates(STORES['egx'].root)
