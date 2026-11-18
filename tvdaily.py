@@ -152,7 +152,7 @@ def start(store, log=print):
             except Exception:
                 now = dt.datetime.utcnow() + dt.timedelta(hours=2)
             key = (now.date(), now.hour)
-            if now.weekday() in (6, 0, 1, 2, 3) and (now.hour, now.minute) in ((15, 45), (21, 0)) and key not in done:
+            if now.weekday() in (6, 0, 1, 2, 3) and (now.hour, now.minute) in ((14, 50), (15, 45), (21, 0)) and key not in done:
                 done.add(key)
                 refresh(store, log)
             time.sleep(30)
