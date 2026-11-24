@@ -85,6 +85,16 @@ def hourly_page():
     return render_template('hourly.html', r=hourly.load(root, d) if d else None, ds=ds, d=d)
 
 
+@app.route('/hourly/days')
+def hourly_days_page():
+    """الأيام اللي قايمة الشراء أو البيع فيها آخر اليوم كانت فاضية أو فيها سهم واحد (خاصة)."""
+    no = _private()
+    if no:
+        return no
+    rows = hourly.days_report(STORES['egx'].root)
+    return render_template('hourly_days.html', rows=rows)
+
+
 @app.route('/stats')
 def stats_page():
     """عداد الزيارات: محمي بكلمة سر STATS_PASSWORD من متغيرات ريلواي."""

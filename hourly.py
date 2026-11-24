@@ -229,3 +229,39 @@ def load(root, date):
         except Exception:
             pass
     return r
+
+
+def lists(r):
+    """نفس منطق قايمتي «سيطرة قوة الشراء/البيع ساعة بساعة» اللي في الصفحة، من غير حد أقصى للعدد."""
+    C, M = r.get('cps') or [], r.get('mx') or []
+    if not C:
+        return [], []
+    nmin = min(3, len(C))
+    kb, ks = [], []
+    for x in M:
+        h = [v for v in x['h'] if v is not None]
+        li = max((i for i, v in enumerate(x['h']) if v is not None), default=-1)
+        if li != len(C) - 1 or len(h) < nmin:
+            continue
+        avg, lv = sum(h) / len(h), x['h'][li]
+        if avg >= 55 and lv >= 50:
+            kb.append((x['s'], round(avg)))
+        elif avg <= 45 and lv <= 50:
+            ks.append((x['s'], round(avg)))
+    kb.sort(key=lambda t: -t[1])
+    ks.sort(key=lambda t: t[1])
+    return kb, ks
+
+
+def days_report(root):
+    out = []
+    for d in dates(root):
+        r = load(root, d)
+        if not r or not r.get('cps'):
+            continue
+        kb, ks = lists(r)
+        C = r['cps']
+        out.append(dict(d=d, t=C[-1]['t'], full=C[-1]['b'] >= 870, nb=len(kb), ns=len(ks),
+                        kb=[s for s, _ in kb[:5]], ks=[s for s, _ in ks[:5]],
+                        mb=[c['mb'] for c in C], up=C[-1]['up'], dn=C[-1]['dn'], n=len(r.get('mx') or [])))
+    return out
