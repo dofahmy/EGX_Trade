@@ -87,10 +87,7 @@ def hourly_page():
 
 @app.route('/hourly/days')
 def hourly_days_page():
-    """الأيام اللي قايمة الشراء أو البيع فيها آخر اليوم كانت فاضية أو فيها سهم واحد (خاصة)."""
-    no = _private()
-    if no:
-        return no
+    """القائمة كاملة: كل الأيام وعدد أسهم الشراء والبيع (مفتوحة للزوار)."""
     rows = hourly.days_report(STORES['egx'].root)
     return render_template('hourly_days.html', rows=rows)
 

@@ -12,11 +12,12 @@ th{background:#f6f8fb;color:#5b6475;font-size:13px}
 .sym{direction:ltr;unicode-bidi:isolate;font-weight:700;color:#1f4fb5;font-size:12px}
 tr.hit td{background:#fffaf0}
 .f{margin:0 0 10px}
+.mute{color:#8a92a3;font-size:12px;font-weight:400}
 </style>
-<h1>أيام قايمتي «سيطرة قوة الشراء» و«سيطرة قوة البيع»</h1>
-<p class="sub">العدد هو كل الأسهم اللي عدّت الشرط آخر قراءة في اليوم (الصفحة بتعرض أول ٥ بس). الأيام اللي فيها قايمة بصفر أو سهم واحد متعلّمة.</p>
+<h1>«سيطرة قوة الشراء» مقابل «سيطرة قوة البيع»</h1>
+<p class="sub">العدد هو كل الأسهم اللي عدّت الشرط آخر قراءة في اليوم (الصفحة بتعرض أول ٥ بس). الأيام اللي فيها قايمة بصفر أو سهم واحد متعلّمة. ولو الرقم اتغيّر بعد رفع متأخر، بيظهر جنبه الرقم اللي كان ظاهر وقتها (من النهارده وطالع).</p>
 <label class="f"><input type="checkbox" id="only" checked> الأيام اللي فيها قايمة بصفر أو سهم واحد بس</label>
-<div class="box"><table><thead><tr><th>اليوم</th><th>آخر قراءة</th><th>عدد الشراء</th><th>عدد البيع</th><th>نسبة الشراء في كل ساعة</th><th>مرتفع / متراجع</th><th>أسهم الشراء</th><th>أسهم البيع</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="box"><table><thead><tr><th>اليوم</th><th>آخر قراءة</th><th>عدد الشراء</th><th>عدد البيع</th><th>نسبة الشراء في كل ساعة</th><th>المرتفع والمتراجع</th><th>أسهم الشراء</th><th>أسهم البيع</th></tr></thead><tbody id="tb"></tbody></table></div>
 <script>
 const R={{ rows|tojson }};
 const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
@@ -24,8 +25,8 @@ const DT=s=>AR(s.slice(8,10)+'‏/‏'+s.slice(5,7)+'‏/‏'+s.slice(0,4));
 const cnt=v=>v<=1?'<span class="z">'+AR(v)+'</span>':'<span class="ok">'+AR(v)+'</span>';
 function draw(){
   const only=document.getElementById('only').checked;
-  const q=R.filter(r=>!only||r.nb<=1||r.ns<=1);
-  document.getElementById('tb').innerHTML=q.map(r=>'<tr class="'+(r.nb<=1||r.ns<=1?'hit':'')+'"><td><a href="/hourly?d='+r.d+'">'+DT(r.d)+'</a></td><td>'+r.t+(r.full?'':' (اليوم مش كامل)')+'</td><td>'+cnt(r.nb)+'</td><td>'+cnt(r.ns)+'</td><td>'+r.mb.map(v=>AR(v)+'٪').join(' ← ')+'</td><td>'+AR(r.up)+' / '+AR(r.dn)+'</td><td>'+r.kb.map(s=>'<span class="sym">'+s+'</span>').join(' ')+'</td><td>'+r.ks.map(s=>'<span class="sym">'+s+'</span>').join(' ')+'</td></tr>').join('')||'<tr><td colspan="8">مافيش أيام بالشرط ده</td></tr>';
+  const q=R.filter(r=>!only||r.nb<=1||r.ns<=1||r.snb<=1||r.sns<=1);
+  document.getElementById('tb').innerHTML=q.map(r=>'<tr class="'+(r.nb<=1||r.ns<=1||r.snb<=1||r.sns<=1?'hit':'')+'"><td><a href="/hourly?d='+r.d+'">'+DT(r.d)+'</a></td><td>'+r.t+(r.full?'':' (اليوم مش كامل)')+'</td><td>'+cnt(r.nb)+'</td><td>'+cnt(r.ns)+'</td><td>'+r.mb.map(v=>AR(v)+'٪').join(' ← ')+'</td><td><span style="color:#178a52;font-weight:700">'+AR(r.up)+'</span> مرتفع · <span style="color:#c0392b;font-weight:700">'+AR(r.dn)+'</span> متراجع</td><td>'+r.kb.map(s=>'<span class="sym">'+s+'</span>').join(' ')+'</td><td>'+r.ks.map(s=>'<span class="sym">'+s+'</span>').join(' ')+'</td></tr>').join('')||'<tr><td colspan="8">مافيش أيام بالشرط ده</td></tr>';
 }
 document.getElementById('only').onchange=draw; draw();
 </script>

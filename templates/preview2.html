@@ -8,6 +8,9 @@ h1{font-size:20px;margin:0 0 6px}
 .top{display:flex;gap:24px;align-items:stretch}
 .topr{flex:1;min-width:0;display:flex;flex-direction:column}
 .h30{position:relative;margin-top:30px;width:430px;flex:none;background:#fff;border:1px solid #d9dfe8;border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.fulllist{position:absolute;left:78px;top:-16px;display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#1f3b73,#2b5cb8);color:#fff;text-decoration:none;font-weight:700;font-size:13.5px;padding:7px 14px;border-radius:999px;box-shadow:0 3px 10px rgba(31,59,115,.3);transition:transform .15s}
+.fulllist:hover{transform:translateY(-2px)}
+.fulllist svg{width:15px;height:15px;fill:#fff;opacity:.9}
 .bot30{position:absolute;width:52px;height:57px;left:14px;top:-44px;transform:rotate(-8deg);filter:drop-shadow(0 3px 4px rgba(0,0,0,.18))}
 .h30t{font-size:17px;font-weight:800;color:#1f3b73}
 .h30u{font-size:14px;font-weight:700;color:#178a52;background:#eaf7f0;border-radius:6px;padding:4px 8px;margin:6px 0 2px;display:inline-block}
@@ -97,6 +100,7 @@ tr.bm td{background:#b9e8cb}
 <circle cx="55" cy="43" r="3.5" fill="#3ddc97"/>
 <defs><linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#d5dae1"/><stop offset="1" stop-color="#9aa1ab"/></linearGradient></defs>
 </svg>
+ <a class="fulllist" href="/hourly/days"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="3" width="3" height="3" rx="1"/><rect x="7" y="3.5" width="11" height="2" rx="1"/><rect x="2" y="8.5" width="3" height="3" rx="1"/><rect x="7" y="9" width="11" height="2" rx="1"/><rect x="2" y="14" width="3" height="3" rx="1"/><rect x="7" y="14.5" width="11" height="2" rx="1"/></svg>القائمة كاملة</a>
  <div class="h30t">قراءة الجلسة في كل ساعة</div>
  <div class="h30u">يُحدَّث كل ساعة من ١٠:٣٠ حتى ٢:٣٠<br>آخر تحديث: جلسة <bdi class="dt" data-d="{{ hr.date }}"></bdi> الساعة <bdi>{{ hr.cps[-1].t }}</bdi></div>
  <div id="hv" class="hv"></div>
