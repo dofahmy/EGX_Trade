@@ -717,6 +717,8 @@ def upload_noon():
             hourly.ingest(store.root, date, csv)
         except Exception:
             app.logger.exception('hourly')
+        if (request.form.get('kind') or request.args.get('kind')) == 'hourback':
+            return 'تمام', 200       # أيام قديمة: قراءة كل ساعة بس
         if (request.form.get('kind') or request.args.get('kind')) == 'hour':
             try:
                 m30.try_from(store.root, date, csv)
