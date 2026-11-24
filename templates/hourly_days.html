@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}أيام القوايم الفاضية{% endblock %}
+{% block body %}
+<style>
+h1{font-size:20px;margin:0 0 4px}.sub{color:#5b6475;font-size:13px;margin:0 0 12px}
+.box{background:#fff;border:1px solid #d9dfe8;border-radius:12px;padding:6px 0;max-width:1100px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid #eef0f3;text-align:right;white-space:nowrap}
+th{background:#f6f8fb;color:#5b6475;font-size:13px}
+.z{background:#fdecea;color:#9b2c1f;font-weight:800;border-radius:6px;padding:1px 9px}
+.ok{color:#5b6475}
+.sym{direction:ltr;unicode-bidi:isolate;font-weight:700;color:#1f4fb5;font-size:12px}
+tr.hit td{background:#fffaf0}
+.f{margin:0 0 10px}
+</style>
+<h1>أيام قايمتي «سيطرة قوة الشراء» و«سيطرة قوة البيع»</h1>
+<p class="sub">العدد هو كل الأسهم اللي عدّت الشرط آخر قراءة في اليوم (الصفحة بتعرض أول ٥ بس). الأيام اللي فيها قايمة بصفر أو سهم واحد متعلّمة.</p>
+<label class="f"><input type="checkbox" id="only" checked> الأيام اللي فيها قايمة بصفر أو سهم واحد بس</label>
+<div class="box"><table><thead><tr><th>اليوم</th><th>آخر قراءة</th><th>عدد الشراء</th><th>عدد البيع</th><th>نسبة الشراء في كل ساعة</th><th>مرتفع / متراجع</th><th>أسهم الشراء</th><th>أسهم البيع</th></tr></thead><tbody id="tb"></tbody></table></div>
+<script>
+const R={{ rows|tojson }};
+const AR=s=>String(s).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+const DT=s=>AR(s.slice(8,10)+'‏/‏'+s.slice(5,7)+'‏/‏'+s.slice(0,4));
+const cnt=v=>v<=1?'<span class="z">'+AR(v)+'</span>':'<span class="ok">'+AR(v)+'</span>';
+function draw(){
+  const only=document.getElementById('only').checked;
+  const q=R.filter(r=>!only||r.nb<=1||r.ns<=1);
+  document.getElementById('tb').innerHTML=q.map(r=>'<tr class="'+(r.nb<=1||r.ns<=1?'hit':'')+'"><td><a href="/hourly?d='+r.d+'">'+DT(r.d)+'</a></td><td>'+r.t+(r.full?'':' (اليوم مش كامل)')+'</td><td>'+cnt(r.nb)+'</td><td>'+cnt(r.ns)+'</td><td>'+r.mb.map(v=>AR(v)+'٪').join(' ← ')+'</td><td>'+AR(r.up)+' / '+AR(r.dn)+'</td><td>'+r.kb.map(s=>'<span class="sym">'+s+'</span>').join(' ')+'</td><td>'+r.ks.map(s=>'<span class="sym">'+s+'</span>').join(' ')+'</td></tr>').join('')||'<tr><td colspan="8">مافيش أيام بالشرط ده</td></tr>';
+}
+document.getElementById('only').onchange=draw; draw();
+</script>
+{% endblock %}
